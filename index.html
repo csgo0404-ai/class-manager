@@ -1,8 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <title>🏫 우리반 매니저</title>
+<link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -562,7 +564,7 @@ font-variant-numeric: tabular-nums !important;
     position: fixed;
     min-width: 300px; 
     min-height: 190px;
-    background-image: url('https://lh3.googleusercontent.com/d/1nmqdppJ6eoQUxN45eYBpJZnUp-XagPCN') !important;
+background-image: url('./bomb.png') !important;
     background-size: 100% 100% !important; /* 배경 이미지가 창 크기에 딱 맞게 조절됨 */
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -1073,15 +1075,37 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     backdrop-filter: blur(5px); 
     pointer-events: none; 
 }
-      .countdown-text-group { 
-    font-size: 15rem; 
-    font-family: 'Jua', sans-serif; 
+.countdown-text-race { 
+    font-size: 20rem; 
+    font-family: 'Dongle', sans-serif; /* 폰트 유지 */
     font-weight: 900;
-    color: #facc15; /* 노란색 통일 */
-    text-shadow: 0 0 50px rgba(250, 204, 21, 0.8); /* 광채 효과 통일 */
-    /* 애니메이션도 동일하게 변경 (countdown-pop 사용) */
-    animation: countdown-pop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+    
+    /* 색상 복구 (하얀색 글씨 + 입체감 있는 초록 그림자) */
+    color: #fff; 
+    text-shadow: 0 10px 0 #059669, 0 20px 40px rgba(0,0,0,0.5); 
+    
+    display: inline-block;
+    white-space: nowrap;
+    text-align: center;
+    /* 팝업 애니메이션 효과는 유지 */
+    animation: pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
 }
+
+
+.countdown-text-group { 
+    font-size: 20rem; 
+    
+    /* [★수정] !important를 붙여서 강제 적용 */
+    font-family: 'Dongle', sans-serif !important; 
+    
+    font-weight: 700;
+    color: #fbbf24; 
+    text-shadow: 0 0 30px rgba(0,0,0,0.5), 0 0 10px white; 
+    animation: pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+    line-height: 0.8;
+}
+
+
                 .result-overlay-race { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fade-in 0.5s; }
         
         /* [돌멩이 선발 미니창] */
@@ -1134,21 +1158,6 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     margin-bottom: 2px;
 }
 
-.countdown-text-race { 
-    font-size: 15rem; 
-    font-family: 'Black Han Sans', sans-serif; /* 폰트 유지 */
-    font-weight: 900;
-    
-    /* 색상 복구 (하얀색 글씨 + 입체감 있는 초록 그림자) */
-    color: #fff; 
-    text-shadow: 0 10px 0 #059669, 0 20px 40px rgba(0,0,0,0.5); 
-    
-    display: inline-block;
-    white-space: nowrap;
-    text-align: center;
-    /* 팝업 애니메이션 효과는 유지 */
-    animation: pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
-}
         .rock-count-num {
     font-family: 'Jua', sans-serif !important; /* 귀여운 폰트 적용 */
     font-size: 2rem; /* 숫자가 잘 보이도록 크기 조정 */
@@ -1220,7 +1229,7 @@ color: #374151 !important;
 @keyframes shake { 0% { transform: translateX(0); } 50% { transform: translateX(-3px); } 100% { transform: translateX(3px); } }
 @keyframes drip { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
 
-        .countdown-text-group { font-size: 15rem; font-family: 'Black Han Sans', sans-serif; color: #fbbf24; text-shadow: 0 0 30px rgba(0,0,0,0.5), 0 0 10px white; animation: pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        
   
         /* [모둠 편성 결과] */
         .slot-spinning span { display: inline-block; filter: blur(3px); transform: scale(0.9) skewX(-10deg); transition: all 0.05s; opacity: 0.8; }
@@ -1580,13 +1589,17 @@ body .blackboard-editor font[size="7"] {
 }
 
 .shuffle-countdown-text {
-    font-size: 15rem;
+    font-size: 20rem;
     font-weight: 900;
-    font-family: 'Black Han Sans', sans-serif; /* 폰트 통일 */
+    
+    /* [★수정] 폰트를 Dongle로 변경 */
+    font-family: 'Dongle', sans-serif !important;
+    
+    /* [추가] Dongle 폰트 높이 조절 */
+    line-height: 0.8;
+    
     color: #facc15;
     text-shadow: 0 0 50px rgba(250, 204, 21, 0.8);
-    
-    /* 핵심: 모둠 달리기와 동일한 'pop' 애니메이션 및 탄성 효과(cubic-bezier) 적용 */
     animation: pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -1893,91 +1906,109 @@ body .blackboard-editor font[size="7"] {
     height: 50px !important;
 }
 
-/* [사다리 타기 - 정글짐 테마 스타일] */
+/* ==========================================================================
+   [사다리 타기 - 정글짐 테마 스타일 통합 정리 (최종_v2)]
+   ========================================================================== */
 
-/* 1. 배경: 깊은 숲속 색상 */
+/* 1. 배경 설정 (기본 폰트: Jua) */
 .ladder-jungle-bg {
+    font-family: 'Jua', sans-serif !important;
+font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     background-color: #1b4332 !important;
     background-image: 
         radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 20%) !important;
 }
-/* 2. 상단 이름표 (나무 팻말) */
+
+/* 2. 상단 이름표 & 설정 버튼 (기본: Jua체) */
 .wood-sign-btn {
     background: #8b4513 !important;
     border: 4px solid #5e3008 !important;
     color: #fffbeb !important;
     box-shadow: 0 4px 0 #3e1f03 !important;
-    
-    /* ★ 수정: 하단과 동일하게 둥근 모서리 적용 */
-    border-radius: 0.75rem !important; 
+    border-radius: 0.75rem !important;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-}
-.wood-sign-btn:active {
-    transform: translateY(6px);
-    box-shadow: 0 0 0 #3e1f03, inset 0 2px 5px rgba(0,0,0,0.5) !important;
-}
-.wood-sign-btn:disabled {
+    
+    /* font-size 삭제됨 -> JS에서 제어 */
+    font-family: 'Jua', sans-serif !important;
+    min-height: 55px;
+    padding-top: 2px;
+    transition: all 0.1s;
+}.wood-sign-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* 3. 하단 결과 상자 (나무 상자) */
+
+/* 3. [게임 화면 전용] 상단 이름표 오버라이드 (Dongle체 유지) */
+.ladder-jungle-bg .wood-sign-btn:not(.wood-sign-active) {
+    font-family: 'Dongle', sans-serif !important;
+    font-size: 2.2rem !important;
+    line-height: 0.8;
+    padding-top: 6px;
+}
+
+/* 4. 하단 결과 상자 (★ Jua체로 변경 + 크기 축소 ★) */
 .wood-crate-box {
     background: #d4a373 !important;
     border: 4px solid #8d5524 !important;
     color: #482808 !important;
-    font-family: 'Jua', sans-serif !important;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 5px 10px rgba(0,0,0,0.3) !important;
     border-radius: 0.75rem;
-
-    /* ★ 핵심: font-size, height 삭제 (JS에서 동적 제어) */
-    /* font-size: 1.6rem !important; <-- 삭제됨 */
     font-weight: 900 !important;
-    
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
+    
+    /* ★ [핵심] 높이 제한 해제 및 여백 확보 */
+    height: auto !important; 
+    min-height: 60px !important; /* 최소 높이만 지정 */
+    padding: 5px 4px 10px 4px !important; /* 하단 패딩을 늘려 글씨 꼬리 확보 */
+    
+    /* ★ [핵심] 글씨가 상자를 넘어가도 보이게 설정 */
+    overflow: visible !important; 
+    white-space: nowrap;
+
+    /* 폰트 설정 (크기는 JS에서 제어) */
+    font-family: 'Dongle', sans-serif !important;
+    line-height: 1.0 !important; /* 줄 간격 조정 */
 }
-/* 나무 질감 효과 (가로선) */
-.wood-crate-box::after {
-    content: none !important; /* 줄 제거 */
-}
-/* [상단 이름표 강조 스타일] - 크기 확대(scale) 없음 */
-.wood-sign-active {
-    border-color: #fbbf24 !important; /* 황금색 테두리 */
-    background: #fff8e1 !important;   /* 밝은 배경 */
-    color: #b45309 !important;        /* 글씨 색상 */
-    /* transform 속성 제거하여 겹침 방지 */
-    box-shadow: 0 0 20px #fbbf24, inset 0 0 10px #fbbf24 !important; /* 광채 효과 */
-    z-index: 50;
-}
-/* 상단 이름표 & 하단 결과 상자 공통 활성화 스타일 */
+.wood-crate-box::after { content: none !important; }
+
+/* 5. 활성화 효과 (게임 중 결과 확인 시) */
 .wood-active {
     border-color: #d97706 !important; 
-    background: #fef3c7 !important;    /* 켜질 때는 밝은 노란색 */
-    color: #92400e !important;         /* 켜질 때는 진한 갈색 글씨 */
+    background: #fef3c7 !important; 
+    color: #92400e !important; 
     box-shadow: 0 0 20px #d97706, inset 0 0 10px #d97706 !important;
     z-index: 60;
 }
-/* [결과 모달 - 정글 디자인] */
+
+/* 6. 결과 모달 (Dongle체 + 가로 축소 + 고정) */
 .jungle-modal-frame {
-    background-color: #fdf6e3; /* 양피지 색 */
-    border: 8px solid #5e3008; /* 진한 나무 테두리 */
+    background-color: #fdf6e3;
+    border: 8px solid #5e3008;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    width: 450px !important; 
+    max-width: 90vw !important;
+    resize: none !important; 
+    font-family: 'Jua', sans-serif !important;
 }
+
+.jungle-modal-frame .resize-handle { display: none !important; }
+
 .jungle-modal-header {
     background-color: #fffbeb;
     border-bottom: 4px solid #8b4513;
     color: #5e3008;
 }
+
 .jungle-list-item {
     background-color: #fff;
-    border: 3px solid #d4a373; /* 연한 나무 테두리 */
+    border: 3px solid #d4a373;
     color: #5e3008;
     transition: transform 0.1s;
 }
@@ -1985,23 +2016,79 @@ body .blackboard-editor font[size="7"] {
     transform: scale(1.02);
     border-color: #8b4513;
 }
+
 .jungle-badge {
     background-color: #8b4513;
     color: #fffbeb;
     border-radius: 8px;
 }
-.result-box {
-    border: 2px solid #3e2723; /* 테두리도 어울리는 진한 갈색으로 변경 */
-    background-color: #5D4037; /* 배경: 진한 갈색 */
-    color: white;              /* 글씨: 흰색 */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* 약간의 그림자 추가 */
-}
+
+/* 나쁜 결과 스타일 */
 .wood-crate-box.bad-result {
     background: #5D4037 !important;
     border: 4px solid #3E2723 !important;
     color: #ffffff !important;
 }
- </style>
+
+/* 7. 입력창 및 설정 UI 강제 적용 (Jua체) */
+.ladder-section input, 
+.ladder-section button,
+.ladder-player-name,
+.race-setup-window textarea,
+.race-setup-window input {
+    font-family: 'Jua', sans-serif !important;
+}
+
+/* ★ 아래 줄들을 추가하면 설정창 입력칸도 주아체로 바뀝니다 */
+.race-setup-window textarea,
+.race-setup-window input {
+    font-family: 'Jua', sans-serif !important;
+} 
+
+/* [수정] 주사위 가로 정렬 및 중앙 배치 */
+/* [수정] 주사위 가로 정렬 & 애니메이션 복구 */
+.dice-wrapper {
+    display: flex !important;
+    flex-direction: row !important; /* 가로 배치 */
+    flex-wrap: nowrap !important;   /* ★ 줄바꿈 절대 금지 */
+    justify-content: center !important; /* 개수가 적을 땐 중앙 정렬 */
+    align-items: center !important;
+    gap: 60px !important;           /* 주사위 사이 간격 */
+    
+    /* ★ [핵심] 주사위 개수만큼 가로로 끝없이 늘어남 */
+    width: max-content !important;  
+    min-width: 100%;                /* 주사위가 적어도 화면 너비는 유지 */
+    min-height: 80vh !important;    /* 세로 높이 크게 확보 */
+    
+    /* 애니메이션이 잘리지 않도록 여백 */
+    padding: 100px !important;      
+    
+    perspective: 1000px;
+    transform-origin: center center;
+}
+
+/* [수정] 주사위 가로 무한 배열 & 애니메이션 공간 확보 */
+.dice-wrapper {
+    display: flex !important;
+    flex-direction: row !important; /* 무조건 가로 방향 */
+    flex-wrap: nowrap !important;   /* ★ 줄바꿈 절대 금지 (계속 옆으로 생김) */
+    justify-content: center !important; /* 개수가 적을 땐 중앙 정렬 */
+    align-items: center !important;
+    gap: 60px !important;           /* 주사위 간격 */
+    
+    /* ★ [핵심] 주사위 개수만큼 가로로 끝없이 늘어남 (영역 제한 해제) */
+    width: max-content !important;  
+    min-width: 100%;                /* 화면보다 적을 땐 화면 너비만큼 */
+    min-height: 80vh !important;    /* 세로 높이 크게 확보 */
+    
+    /* 애니메이션이 잘리지 않도록 충분한 여백 */
+    padding: 100px !important;      
+    
+    perspective: 1000px;
+    transform-origin: center center;
+}
+
+</style>
 </head>
 <body>
 <div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>        
@@ -2065,9 +2152,8 @@ body .blackboard-editor font[size="7"] {
                         </div>
                     </div>
                 </button>
-<div @click="isClockMaximized = true"
+<div @click="playSound('click'); isClockMaximized = true"
      class="mt-6 w-full bg-white border-4 border-slate-200 rounded-[2.5rem] p-5 shadow-sm text-center select-none hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-center items-center gap-2">
-
     <!-- 날짜 -->
     <div class="text-slate-400 font-bold text-base flex items-center gap-2 group-hover:text-blue-400 transition-colors">
         <i class="fa-regular fa-calendar-check"></i>
@@ -2098,7 +2184,8 @@ body .blackboard-editor font[size="7"] {
             </div>
         </aside>
   
-       <main class="flex-1 flex flex-col items-center justify-center p-8 relative">
+       <main class="flex-1 flex flex-col items-center justify-center p-8 relative" 
+      :class="view !== 'order' ? 'pr-32' : ''">
            <div class="absolute top-8 right-8 z-50 flex flex-col gap-3">
                 <button v-if="view !== 'order'" title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-white rounded-2xl shadow-lg flex items-center justify-center text-slate-400 border-2 hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
                 
@@ -3022,11 +3109,11 @@ body .blackboard-editor font[size="7"] {
 
     <div class="w-full h-28 bg-gradient-to-r from-purple-600 to-indigo-600 flex justify-center items-center gap-6 px-10 shrink-0 z-50 shadow-[0_-10px_40px_rgba(79,70,229,0.3)] border-t-2 border-white/20 mt-auto">
     
-    <button @click="showGenderHint = !showGenderHint" 
-            class="w-20 h-20 rounded-2xl font-black transition-all border-2 flex items-center justify-center shadow-md active:scale-95 bg-white/10 text-white border-white/30 hover:bg-white/20 box-border"
-            title="성별 힌트 켜기/끄기">
-        <i :class="showGenderHint ? 'fa-solid fa-eye text-3xl' : 'fa-solid fa-eye-slash text-3xl'"></i>
-    </button>
+    <button @click="showGenderHint = !showGenderHint; saveToLocal();" 
+        class="w-20 h-20 rounded-2xl font-black transition-all border-2 flex items-center justify-center shadow-md active:scale-95 bg-white/10 text-white border-white/30 hover:bg-white/20 box-border"
+        title="성별 힌트 켜기/끄기">
+    <i :class="showGenderHint ? 'fa-solid fa-eye text-3xl' : 'fa-solid fa-eye-slash text-3xl'"></i>
+</button>
 
     <div class="relative w-80 h-20 bg-black/20 rounded-2xl p-1.5 flex items-center cursor-pointer shadow-inner border-2 border-white/10 box-border"
          @click="toggleCapsuleSwitch">
@@ -3071,7 +3158,7 @@ body .blackboard-editor font[size="7"] {
                 <div class="relative w-full aspect-square transition-all duration-300" 
                      :class="isPickerMaximized ? 'max-w-[70vh]' : 'max-w-[650px]'">
                     
-                    <div class="w-full h-full rounded-full border-[12px] border-slate-800 shadow-2xl overflow-hidden transition-transform duration-[4000ms] cubic-bezier(0.1, 0.7, 0.1, 1)" 
+                    <div class="w-full h-full rounded-full border-[12px] border-slate-800 shadow-2xl overflow-hidden transition-transform duration-[2000ms] cubic-bezier(0.1, 0.7, 0.1, 1)" 
                          :style="{ transform: `rotate(${rouletteRotation}deg)`, background: rouletteBackground }">
                         <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full pointer-events-none">
                             <g v-for="(item, idx) in rouletteItems" :key="idx" :transform="`rotate(${360/rouletteItems.length * idx + (360/rouletteItems.length/2)} 50 50)`">
@@ -3118,96 +3205,101 @@ body .blackboard-editor font[size="7"] {
 
         <div v-else-if="pickerTab === 'ladder'" class="h-full flex flex-col relative">
 
-    <div v-if="!showLadderGame" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto ladder-jungle-bg">
+    <div v-if="!showLadderGame" class="flex-1 flex flex-col gap-4 p-6 overflow-hidden ladder-jungle-bg h-full">
+    
+    <div class="rounded-[3rem] shadow-2xl p-6 flex-1 flex flex-col border-[6px] border-[#5e3008] bg-[#fdf6e3] relative overflow-hidden"
+         style="box-shadow: inset 0 0 30px rgba(94, 48, 8, 0.2);">
         
-        <div class="rounded-[3rem] shadow-2xl p-8 flex-1 flex flex-col justify-center min-h-[600px] border-[6px] border-[#5e3008]"
-             style="background-color: #fdf6e3; box-shadow: inset 0 0 30px rgba(94, 48, 8, 0.2);">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 items-stretch">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
-                <div class="p-6 rounded-3xl border-4 border-[#8b4513] flex flex-col shadow-inner h-full max-h-[500px]"
-                     style="background-color: #fffbeb;">
-                    <h3 class="text-2xl font-black mb-4 text-[#5e3008] flex items-center gap-2 shrink-0 font-game">
-                        <span class="bg-[#5e3008] text-[#fdf6e3] w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 border-[#8b4513]">1</span> 
-                        참가자 설정
-                    </h3>
-                    
-                    <div class="flex gap-2 mb-3 shrink-0">
-                        <button @click="ladderPeopleMode = 'select'" 
-                                :class="ladderPeopleMode === 'select' ? 'wood-sign-btn transform scale-105 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" 
-                                class="flex-1 py-3 rounded-xl font-black transition-all text-base shadow-sm">
-                            선택
-                        </button>
-                        <button @click="ladderPeopleMode = 'custom'" 
-                                :class="ladderPeopleMode === 'custom' ? 'wood-sign-btn transform scale-105 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" 
-                                class="flex-1 py-3 rounded-xl font-black transition-all text-base shadow-sm">
-                            직접
-                        </button>
-                    </div>
+            <div class="p-5 rounded-3xl border-4 border-[#8b4513] flex flex-col shadow-inner bg-[#fffbeb] h-full overflow-hidden">
+                <h3 class="text-2xl font-black mb-2 text-[#5e3008] flex items-center gap-2 shrink-0 font-game">
+                    <span class="bg-[#5e3008] text-[#fdf6e3] w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 border-[#8b4513]">1</span> 
+                    참가자 설정
+                </h3>
+                
+                <div class="flex gap-2 mb-2 shrink-0">
+                    <button @click="ladderPeopleMode = 'select'" 
+                            :class="ladderPeopleMode === 'select' ? 'wood-sign-btn transform scale-101 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" 
+                            class="flex-1 py-2 rounded-xl font-black transition-all shadow-sm"
+                            style="font-family: 'Dongle', sans-serif !important; line-height: 0.8; font-size: 2.2rem !important;">
+                        선택
+                    </button>
+                    <button @click="ladderPeopleMode = 'custom'" 
+                            :class="ladderPeopleMode === 'custom' ? 'wood-sign-btn transform scale-101 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" 
+                            class="flex-1 py-2 rounded-xl font-black transition-all shadow-sm"
+                            style="font-family: 'Dongle', sans-serif !important; line-height: 0.8; font-size: 2.2rem !important;">
+                        직접
+                    </button>
+                </div>
 
+                <div class="flex-1 min-h-0 relative flex flex-col">
                     <textarea v-if="ladderPeopleMode === 'custom'" v-model="customLadderNames" 
-                              class="w-full flex-1 p-4 border-4 border-[#d4a373] rounded-xl resize-none outline-none focus:border-[#8b4513] font-bold text-[#5e3008] text-base bg-white" 
+                              class="flex-1 w-full p-4 border-4 border-[#d4a373] rounded-xl resize-none outline-none focus:border-[#8b4513] font-bold text-[#5e3008] text-xl bg-white custom-scrollbar" 
+                              style="font-family: 'Jua', sans-serif;"
                               placeholder="이름을 엔터로 구분해 입력하세요."></textarea>
                     
-                    <div v-else class="flex-1 flex flex-col min-h-0 bg-white rounded-xl border-4 border-[#d4a373] overflow-hidden">
+                    <div v-else class="flex-1 w-full flex flex-col bg-white rounded-xl border-4 border-[#d4a373] overflow-hidden">
                         <div class="flex justify-between items-center p-3 border-b-2 border-[#d4a373] bg-[#fff8e1] shrink-0">
-                            <span class="font-black text-[#8b4513] text-sm">{{ ladderSelectionList.length }}명 선택됨</span>
-                            <button @click="toggleAllLadder" class="text-xs font-bold px-3 py-1.5 rounded-lg border-2 transition-colors bg-[#8b4513] text-[#fffbeb] border-[#5e3008] hover:bg-[#a0522d]">
+                            <span class="font-black text-[#8b4513] text-lg">{{ ladderSelectionList.length }}명 선택됨</span>
+                            <button @click="toggleAllLadder" class="text-sm font-bold px-3 py-1.5 rounded-lg border-2 transition-colors bg-[#8b4513] text-[#fffbeb] border-[#5e3008] hover:bg-[#a0522d]">
                                 {{ isAllLadderSelected ? '전체 해제' : '전체 선택' }}
                             </button>
                         </div>
-                        <div class="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                            <div class="grid grid-cols-5 gap-2">
+                        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                            <div class="grid grid-cols-6 gap-2">
                                 <div v-for="s in allStudents" :key="s.name" @click="toggleLadderStudent(s.name)" 
-                                     class="cursor-pointer rounded-lg border-2 py-2 flex items-center justify-center transition-all select-none text-sm font-bold active:scale-95" 
-                                     :class="ladderSelectionList.includes(s.name) ? 'bg-[#8b4513] border-[#5e3008] text-[#fffbeb] shadow-md' : 'bg-[#fdf6e3] border-[#d4a373] text-[#8b4513] hover:bg-[#faebd7]'">
-                                    <span class="truncate px-1">{{ s.name }}</span>
+                                     class="cursor-pointer rounded-lg border-2 flex items-center justify-center transition-all select-none font-bold active:scale-95 shadow-sm" 
+                                     :class="ladderSelectionList.includes(s.name) ? 'bg-[#8b4513] border-[#5e3008] text-[#fffbeb] ring-2 ring-[#d4a373]' : 'bg-[#fdf6e3] border-[#d4a373] text-[#8b4513] hover:bg-[#faebd7]'"
+                                     style="padding: 10px 0; font-size: 1.1rem;">
+                                    <span class="truncate px-1 mt-1">{{ s.name }}</span>
                                 </div>
                             </div>
                             <div v-if="allStudents.length === 0" class="h-full flex flex-col items-center justify-center text-slate-400 text-sm">명단이 없습니다</div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="p-6 rounded-3xl border-4 border-[#8b4513] flex flex-col shadow-inner"
-                     style="background-color: #fffbeb;">
-                    <h3 class="text-xl font-bold mb-4 text-[#5e3008] flex items-center gap-2 font-game">
-                        <span class="bg-[#5e3008] text-[#fdf6e3] w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 border-[#8b4513]">2</span> 
-                        내용 설정
-                    </h3>
-                    <div class="flex gap-2 mb-4">
-                        <button @click="ladderContentMode = 'winner'" :class="ladderContentMode === 'winner' ? 'wood-sign-btn transform scale-105 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-3 rounded-xl font-black transition-all text-base shadow-sm">당첨</button>
-                        <button @click="ladderContentMode = 'penalty'" :class="ladderContentMode === 'penalty' ? 'wood-sign-btn transform scale-105 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-3 rounded-xl font-black transition-all text-base shadow-sm">벌칙</button>
-                        <button @click="ladderContentMode = 'custom'" :class="ladderContentMode === 'custom' ? 'wood-sign-btn transform scale-105 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-3 rounded-xl font-black transition-all text-base shadow-sm">직접</button>
-                    </div>
-                    
+            <div class="p-5 rounded-3xl border-4 border-[#8b4513] flex flex-col shadow-inner bg-[#fffbeb] h-full overflow-hidden">
+                <h3 class="text-2xl font-bold mb-2 text-[#5e3008] flex items-center gap-2 font-game shrink-0">
+                    <span class="bg-[#5e3008] text-[#fdf6e3] w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 border-[#8b4513]">2</span> 
+                    내용 설정
+                </h3>
+                
+                <div class="flex gap-2 mb-2 shrink-0">
+                    <button @click="ladderContentMode = 'winner'" :class="ladderContentMode === 'winner' ? 'wood-sign-btn transform scale-101 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-2 rounded-xl font-black transition-all shadow-sm" style="font-family: 'Dongle', sans-serif !important; line-height: 0.8; font-size: 2.2rem !important;">당첨</button>
+                    <button @click="ladderContentMode = 'penalty'" :class="ladderContentMode === 'penalty' ? 'wood-sign-btn transform scale-101 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-2 rounded-xl font-black transition-all shadow-sm" style="font-family: 'Dongle', sans-serif !important; line-height: 0.8; font-size: 2.2rem !important;">벌칙</button>
+                    <button @click="ladderContentMode = 'custom'" :class="ladderContentMode === 'custom' ? 'wood-sign-btn transform scale-101 ring-2 ring-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008] border-2 border-[#8b4513]'" class="flex-1 py-2 rounded-xl font-black transition-all shadow-sm" style="font-family: 'Dongle', sans-serif !important; line-height: 0.8; font-size: 2.2rem !important;">직접</button>
+                </div>
+
+                <div class="flex-1 min-h-0 relative flex flex-col">
                     <textarea v-if="ladderContentMode === 'custom'" v-model="customLadderResults" 
-                              class="w-full flex-1 p-5 border-4 border-[#d4a373] rounded-2xl resize-y outline-none focus:border-[#8b4513] font-bold text-[#5e3008] text-lg bg-white" 
+                              class="flex-1 w-full p-5 border-4 border-[#d4a373] rounded-2xl resize-none outline-none focus:border-[#8b4513] font-bold text-[#5e3008] text-xl bg-white custom-scrollbar" 
+                              style="font-family: 'Jua', sans-serif;"
                               placeholder="결과를 엔터로 구분해 입력하세요."></textarea>
                     
-                    <div v-else class="flex-1 flex flex-col items-center justify-center text-[#5e3008] font-bold border-4 border-dashed border-[#d4a373] rounded-2xl bg-[#fff8e1] gap-6">
-                        <div class="text-2xl font-black font-game">{{ ladderContentMode === 'winner' ? '🎉 당첨자 수' : '🔥 벌칙자 수' }}</div>
-                        <div class="flex items-center gap-4 bg-white p-3 rounded-2xl border-2 border-[#d4a373] shadow-sm">
-                            <button @click="updateCount($event, ladderContentMode); ladderContentMode === 'winner' ? winnerCount = Math.max(1, winnerCount - 1) : penaltyCount = Math.max(1, penaltyCount - 1)" 
-                                    class="w-12 h-12 bg-[#8b4513] text-[#fffbeb] rounded-xl shadow border-2 border-[#5e3008] text-2xl font-black hover:scale-105 transition-all active:scale-95">-</button>
-                            <div class="w-20 text-center text-4xl font-black text-[#5e3008] font-game">{{ ladderContentMode === 'winner' ? winnerCount : penaltyCount }}</div>
-                            <button @click="ladderContentMode === 'winner' ? winnerCount++ : penaltyCount++" 
-                                    class="w-12 h-12 bg-[#8b4513] text-[#fffbeb] rounded-xl shadow border-2 border-[#5e3008] text-2xl font-black hover:scale-105 transition-all active:scale-95">+</button>
+                    <div v-else class="flex-1 w-full flex flex-col items-center justify-center text-[#5e3008] font-bold border-4 border-dashed border-[#d4a373] rounded-2xl bg-[#fff8e1] gap-6">
+                        <div class="text-3xl font-black font-game">{{ ladderContentMode === 'winner' ? '🎉 당첨자 수' : '🔥 벌칙자 수' }}</div>
+                        <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border-2 border-[#d4a373] shadow-sm">
+                            <button @click="updateCount($event, ladderContentMode); ladderContentMode === 'winner' ? winnerCount = Math.max(1, winnerCount - 1) : penaltyCount = Math.max(1, penaltyCount - 1)" class="w-14 h-14 bg-[#8b4513] text-[#fffbeb] rounded-xl shadow border-2 border-[#5e3008] text-2xl font-black hover:scale-105 transition-all active:scale-95">-</button>
+                            <div class="w-24 text-center text-5xl font-black text-[#5e3008] font-game">{{ ladderContentMode === 'winner' ? winnerCount : penaltyCount }}</div>
+                            <button @click="ladderContentMode === 'winner' ? winnerCount++ : penaltyCount++" class="w-14 h-14 bg-[#8b4513] text-[#fffbeb] rounded-xl shadow border-2 border-[#5e3008] text-2xl font-black hover:scale-105 transition-all active:scale-95">+</button>
                         </div>
-                        <div class="text-sm text-[#8b4513] bg-[#e2c7a5] px-4 py-2 rounded-lg font-game">나머지는 '{{ ladderContentMode === 'winner' ? '꽝' : '통과' }}'이 됩니다.</div>
+                        <div class="text-base text-[#8b4513] bg-[#e2c7a5] px-6 py-2 rounded-lg font-game shadow-sm">나머지는 '{{ ladderContentMode === 'winner' ? '꽝' : '통과' }}'이 됩니다.</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="mt-8 text-center">
-    <button @click="generateLadder" 
-            class="wood-sign-btn shadow-2xl hover:scale-100 transition-transform font-game mx-auto" 
-            style="font-size: 1.5rem !important; padding: 15px 45px !important; height: auto !important; width: auto !important; border-radius: 9999px !important;">
-        사다리 생성하기!
-    </button>
-</div>
+        <div class="mt-4 text-center shrink-0">
+            <button @click="generateLadder" class="wood-sign-btn shadow-2xl hover:scale-105 transition-transform font-game mx-auto" 
+                    style="font-size: 2.5rem !important; padding: 12px 40px !important; height: auto !important; width: auto !important; border-radius: 9999px !important;">
+                사다리 생성하기!
+            </button>
         </div>
     </div>
-
+</div>
     <div v-else class="flex-1 flex flex-col h-full w-full relative ladder-jungle-bg" style="background-color: #1b4332 !important;">
         
         <div class="h-20 flex items-center justify-between px-6 shrink-0 z-50 shadow-md" style="background-color: #0f281e; border-bottom: 1px solid #2d6a4f;">
@@ -3329,7 +3421,7 @@ body .blackboard-editor font[size="7"] {
 
                 <div class="p-5 border-t-4 border-[#d4a373] bg-[#fffbeb] shrink-0">
                     <button @click="showLadderResultModal = false" class="w-full py-4 wood-sign-btn text-2xl rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 font-game">
-                        확인 완료
+                        확인
                     </button>
                 </div>
                 
@@ -3339,44 +3431,60 @@ body .blackboard-editor font[size="7"] {
 </div>
     </div>
 
-      <div v-else-if="pickerTab === 'dice'" class="scaling-container h-full w-full bg-slate-50">
+    
+<div v-else-if="pickerTab === 'dice'" class="scaling-container h-full w-full bg-slate-50">
+
+    <div class="fixed-layout-box flex flex-col items-center justify-between py-16 gap-24 mb-[15vh]"
+         style="width: 1700px; height: 1600px;"
+         :style="{ transform: `scale(${ getScale(1650, 1550, 0.95) })` }">
+
+        <div class="flex items-center justify-between bg-white w-[900px] px-16 py-10 rounded-[5rem] shadow-xl border-[12px] border-slate-200 z-10 relative">
+            <button @click="diceCount = Math.max(1, diceCount - 1)"
+                    class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
+                -
+            </button>
+
+            <span class="text-[10rem] font-black text-center text-slate-700 font-game leading-none pt-4">{{ diceCount }}</span>
+
+            <button @click="diceCount = Math.min(6, diceCount + 1)"
+                    class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
+                +
+            </button>
+        </div>
+
+        <div class="flex-1 w-full flex items-center justify-center pb-20"> 
             
-            <div class="fixed-layout-box flex flex-col items-center justify-between py-16 gap-24 mb-[8vh]" 
-                 style="width: 1700px; height: 1600px;" 
-                 :style="{ transform: `scale(${ getScale(1650, 1550, 0.95) })` }">
-                
-                <div class="flex items-center justify-between bg-white w-[900px] px-16 py-10 rounded-[5rem] shadow-xl border-[12px] border-slate-200 z-10 relative">
-                    <button @click="diceCount = Math.max(1, diceCount - 1)" 
-                            class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
-                        -
-                    </button>
-                    
-                    <span class="text-[10rem] font-black text-center text-slate-700 font-game leading-none pt-4">{{ diceCount }}</span>
-                    
-                    <button @click="diceCount = Math.min(6, diceCount + 1)" 
-                            class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
-                        +
-                    </button>
+            <div class="dice-wrapper flex flex-wrap gap-10 justify-center items-center w-full relative z-50">
+
+                <div v-for="(value, idx) in displayDiceValues" :key="idx"
+                     class="bg-white rounded-[9rem] flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-[30px] border-orange-300 select-none text-slate-800 transition-transform"
+                     style="
+                         width: 900px;
+                         height: 900px;
+                         font-size: 700px;
+                         flex-shrink: 0;
+                         display: flex;
+                         align-items: center;
+                         justify-content: center;
+                         line-height: 0.7;
+                         padding-bottom: 120px;
+                     ">
+                    {{ getDiceFace(value) }}
                 </div>
 
-                <div class="flex-1 flex items-center justify-center w-full">
-                    <div class="dice-wrapper flex flex-wrap gap-20 justify-center items-center w-full relative z-50">
-                        
-                        <div v-for="(value, idx) in displayDiceValues" :key="idx" 
-                             class="w-[900px] h-[900px] bg-white rounded-[8rem] flex items-center justify-center text-[600px] shadow-[0_30px_60px_rgba(0,0,0,0.3)] border-[24px] border-orange-300 select-none text-slate-800 leading-none pb-14 transition-transform">
-                            {{ getDiceFace(value) }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="w-full flex justify-center z-10 relative">
-                    <button @click="rollDice" :disabled="isRollingDice" 
-                            class="w-[900px] py-16 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[8rem] rounded-[6rem] shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 active:scale-95 border-b-[24px] border-orange-700 leading-tight">
-                        {{ isRollingDice ? '...' : '던지기' }}
-                    </button>
-                </div>
             </div>
         </div>
+
+        <div class="w-full flex justify-center z-10 relative" style="transform: translateY(-80px);">
+            <button @click="rollDice" :disabled="isRollingDice"
+                    class="w-[900px] py-16 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[8rem] rounded-[6rem] shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 active:scale-95 border-b-[24px] border-orange-700 leading-tight">
+                {{ isRollingDice ? '...' : '던지기' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+
 <div v-else-if="pickerTab === 'tournament'" class="picker-tab-content-tournament">
     
     <div class="spotlight-overlay" :class="{'active': finalWinner}"></div>
@@ -3525,7 +3633,7 @@ body .blackboard-editor font[size="7"] {
 
     <button @click.stop="resetTimer" class="timer-ctrl-btn btn-pos-1" title="초기화"><i class="fa-solid fa-rotate-left"></i></button>
     <button @click.stop="toggleTimer" class="timer-ctrl-btn btn-pos-2" :class="{'timer-running': timerInterval}" title="작동/정지"><i :class="timerInterval ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i></button>
-    <button @click.stop="isTimerMaximized = !isTimerMaximized" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
+    <button @click.stop="isTimerMaximized = !isTimerMaximized; saveToLocal()" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
     <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
 
     <div v-if="!isTimerMaximized" class="timer-resize-handle" @mousedown.stop="startTimerResize"></div>
@@ -3832,31 +3940,27 @@ ladderSelectionList: [],
     close: new Audio('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3'), 
     save: new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'), 
     beep: new Audio('https://assets.mixkit.co/active_storage/sfx/216/216-preview.mp3'), 
-    
-    // [수정됨] 구글 드라이브 직접 링크로 변경
     whistle: new Audio('./whistle.mp3'), 
-   
-    // [수정됨] 구글 드라이브 직접 링크로 변경
     drum: new Audio('./drumroll.mp3'), 
-    
-    shuffle: new Audio('https://assets.mixkit.co/active_storage/sfx/2063/2063-preview.mp3'), 
+    shuffle: new Audio('./shuffle timer.mp3'), 
     fanfare: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), 
-    
-    // [수정됨] 구글 드라이브 직접 링크로 변경
     fail: new Audio('./game over.mp3'),  
-    
+    police: new Audio('./police.mp3'),
     magic: new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'), 
-    explode: new Audio('https://assets.mixkit.co/active_storage/sfx/1699/1699-preview.mp3'), 
+    explode: new Audio('./explode.mp3'), 
     firework: new Audio('https://assets.mixkit.co/active_storage/sfx/2021/2021-preview.mp3'), 
     shake_plastic: new Audio('https://assets.mixkit.co/active_storage/sfx/2063/2063-preview.mp3'), 
     pop: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
     tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2585/2585-preview.mp3'),
     tock: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
     jump: new Audio('https://assets.mixkit.co/active_storage/sfx/223/223-preview.mp3'),
-    slide: new Audio('https://assets.mixkit.co/active_storage/sfx/127/127-preview.mp3'),
-    dice_roll: new Audio('https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3'),
+    slide: new Audio('./slide.mp3'),
+    dice_roll: new Audio('./dice roll.mp3'), // 주사위
     move: new Audio('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3'),
-    finish: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'),
+    finish: new Audio('./decide.mp3'),
+    end: new Audio('./end.mp3'),
+    completed: new Audio('./completed.mp3'),
+    pacman: new Audio('./pac-man.mp3'),
     
     // 배경음 (기존에 잘 변환해두신 것 유지)
     bgm_rock: new Audio('./Rock race.mp3'),
@@ -4017,35 +4121,31 @@ computed: {
 
 ladderDynamicStyle() {
     const count = this.ladderStudents.length;
-    
-    // 1. 인원수가 적을 때 (10명 이하) - 큼직하게
+    let fontSize, minHeight;
+
+    // [수정] 폰트 크기 대폭 확대 & 높이는 '최소 높이'로만 제한
     if (count <= 10) {
-        return { 
-            fontSize: '1.6rem', 
-            padding: '12px 8px', 
-            height: 'auto',
-            minHeight: '60px' 
-        };
-    } 
-    // 2. 중간 정도 (11 ~ 20명) - 약간 축소
-    else if (count <= 20) {
-        return { 
-            fontSize: '1.1rem', 
-            padding: '8px 2px', 
-            height: '50px',
-            minHeight: '50px' 
-        };
-    } 
-    // 3. 많을 때 (21명 이상) - 미니 모드
-    else {
-        return { 
-            fontSize: '0.8rem', // 글씨 작게
-            padding: '4px 0px', // 패딩 최소화
-            height: '40px',     // 높이 축소
-            minHeight: '40px',
-            letterSpacing: '-0.5px' // 자간 좁힘
-        };
+        fontSize = '3.8rem'; minHeight = '70px'; 
+    } else if (count <= 15) {
+        fontSize = '2.8rem'; minHeight = '60px';
+    } else if (count <= 22) {
+        fontSize = '2.0rem'; minHeight = '50px';
+    } else {
+        fontSize = '1.5rem'; minHeight = '40px';
     }
+
+    return { 
+        fontSize: fontSize + ' !important',
+        fontFamily: "'Dongle', sans-serif !important",
+        minHeight: minHeight + ' !important', /* height 대신 minHeight 사용 */
+        height: 'auto !important', /* 내용물에 맞춰 늘어남 */
+        lineHeight: '0.8 !important',
+        display: 'flex !important',
+        alignItems: 'center !important',
+        justifyContent: 'center !important',
+        paddingTop: '8px !important',
+        overflow: 'visible !important' /* 잘림 방지 */
+    };
 },
 
 isAllLadderSelected() {
@@ -4218,7 +4318,7 @@ currentLotteryPool() {
     if (!val) {
         // 게임 소리를 끄면, 루프 돌고 있는 긴 소리들은 즉시 정지
         this.stopSound('bgm_race');
-        this.stopSound('drum');
+        this.stopSound('whistle');
     }
 },
 
@@ -4441,23 +4541,30 @@ declareWinner(winner, matchIdx) {
 playSound(key, loop = false, volume = 0.5) {
     if (!this.sounds[key]) return;
 
-    // [신규] 소리 카테고리 분류
-    const uiSounds = ['hover', 'click', 'close', 'save', 'warning', 'check'];
-    const isUi = uiSounds.includes(key);
+    // [수정] 소리 카테고리 분류 기준 변경
+    // 1. basicUi: 단순 버튼 클릭음 및 호버음 ('효과음' 설정에서 제어)
+    const basicUiSounds = ['click', 'hover']; 
+    const isBasicUi = basicUiSounds.includes(key);
 
-    // [신규] 설정 체크: 꺼져 있으면 재생 안 함
-    if (isUi && !this.soundSettings.ui) return;     // UI음 Off면 중단
-    if (!isUi && !this.soundSettings.game) return;  // 게임음 Off면 중단
+    // 2. 설정 체크
+    // 효과음(UI) 설정이 꺼져있으면 -> 기본 버튼 소리(click, hover)만 차단
+    if (isBasicUi && !this.soundSettings.ui) return;
+    
+    // 배경음(Game) 설정이 꺼져있으면 -> 나머지 모든 소리(BGM, 게임음, 알림음 등) 차단
+    if (!isBasicUi && !this.soundSettings.game) return;
 
-    // --- 기존 재생 로직 ---
+    // --- 재생 로직 (기존 유지) ---
     const audio = this.sounds[key];
     if (!loop && !audio.paused) {
         audio.currentTime = 0;
     }
     audio.loop = loop;
     audio.volume = volume;
+    
+    // play() 에러 방지 (사용자 인터랙션 없을 때 예외 처리)
     audio.play().catch(() => {});
 },
+
 stopSound(key) {
         if (!this.sounds[key]) return;
         const audio = this.sounds[key];
@@ -5078,14 +5185,15 @@ this.saveToLocal();
     }
 
     if (level === 'warning') {
-        this.statsWarningCount++;
-        this.lastTriggerType = 'warning'; 
-        this.showToast("⚠ 쉿! 소음 기준 초과", "warning-big");
-        this.playSound('siren', false, 0.5); // [소리 추가] 경고음
-        
-        this.isNoiseCooldown = true;
-        setTimeout(() => { this.isNoiseCooldown = false; this.lastTriggerType = null; }, 60000); 
-    } 
+    this.statsWarningCount++;
+    this.lastTriggerType = 'warning'; 
+    this.showToast("⚠ 쉿! 소음 기준 초과", "warning-big");
+    
+this.playSound('police', false, 0.6);
+    
+    this.isNoiseCooldown = true;
+    setTimeout(() => { this.isNoiseCooldown = false; this.lastTriggerType = null; }, 60000); 
+}
     else if (level === 'penalty') {
         this.statsPenaltyCount++;
         this.lastTriggerType = 'penalty'; 
@@ -5335,21 +5443,32 @@ getRoundPairs(roundIndex, side) {
 async generateBracket() {
     if (this.isGenerating) return;
     
-this.bracketMode = this.selectedBracketMode;
+    // [소리] pacman 효과음 재생
+    this.playSound('pacman', false, 0.7);
+
+    // [추가] 4초(4000ms) 후에 pacman 소리를 정확히 중단
+    setTimeout(() => {
+        this.stopSound('pacman');
+    }, 5300);
+
+    this.bracketMode = this.selectedBracketMode;
     this.isGenerating = true;
-    this.visibleBracketTree = []; // 화면 초기화
+    this.visibleBracketTree = []; 
     
-    // 1. 대진표 로직 계산 실행
+    // 토너먼트 대진표 계산 로직
     const calculatedTree = await this.makeBracketLogic(); 
     
-    // 2. 단계별로 화면에 뿌려줍니다 (지연 렌더링)
+    // 생성 애니메이션 시간을 4초에 맞추어 분배
+    const totalDuration = 5300; 
+    const delayPerRound = totalDuration / Math.max(calculatedTree.length, 1);
+
     for (let i = 0; i < calculatedTree.length; i++) {
         this.visibleBracketTree.push(calculatedTree[i]);
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, delayPerRound));
     }
 
     this.isGenerating = false;
-    this.saveToLocal();
+    this.saveToLocal(); // Firebase 또는 로컬에 저장
 },
 
 async makeBracketLogic() {
@@ -5676,21 +5795,29 @@ getDiceFace(value) {
         return faces[value - 1] || '?';
     },
 
-// NEW: 주사위 던지기 애니메이션 메서드
     rollDice() {
     if (this.isRollingDice) return;
-    this.isRollingDice = true;
-    this.playSound('shake_plastic'); // [소리 추가] 흔드는 소리
 
+    // [애니메이션 초기화] 기존 효과 제거 후 강제 리셋
     const container = document.querySelector('.dice-wrapper'); 
-    if(container) container.classList.add('rolling-shake');
+    if (container) {
+        container.classList.remove('effect-zoom-bounce', 'rolling-shake'); 
+        void container.offsetWidth; 
+        container.classList.add('rolling-shake'); 
+    }
+
+    this.isRollingDice = true;
+    
+    // 소리 재생 (반복 없음, 1.2초 후 중단)
+    this.playSound('dice_roll', false, 0.6); 
+    setTimeout(() => { this.stopSound('dice_roll'); }, 2000);
 
     this.diceValues = Array(this.diceCount).fill(1);
     this.diceSum = 0;
     
     let rolls = 0;
-    const maxRolls = 30;
-    const intervalTime = 120; 
+    const maxRolls = 20; 
+    const intervalTime = 240; 
 
     const interval = setInterval(() => {
         this.diceValues = this.diceValues.map(() => Math.floor(Math.random() * 6) + 1);
@@ -5698,19 +5825,24 @@ getDiceFace(value) {
         
         if (rolls >= maxRolls) {
             clearInterval(interval);
+            
+            this.playSound('finish', false, 0.6); 
+
             this.diceValues = this.diceValues.map(() => Math.floor(Math.random() * 6) + 1);
             this.updateDiceSum();
             this.isRollingDice = false;
-            this.playSound('dice_roll'); // [소리 추가] 결과음
-
-            if(container) {
+            
+            // [결과 확정 시] 흔들기 끄고 -> 확대 효과(통통 튀기) 적용
+            if (container) {
                 container.classList.remove('rolling-shake');
-                void container.offsetWidth; 
+                void container.offsetWidth; // ★ 여기서도 강제 새로고침 필수
                 container.classList.add('effect-zoom-bounce');
             }
+            this.saveToLocal();
         }
     }, intervalTime);
 },
+
     // NEW: 주사위 합계 업데이트
     updateDiceSum() {
         this.diceSum = this.diceValues.reduce((a, b) => a + b, 0);
@@ -5738,14 +5870,11 @@ getLadderX(colIndex) {
     return (colIndex * sectionWidth) + (sectionWidth / 2);
 },
 
-// (2) 사다리 데이터 생성
-/* --- methods 영역 --- */
-
-// [수정됨] 사다리 생성 (간격 확보 + 깔끔한 배치)
+// generateLadder 함수 전체 교체
 generateLadder() {
     let participants = [];
 
-    // 1. 인원 설정 로직 (기존 유지)
+    // 1. 인원 설정 로직
     if (this.ladderPeopleMode === 'custom') {
         if (!this.customLadderNames.trim()) return alert("인원을 입력해주세요.");
         participants = this.customLadderNames.split('\n').map(n => n.trim()).filter(n => n);
@@ -5765,7 +5894,7 @@ generateLadder() {
 
     this.ladderStudents = [...participants].sort(() => Math.random() - 0.5);
 
-    // 2. 결과 설정 로직 (기존 유지)
+    // 2. 결과 설정 로직
     let results = [];
     if (this.ladderContentMode === 'custom') {
         if (!this.customLadderResults.trim()) return alert("결과를 입력해주세요.");
@@ -5787,7 +5916,7 @@ generateLadder() {
     }
     this.ladderResults = results;
 
-    // 3. [핵심 수정] 사다리 선 생성 로직 개선 (최소 간격 보장)
+    // 3. [핵심 수정] 사다리 선 생성 로직 (빈 곳 방지)
     this.activePolyline = '';
     this.ballPos.visible = false;
     this.revealedResults = [];
@@ -5797,31 +5926,35 @@ generateLadder() {
 
     const startY = 150; 
     const endY = 850;
-    const minGap = 80; // ★ 가로선 사이의 최소 간격 (이 값을 늘리면 더 널널해짐)
+    const minGap = 40; 
 
     // 각 기둥 사이(열)마다 반복
     for (let col = 0; col < this.ladderStudents.length - 1; col++) {
-        let currentY = startY + (Math.random() * 50); // 시작점 랜덤 오차
+        let currentY = startY + (Math.random() * 40); 
+        let lineCountInCol = 0; // 이 열에 생성된 선의 개수
 
         while (currentY < endY) {
-            // 다음 선 위치 결정 (최소 간격 + 랜덤)
             const gap = minGap + (Math.random() * 60); 
             currentY += gap;
 
             if (currentY > endY) break;
 
-            // 옆 기둥의 선과 너무 가까운지 확인 (겹침 방지)
-            // 왼쪽(col-1)이나 오른쪽(col+1) 기둥에 비슷한 높이의 선이 있으면 스킵하거나 조정
             const tooClose = this.ladderLines.some(line => 
                 (line.col === col - 1 || line.col === col + 1) && 
-                Math.abs(line.y - currentY) < 30
+                Math.abs(line.y - currentY) < 25 
             );
 
             if (!tooClose) {
-                // 약간의 기울기 (너무 심하지 않게 -20 ~ 20 제한)
                 const slant = (Math.random() - 0.5) * 40; 
                 this.ladderLines.push({ col, y: currentY, slant });
+                lineCountInCol++;
             }
+        }
+
+        // [★추가] 만약 이 열에 선이 하나도 없다면 강제로 2개 추가
+        if (lineCountInCol === 0) {
+            this.ladderLines.push({ col, y: startY + 200, slant: 0 });
+            this.ladderLines.push({ col, y: endY - 200, slant: 0 });
         }
     }
     
@@ -5829,7 +5962,6 @@ generateLadder() {
     this.ladderLines.sort((a, b) => a.y - b.y);
     this.showLadderGame = true;
 },
-
 resizeLadderCanvas() {
             // SVG 방식이라 별도 리사이즈 로직 불필요하나, 호출 에러 방지용으로 빈 함수 유지
         },
@@ -5926,34 +6058,37 @@ runSVGAnimation(pathPoints, finalResultIdx, topIdx = null) {
 
     const animate = () => {
         if (currentPointIdx >= pathPoints.length - 1) {
-            this.stopSound('move'); // 이동 소리 끄기
+    this.stopSound('move'); // 이동 소리 끄기
 
-            // 1. 하단 결과 공개 (정방향 타기: 위->아래 도착 시)
-            if (finalResultIdx !== null && !this.revealedResults.includes(finalResultIdx)) {
-                this.revealedResults.push(finalResultIdx);
-                this.playSound('finish');
-            }
-
-            // 2. 상단 이름표 처리
-            if (topIdx !== null) {
-                // (1) 아직 공개 안 된 상단 이름표라면 노란색으로 변경 (공개 목록 추가)
-                if (!this.revealedStarts.includes(topIdx)) {
-                    this.revealedStarts.push(topIdx);
-                }
-
-                // (2) ★ [수정됨] 역방향(아래->위) 타기인 경우, 무조건 도착 효과음 재생
-                // finalResultIdx가 null이라는 것은 역방향 주행을 의미함
-                if (finalResultIdx === null) {
-                    this.playSound('finish');
-                }
-            }
-            
-            this.isLadderAnimating = false;
-            this.ballHideTimeout = setTimeout(() => { 
-                this.ballPos.visible = false; 
-            }, 1000);
-            return;
+    // 1. 하단 결과 공개 (정방향 타기: 위->아래 도착 시)
+    if (finalResultIdx !== null && !this.revealedResults.includes(finalResultIdx)) {
+        this.revealedResults.push(finalResultIdx);
+       
+        const resText = this.ladderResults[finalResultIdx] || '';
+        if (resText.includes('꽝') || resText.includes('벌칙') || resText.includes('걸')) {
+            this.playSound('fail', false, 0.8); // 띠용~ (실패/코믹)
+        } else {
+this.playSound('magic', false, 0.6);
         }
+    }
+
+    // 2. 상단 이름표 처리
+    if (topIdx !== null) {
+        if (!this.revealedStarts.includes(topIdx)) {
+            this.revealedStarts.push(topIdx);
+        }
+        // 역방향(아래->위) 타기인 경우 도착음
+        if (finalResultIdx === null) {
+            this.playSound('ding'); 
+        }
+    }
+    
+    this.isLadderAnimating = false;
+    this.ballHideTimeout = setTimeout(() => { 
+        this.ballPos.visible = false; 
+    }, 1000);
+    return;
+}
 
         progress += speed;
         if (progress >= 1) {
@@ -6066,8 +6201,10 @@ initializeLotteryPool(mode) {
 // 뽑기 마스터 모달 열기 (좌측 하단 버튼용)
     openPickerMaster() {
     this.showPickerMaster = true;
-    this.focusWindow('picker'); // ★ 추가
+this.focusWindow('picker');
     this.pickerTab = 'lottery'; 
+this.ladderPeopleMode = 'select';
+this.ladderContentMode = 'winner';
 },
 
    // 참가자 모드 변경 (전체 / 선택)
@@ -6309,6 +6446,9 @@ toggleTimer() {
             this.timerTargetTime = now + (this.timerSeconds * 1000);
         }
 
+        // [★추가] 경고음 중복 재생 방지용 변수
+        let lastAlertSec = -1;
+
         this.timerInterval = setInterval(() => {
             const currentNow = Date.now();
             if (this.isStopwatchMode) {
@@ -6316,12 +6456,13 @@ toggleTimer() {
             } else {
                 const remaining = (this.timerTargetTime - currentNow) / 1000;
                 
-                // [소리 추가] 10초 이하일 때 경고음
+                // [★수정] 10초 이하일 때 1초마다 경고음(warning) 재생
                 if (remaining <= 10 && remaining > 0) {
-                     // 1초에 한 번씩 울리게 하려면 정수 체크 필요하지만, 
-                     // 간단하게 삐- 소리 반복을 위해 애니메이션과 싱크 맞춤
-                     // 여기서는 브라우저 부하를 줄이기 위해 별도 처리 없이 시각 효과와 함께 자연스럽게 둡니다.
-                     // (필요 시 playSound 호출 가능)
+                    const currentSec = Math.ceil(remaining);
+                    if (currentSec !== lastAlertSec) {
+                        this.playSound('warning', false, 0.6); // 삑! 소리
+                        lastAlertSec = currentSec;
+                    }
                 }
 
                 if (remaining <= 0) {
@@ -6335,7 +6476,6 @@ toggleTimer() {
         }, 50);
     }
 },
-
 updateCountdownEffect() {
     const el = document.querySelector('.bomb-window');
     if (!el) return;
@@ -6598,23 +6738,30 @@ updateZoomDirect(e) {
     const capsule = this.capsules.find(c => c.id === id);
     if (capsule) {
         capsule.revealed = !capsule.revealed;
+this.playSound('finish', false, 0.5);
         this.saveToLocal(); // ★ 저장 추가
     }
 },
 
     // 모두 공개
    revealAllCapsules() {
-        this.capsules.forEach(c => c.revealed = true);
-        this.capsuleSwitchState = 'open'; // 상태 동기화
-        this.saveToLocal(); 
-    },
+    // [★추가] 달그락 소리 추가
+    this.playSound('finish', false, 0.5); 
+
+    this.capsules.forEach(c => c.revealed = true);
+    this.capsuleSwitchState = 'open'; 
+    this.saveToLocal(); 
+},
 
     // [수정] 모두 닫기
     closeAllCapsules() {
-        this.capsules.forEach(c => c.revealed = false);
-        this.capsuleSwitchState = 'closed'; // 상태 동기화
-        this.saveToLocal(); 
-    },
+    // [★추가] 달그락 소리 추가
+    this.playSound('finish', false, 0.5);
+
+    this.capsules.forEach(c => c.revealed = false);
+    this.capsuleSwitchState = 'closed'; 
+    this.saveToLocal(); 
+},
 
 // [신규] 스위치 토글 함수
     toggleCapsuleSwitch() {
@@ -6626,33 +6773,31 @@ updateZoomDirect(e) {
     },
        // 캡슐 섞기 (위치 재배치 + chaos 효과)
     shuffleCapsules() {
-        if (this.isShuffling) return;
-        this.isShuffling = true;
-        
-        // 섞을 때는 시각적으로 닫힘 상태로 보임
-        this.capsuleSwitchState = 'closed'; 
+    if (this.isShuffling) return;
+    this.isShuffling = true;
+    this.capsuleSwitchState = 'closed'; 
 
-        // 1. 순차적으로 하나씩 앞면으로 뒤집기
-        this.capsules.forEach((c, index) => {
-            setTimeout(() => {
-                c.revealed = false; 
-            }, index * 30); 
-        });
+    // [★수정] 섞을 때는 end(finish) 소리로 변경
+    this.playSound('end', false, 0.6);
 
-    // 2. 모든 카드가 뒤집히는 시간을 계산해서 기다린 후 데이터 섞기
-    const totalDelay = this.capsules.length * 30 + 500; // 전체 시간 + 여유 시간
+    // 1. 순차적으로 하나씩 앞면으로 뒤집기
+    this.capsules.forEach((c, index) => {
+        setTimeout(() => {
+            c.revealed = false; 
+        }, index * 30); 
+    });
+
+    // 2. 섞기 완료 대기
+    const totalDelay = this.capsules.length * 30 + 500; 
 
     setTimeout(() => {
-        // 데이터 실제 섞기 (Fisher-Yates Shuffle)
         for (let i = this.capsules.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.capsules[i], this.capsules[j]] = [this.capsules[j], this.capsules[i]];
         }
-        
         this.isShuffling = false;
     }, totalDelay);
 },
-
     // 탭 전환 메서드 수정 (capsule 탭일 때 초기화 추가)
     setPickerTab(tab) {
     this.pickerTab = tab;
@@ -6738,6 +6883,7 @@ capsules: this.capsules,
                     animalRaceResults: this.animalRaceResults,
                     animalRaceFinished: this.animalRaceFinished,
 noiseLevels: this.noiseLevels,
+showGenderHint: this.showGenderHint,
 statsWarningCount: this.statsWarningCount,
             statsPenaltyCount: this.statsPenaltyCount,
                     uiState: {
@@ -6772,7 +6918,7 @@ tournamentData: {
             const parsed = snapshot.val();
             
             // 1. [기본 뷰 & 회전 상태 복구]
-            this.view = parsed.currentView || 'main';
+            this.view = 'main';
             this.isRotated = parsed.isRotated || false;
 setTimeout(() => {
     const ww = window.innerWidth;
@@ -6989,6 +7135,8 @@ this.seats = Array.from({length: 30}, (_, i) => {
             // 12. [후처리] 데이터 로드 후 필요한 갱신 작업
             this.displayWinner = this.lastWinners[this.lotteryMode] || '?';
 
+this.showGenderHint = parsed.showGenderHint !== undefined ? parsed.showGenderHint : true;
+
             // 추첨 풀이 비어있으면 전체 학생 기준으로 자동 초기화
             const currentAllStudents = [...this.seats.filter(s => s), ...this.waitingRoom];
             if (currentAllStudents.length > 0) {
@@ -6996,6 +7144,8 @@ this.seats = Array.from({length: 30}, (_, i) => {
                 if (!this.lotteryPools.M || this.lotteryPools.M.length === 0) this.initializeLotteryPool('M');
                 if (!this.lotteryPools.F || this.lotteryPools.F.length === 0) this.initializeLotteryPool('F');
             }
+
+
 
             console.log("🔥 Firebase 데이터 로드 및 위치 보정 완료");
         } else {
@@ -7061,41 +7211,52 @@ this.seats = Array.from({length: 30}, (_, i) => {
                 }
             },
           // 🐇 [1] 동물 레이스 시작
-            async startAnimalRace() { 
-                // 충돌 방지: 돌 레이스 끄기
-                this.isGameRunning = false; 
-                if(this.animationId) cancelAnimationFrame(this.animationId);
+          async startAnimalRace() { 
+    // 1. 충돌 방지 및 초기화
+    this.isGameRunning = false; 
+    if(this.animationId) cancelAnimationFrame(this.animationId);
 
-                this.animalRaceResults = []; 
-                this.animalRaceFinished = false; 
-                this.isAnimalRacing = true; 
-                
-                // 데이터 안전장치
-                if (!this.animalRunners || this.animalRunners.length === 0) {
-                     this.animalRunners = Array(6).fill().map(() => ({}));
-                }
+    this.animalRaceResults = []; 
+    this.animalRaceFinished = false; 
+    this.isAnimalRacing = true; 
+    
+    // 2. 데이터 안전장치
+    if (!this.animalRunners || this.animalRunners.length === 0) {
+        this.animalRunners = Array(6).fill().map(() => ({}));
+    }
 
-                // 초기화 (모두 'run' 상태로 시작)
-                this.animalRunners.forEach(r => { 
-                    r.pos = 0; 
-                    r.finished = false; 
-                    r.state = 'run'; 
-                    r.timer = Math.random() * 50 + 20; 
-                    r.speed = 0;
-                }); 
-                
-                // 카운트다운
-                this.showAnimalRaceCountdown = true;
-                const seq = ['3', '2', '1', 'GO!']; 
-                for (const s of seq) { 
-                    this.countdownText = s; 
-                    await new Promise(r => setTimeout(r, 800)); 
-                } 
-                this.showAnimalRaceCountdown = false; 
-                this.playSound('bgm_animal', true, 0.3);
-                // 루프 시작
-                this.runAnimalLoop(); 
-            },
+    // 3. 선수들 위치 초기화
+    this.animalRunners.forEach(r => { 
+        r.pos = 0; 
+        r.finished = false; 
+        r.state = 'run'; 
+        r.timer = Math.random() * 50 + 20; 
+        r.speed = 0;
+    }); 
+    
+    // 4. 카운트다운 시작
+    this.showAnimalRaceCountdown = true;
+    const seq = ['3', '2', '1', 'GO!']; 
+    
+    for (const s of seq) { 
+        this.countdownText = s; 
+        
+        // [소리 추가] s 값에 따라 다른 소리 재생
+        if (s === 'GO!') {
+            this.playSound('whistle', false, 0.7); // GO 할 때 휘슬
+        } else {
+            this.playSound('beep', false, 0.6);    // 3, 2, 1 할 때 삑
+        }
+        
+        // 0.8초 대기
+        await new Promise(r => setTimeout(r, 800)); 
+    } 
+
+    // 5. 레이스 시작
+    this.showAnimalRaceCountdown = false; 
+    this.playSound('bgm_animal', true, 0.3); // 배경음악 시작
+    this.runAnimalLoop(); 
+},
 openAnimalRaceModal() {
                 // 1. 이미 경기가 끝난 기록이 있다면 (재시작 아님)
                 if (this.animalRaceFinished === true) {
@@ -7192,7 +7353,7 @@ openAnimalRaceModal() {
                     this.animalRaceFinished = true; // 1. 끝났다고 표시
                     
 this.stopSound('bgm_animal'); 
-    this.playSound('fanfare');
+this.playSound('whistle', false, 0.8);
                     this.saveToLocal(); 
                 } 
             },
@@ -7225,43 +7386,58 @@ this.stopSound('bgm_animal');
 },
     // 추첨 실행 (가장 중요한 부분 수정)
     rollLottery() {
-        const pool = this.lotteryPools[this.lotteryMode];
+    const pool = this.lotteryPools[this.lotteryMode];
+    if (!pool || pool.length === 0) {
+        alert('남은 인원이 없습니다! \n우측 하단의 초기화 버튼(↻)을 눌러주세요.');
+        return;
+    }
 
-        // 인원 체크
-        if (!pool || pool.length === 0) {
-            alert('남은 인원이 없습니다! \n우측 하단의 초기화 버튼(↻)을 눌러주세요.');
-            return;
-        }
+    if (this.isRolling) return;
 
-        if (this.isRolling) return;
-        this.isRolling = true;
+    // [핵심] 1명만 남았을 경우의 로직
+    if (pool.length === 1) {
+        const lastOne = pool[0];
+        this.displayWinner = lastOne; // 바로 당첨자로 표시
+        
+        // 데이터 처리 (리스트에서 제거 및 기록 저장)
+        pool.splice(0, 1);
+        this.lastWinners[this.lotteryMode] = lastOne;
+        
+        // 당첨 효과음만 즉시 재생
+        this.playSound('fanfare', false, 0.8);
+        this.saveToLocal();
+        return; // 함수 종료
+    }
 
-        let count = 0;
-        const interval = setInterval(() => {
-            // 룰렛 효과
-            const randomName = pool[Math.floor(Math.random() * pool.length)];
-            this.displayWinner = randomName;
+    // --- 2명 이상일 때: 기존 섞기 애니메이션 유지 ---
+    this.isRolling = true;
+    this.playSound('drum', false, 0.6);
 
-            if (++count > 25) { 
-                clearInterval(interval);
-                
-                // 최종 당첨자
-                const winnerName = this.displayWinner;
-                
-                // 해당 모드 풀에서 제거
-                const winnerIndex = pool.indexOf(winnerName);
-                if (winnerIndex !== -1) {
-                    pool.splice(winnerIndex, 1);
-                }
+    let count = 0;
+    const maxCount = 40; 
 
-                // 기록 저장
-                this.lastWinners[this.lotteryMode] = winnerName;
+    const interval = setInterval(() => {
+        const randomName = pool[Math.floor(Math.random() * pool.length)];
+        this.displayWinner = randomName;
 
-                this.isRolling = false;
-                this.saveToLocal();
+        if (++count > maxCount) { 
+            clearInterval(interval);
+            
+            const winnerName = this.displayWinner;
+            const winnerIndex = pool.indexOf(winnerName);
+            if (winnerIndex !== -1) {
+                pool.splice(winnerIndex, 1);
             }
-        }, 80);
-    },
+
+            this.lastWinners[this.lotteryMode] = winnerName;
+            this.isRolling = false;
+            
+            this.stopSound('drum');
+            this.playSound('fanfare', false, 0.8);
+            this.saveToLocal();
+        }
+    }, 80);
+},
          openSettings() { 
                 try {
                     const seats = Array.isArray(this.seats) ? this.seats : [];
@@ -7518,30 +7694,42 @@ startBoardResize(e) {
             saveCurrentRoulette() { if(!this.rouletteInput.trim()) return alert("내용이 없습니다."); const title = prompt("저장할 제목을 입력하세요:"); if(title) { this.savedRoulettes.push({ title, content: this.rouletteInput }); this.saveToLocal(); alert("저장되었습니다."); } },
             loadRoulette(item) { this.rouletteInput = item.content; this.showRouletteList = false; },
             deleteRoulette(idx) { if(confirm("삭제할까요?")) { this.savedRoulettes.splice(idx, 1); this.saveToLocal(); } },
+
 spinRoulette() { 
     if (this.isSpinningRoulette) return; 
     if (this.rouletteItems.length < 2) return alert("최소 2개 이상의 항목이 필요합니다."); 
     
     this.isSpinningRoulette = true; 
-    this.playSound('tick', false, 0.3); // [소리 추가] 돌아가는 소리
     
-    const spins = 5 + Math.random() * 5; 
+    // [소리] 회전 시작 시 completed 효과음 재생 (반복 없음)
+    this.playSound('slide', false, 0.6); 
+    
+    // [회전 로직] 2초 안에 빠르게 돌기 위해 회전수와 각도 계산
+const spins = 5 + Math.random() * 3;
     const arc = 360 / this.rouletteItems.length; 
     const randomOffset = Math.floor(Math.random() * this.rouletteItems.length); 
     const finalAngle = 360 * spins + (randomOffset * arc); 
     this.rouletteRotation += finalAngle; 
     
+    // [핵심] 2초(2000ms) 후에 결과 확정
     setTimeout(() => { 
         this.isSpinningRoulette = false; 
+        
+        // 당첨자 계산
         const actualRotation = this.rouletteRotation % 360; 
         const degrees = (360 - actualRotation) % 360; 
         const index = Math.floor(degrees / arc); 
         this.rouletteWinner = this.rouletteItems[index]; 
         this.showRouletteResult = true; 
-        this.playSound('firework'); // [소리 추가] 당첨음
-    }, 4000); 
-},
-            resetRoulette() { this.rouletteInput = ""; this.rouletteRotation = 0; },
+        
+        // [소리] completed 소리를 중단하지 않고, 축하음(firework)을 겹쳐서 재생
+        this.playSound('fanfare', false, 0.5); 
+        
+        this.saveToLocal();
+    }, 2100); // 2초 유지
+},       
+
+  resetRoulette() { this.rouletteInput = ""; this.rouletteRotation = 0; },
 
 startRouletteDrag(e) {
     if(e.target.closest('button') || e.target.tagName === 'TEXTAREA') return;
@@ -7616,24 +7804,28 @@ startRouletteDrag(e) {
             
             // [모둠 만들기 로직] (인원 배정 우선순위: 3->6->5->4->2->1 적용)
 async applyGroupMaker() {
-                // 1. 학생 체크
-                let students = [...this.allStudents];
-                if(students.length === 0) return alert("학생이 없습니다.");
-                
-                this.showGroupMakerModal = false;
+    let students = [...this.allStudents];
+    if(students.length === 0) return alert("학생이 없습니다.");
+    
+    // [수정됨] 카운트다운 시작 (3, 2, 1, GO 소리 추가)
+    this.showGroupMakerModal = false;
+    this.isShufflingCountdown = true;
 
-                // 2. 카운트다운 실행
-                this.isShufflingCountdown = true;
-                const seq = ['3', '2', '1', 'GO!'];
-                for (const num of seq) {
-                    this.shuffleCountdownNum = num;
-                    await new Promise(r => setTimeout(r, 800));
-                }
-                this.isShufflingCountdown = false;
-                
-                // 3. 결과창 열기 및 로직 시작
-                this.showGroupingResultModal = true;
-                
+    const seq = ['3', '2', '1', 'GO!'];
+    for (const num of seq) {
+        this.shuffleCountdownNum = num;
+
+        // 소리 재생 (GO는 휘슬, 나머지는 삑)
+        if (num === 'GO!') this.playSound('whistle', false, 0.6);
+        else this.playSound('beep', false, 0.6);
+
+        await new Promise(r => setTimeout(r, 800));
+    }
+
+    this.isShufflingCountdown = false;
+    this.playSound('magic'); // 짠~ 효과음
+    this.showGroupingResultModal = true;             
+
                 let finalGroups = Array(this.tempGroupCount).fill().map(() => []);
                 const globalPriority = [2, 5, 4, 3, 1, 0]; // 중앙부터 채우는 우선순위 (6모둠 기준)
                 for(let i=0; i<this.tempGroupCount; i++) {
@@ -7727,7 +7919,7 @@ async applyGroupMaker() {
                 for (let i = 0; i < this.tempGroupCount; i++) {
                     setTimeout(() => {
                         this.stoppedGroups.push(i); // i번 그룹 멈춤
-                        
+                        this.playSound('ding', false, 0.6);
                         if (i === this.tempGroupCount - 1) {
                             clearInterval(timer); // 다 멈추면 타이머 종료
                             this.groupingList = finalGroups; // 최종 확정
@@ -7860,7 +8052,6 @@ deleteGrouping(idx) {
 async startShuffleSequence() {
     this.showShuffleModal = false;
     this.isShufflingCountdown = true;
-    
     // [소리 추가] 카운트다운 효과음
     const seq = ['3', '2', '1', 'START!'];
     for (const num of seq) {
@@ -8348,7 +8539,7 @@ this.stopSound('bgm_rock');
     this.isGameRunning = false;
     cancelAnimationFrame(this.animationId); 
     this.stopSound('bgm_rock'); 
-    this.playSound('fanfare');
+    this.playSound('whistle');
     
     const unfinished = this.rockRunners.filter(r => !r.finished).sort((a,b) => b.x - a.x);
     unfinished.forEach(r => {
@@ -8831,10 +9022,19 @@ this.stopSound('bgm_rock');
                 let targetCamX = leaderX - width * 0.5;
                 const maxCamX = this.finishLineX - width * 0.6; targetCamX = Math.max(this.cameraX, Math.min(targetCamX, maxCamX)); this.cameraX += (targetCamX - this.cameraX) * 0.0475;
                 
-                if (finishedCount === this.rockRunners.length) {
-                    if (!this.showRaceResult) {
-                        this.isGameRunning = false; 
-                        setTimeout(() => { this.applyWinnerDeduction(); this.showRaceResult = true; this.startConfetti(); }, 1000);
+               if (finishedCount === this.rockRunners.length) {
+    if (!this.showRaceResult) {
+        this.isGameRunning = false; 
+        
+        // [★수정] 경기 종료 시 fail 소리 추가
+        this.stopSound('bgm_rock');
+this.playSound('whistle', false, 0.8);
+
+        setTimeout(() => { 
+            this.applyWinnerDeduction(); 
+            this.showRaceResult = true; 
+            this.startConfetti(); 
+        }, 1000);
                     }
                 } else {
                     this.animationId = requestAnimationFrame(this.loop);

@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>🏫 우리반 매니저</title>
+    <title>우리반 매니저</title>
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -2169,21 +2169,24 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
 </div>            </nav>
   
-            <div class="mt-auto pt-4 border-t border-slate-100 flex justify-center gap-4">
+           <div class="mt-auto pt-4 border-t border-slate-100 flex justify-center gap-4">
                 <button @click="openBlackboard" title="판서" class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-chalkboard-user"></i></button>
-                <button @click="openTimer" title="폭탄 타이머" class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl hover:bg-purple-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
+                 <button @click="openTimer" title="폭탄 타이머" class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
     <i class="fa-solid fa-bomb"></i>
 </button>
-                
-                <button @click="openPickerMaster" title="뽑기 도구" class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
+
+                <button @click="openPickerMaster" title="뽑기 도구" class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl hover:bg-purple-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
     <i class="fa-solid fa-gift"></i>
 </button>
+                
+               
                 
 <button @click="openNoiseMeter" title="주의집중" class="w-14 h-14 bg-pink-100 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
     <i class="fa-solid fa-bell"></i>
 </button>            </div>
         </aside>
-  
+
+
        <main class="flex-1 flex flex-col items-center justify-center p-8 relative" 
       :class="view !== 'order' ? 'pr-32' : ''">
            <div class="absolute top-8 right-8 z-50 flex flex-col gap-3">
@@ -3657,22 +3660,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
      @mousedown="focusWindow('noise')">
     
     <div class="h-20 bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-between px-8 cursor-move select-none shrink-0"
-         @mousedown="startNoiseDrag">
-        <h2 class="text-white font-black text-3xl flex items-center gap-2">
-            <i class="fa-solid fa-bell"></i> 주의집중
-        </h2>
-        <div class="flex items-center gap-3">
-            <button v-if="noiseMode === 'meter'" @click.stop="showNoiseSettings = true" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i class="fa-solid fa-gear"></i></button>
-            <button @click.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-            <button @click.stop="showNoiseMeter = false; stopNoiseMeasurement();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
-        </div>
+     @mousedown="startNoiseDrag">
+    <h2 class="text-white font-black text-3xl flex items-center gap-2">
+        <i class="fa-solid fa-bell"></i> 주의집중
+    </h2>
+    <div class="flex items-center gap-3">
+        <button @click.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
+        <button @click.stop="showNoiseMeter = false; stopNoiseMeasurement();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
     </div>
+</div>
 
     <div class="flex bg-slate-100 border-b-2 border-slate-200 shrink-0">
         <button @click="setNoiseMode('sound')" 
                 class="flex-1 py-4 font-black text-lg transition-all flex items-center justify-center gap-2"
                 :class="noiseMode === 'sound' ? 'bg-white text-pink-600 border-b-4 border-pink-600' : 'text-slate-400 hover:text-slate-600'">
-            <span>🔔</span> 퀵 사운드
+            <span>🔔</span> 효과음
         </button>
         <button @click="setNoiseMode('meter')" 
                 class="flex-1 py-4 font-black text-lg transition-all flex items-center justify-center gap-2"
@@ -3683,134 +3685,245 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
         
-        <div v-if="noiseMode === 'sound'" class="flex-1 p-6 grid grid-cols-2 gap-4 overflow-y-auto">
-            <button @click="playSound('ding')" class="bg-yellow-100 hover:bg-yellow-200 border-4 border-yellow-200 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-yellow-800">
-                <span class="text-4xl">🔔</span><span class="font-black text-xl">딩동 (주목)</span>
-            </button>
-            <button @click="playSound('ding')" class="bg-green-100 hover:bg-green-200 border-4 border-green-200 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-green-800">
-                <span class="text-4xl">🏫</span><span class="font-black text-xl">학교종</span>
-            </button>
-            <button @click="playSound('drum')" class="bg-slate-200 hover:bg-slate-300 border-4 border-slate-300 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-slate-700">
-                <span class="text-4xl">🥁</span><span class="font-black text-xl">두구두구</span>
-            </button>
-            <button @click="playSound('fanfare')" class="bg-blue-100 hover:bg-blue-200 border-4 border-blue-200 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-blue-800">
-                <span class="text-4xl">👏</span><span class="font-black text-xl">박수 함성</span>
-            </button>
-            <button @click="playSound('magic')" class="bg-indigo-100 hover:bg-indigo-200 border-4 border-indigo-200 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-indigo-800">
-                <span class="text-4xl">⭕</span><span class="font-black text-xl">딩동댕</span>
-            </button>
-            <button @click="playSound('fail')" class="bg-rose-100 hover:bg-rose-200 border-4 border-rose-200 rounded-2xl flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 text-rose-800">
-                <span class="text-4xl">❌</span><span class="font-black text-xl">땡!</span>
-            </button>
-        </div>
-
-        <div v-else class="flex-1 flex flex-col w-full h-full relative">
-             <div class="flex-1 w-full flex flex-col items-center justify-center" :style="{ gap: '4cqw' }">
-                <div class="flex items-center justify-center w-full" :style="{ gap: '3cqw' }">
-                    <span class="font-bold rounded-full text-white shadow-sm flex items-center justify-center leading-none" 
-                          :class="getNoiseClass(currentNoiseLevel, 'bg')" 
-                          :style="{ fontSize: '4.5cqw', padding: '1.5cqw 3cqw', borderRadius: '9999px' }">
-                        [{{ getNoiseStage(currentNoiseLevel) }}]
-                    </span>
-                    <div class="font-black drop-shadow-md leading-none" 
-                         :class="getNoiseClass(currentNoiseLevel)"
-                         :style="{ fontSize: '18cqw' }">
-                        {{ currentNoiseLevel }} <span class="text-slate-400 font-bold" :style="{ fontSize: '6cqw' }">dB</span>
-                    </div>
-                </div>
-
-                <div class="relative w-[90cqw] select-none transition-all" ref="noiseBar" :style="{ height: '12cqw', borderRadius: '4cqw' }" :class="{ 'effect-penalty-shock': isPenaltyShock }"> 
-                    <div class="absolute inset-x-0 top-0 overflow-hidden shadow-inner bg-slate-200" :style="{ height: '12cqw', borderRadius: '4cqw', borderWidth: '0.8cqw', borderColor: '#f1f5f9' }">
-                        <div class="h-full transition-all duration-100 ease-linear relative" :class="getNoiseBarColorClass()" :style="{ width: Math.min(100, (currentNoiseLevel / maxDB) * 100) + '%' }">
-                             <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent"></div>
-                             <div class="absolute right-0 top-0 bottom-0 bg-white/50 shadow-[0_0_15px_white]" :style="{ width: '0.5cqw' }"></div>
-                        </div>
-                    </div>
-                    <div class="absolute top-0 flex flex-col items-center cursor-col-resize group z-10 hover:z-50 transition-all duration-75" :style="{ left: (noiseLevels.safe / maxDB * 100) + '%', transform: 'translateX(-50%)', height: '12cqw' }" @mousedown.stop="startDrag('safe', $event)">
-                        <div class="bg-white/80 shadow-sm group-hover:bg-green-500 transition-colors" :style="{ width: '0.8cqw', height: '100%' }"></div>
-                        <div class="bg-white border-green-200 text-green-600 font-black flex flex-col items-center whitespace-nowrap shadow-lg group-hover:scale-110 transition-transform" :style="{ marginTop: '1.5cqw', fontSize: '2.5cqw', padding: '0.5cqw 1.5cqw', borderRadius: '1.5cqw', borderWidth: '0.4cqw' }"><span>▲</span><span>주의</span></div>
-                    </div>
-                    <div class="absolute top-0 flex flex-col items-center cursor-col-resize group z-20 hover:z-50 transition-all duration-75" :style="{ left: (noiseLevels.caution / maxDB * 100) + '%', transform: 'translateX(-50%)', height: '12cqw' }" @mousedown.stop="startDrag('caution', $event)">
-                        <div class="bg-white/80 shadow-sm group-hover:bg-orange-500 transition-colors" :style="{ width: '0.8cqw', height: '100%' }"></div>
-                        <div class="bg-white border-orange-300 text-orange-600 font-black flex flex-col items-center whitespace-nowrap shadow-lg group-hover:scale-110 transition-transform" :style="{ marginTop: '1.5cqw', fontSize: '2.5cqw', padding: '0.5cqw 1.5cqw', borderRadius: '1.5cqw', borderWidth: '0.4cqw' }"><span>▲</span><span>경고</span></div>
-                    </div>
-                    <div class="absolute top-0 flex flex-col items-center cursor-col-resize group z-30 hover:z-50 transition-all duration-75" :style="{ left: (noiseLevels.warning / maxDB * 100) + '%', transform: 'translateX(-50%)', height: '12cqw' }" @mousedown.stop="startDrag('warning', $event)">
-                        <div class="bg-white/80 shadow-sm group-hover:bg-red-500 transition-colors" :style="{ width: '0.8cqw', height: '100%' }"></div>
-                        <div class="bg-white border-red-200 text-red-500 font-black flex flex-col items-center whitespace-nowrap shadow-lg group-hover:scale-110 transition-transform" :style="{ marginTop: '1.5cqw', fontSize: '2.5cqw', padding: '0.5cqw 1.5cqw', borderRadius: '1.5cqw', borderWidth: '0.4cqw' }"><span>▲</span><span>탈락</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="shrink-0 w-full flex justify-center z-50" :style="{ paddingBottom: '3cqw', paddingTop: '1cqw' }">
-                <div class="flex items-center bg-white shadow-sm border-slate-200" :style="{ gap: '2.5cqw', padding: '1.2cqw 3cqw', borderRadius: '1.5cqw', borderWidth: '0.2cqw' }">
-                    <div class="flex items-center" :style="{ gap: '1cqw' }">
-                        <span class="rounded-full bg-orange-500 animate-pulse" :style="{ width: '1.5cqw', height: '1.5cqw' }"></span>
-                        <span class="font-bold text-slate-600" :style="{ fontSize: '2cqw' }">경고</span>
-                        <span class="font-black text-orange-500 leading-none" :style="{ fontSize: '3.5cqw', marginLeft: '0.5cqw' }">{{ statsWarningCount }}</span>
-                    </div>
-                    <div class="bg-slate-200" :style="{ width: '0.2cqw', height: '3cqw' }"></div>
-                    <div class="flex items-center" :style="{ gap: '1cqw' }">
-                        <span class="rounded-full bg-red-500 animate-pulse" :style="{ width: '1.5cqw', height: '1.5cqw' }"></span>
-                        <span class="font-bold text-slate-600" :style="{ fontSize: '2cqw' }">탈락</span>
-                        <span class="font-black text-red-500 leading-none" :style="{ fontSize: '3.5cqw', marginLeft: '0.5cqw' }">{{ statsPenaltyCount }}</span>
-                    </div>
-                    <div class="bg-slate-200" :style="{ width: '0.2cqw', height: '3cqw' }"></div>
-                    <button @click="resetNoiseStats" class="flex items-center justify-center bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 hover:rotate-180 transition-all rounded-xl" :style="{ width: '4cqw', height: '4cqw' }"><i class="fa-solid fa-rotate-right" :style="{ fontSize: '1.8cqw' }"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="showNoiseSettings" class="absolute inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" @click.self="showNoiseSettings = false">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl animate-pop-in border-4 border-slate-100">
-            <h3 class="text-2xl font-black text-slate-800 mb-6 text-center"><i class="fa-solid fa-sliders mr-2 text-indigo-500"></i>소음 기준 설정</h3>
-            <div class="space-y-6">
-                <div><label class="block text-sm font-bold text-green-600 mb-2 flex justify-between"><span>🟢 주의</span><span>{{ noiseLevels.safe }}dB</span></label><input type="range" v-model.number="noiseLevels.safe" min="0" max="120" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-500"></div>
-                <div><label class="block text-sm font-bold text-yellow-500 mb-2 flex justify-between"><span>🟡 경고</span><span>{{ noiseLevels.caution }}dB</span></label><input type="range" v-model.number="noiseLevels.caution" min="0" max="120" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-yellow-400"></div>
-                <div><label class="block text-sm font-bold text-red-500 mb-2 flex justify-between"><span>🔴 탈락</span><span>{{ noiseLevels.warning }}dB</span></label><input type="range" v-model.number="noiseLevels.warning" min="0" max="120" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-red-500"></div>
-            </div>
-            <div class="flex gap-3 mt-8">
-                <button @click="showNoiseSettings = false" class="flex-1 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200">취소</button>
-                <button @click="saveNoiseSettings" class="flex-1 py-3 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-lg active:scale-95">확인</button>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="!isNoiseMaximized" class="resize-handle" @mousedown.stop="startNoiseResize"></div>
-</div>
-<transition
-    enter-active-class="transition ease-out duration-300"
-    enter-from-class="opacity-0 scale-50"
-    enter-to-class="opacity-100 scale-100"
-    leave-active-class="transition ease-in duration-200"
-    leave-from-class="opacity-100 scale-100"
-    leave-to-class="opacity-0 scale-110">
+        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full bg-slate-50 flex flex-col p-6" style="container-type: size;">
     
-    <div v-if="notificationMsg" 
-         class="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-         @click="notificationMsg = ''"> <div class="bg-white rounded-[3rem] shadow-2xl border-[8px] flex flex-col items-center justify-center text-center animate-bounce-slow"
-             :class="{
-                'border-orange-500 text-orange-600': notificationType === 'warning-big',
-                'border-red-600 text-red-600': notificationType === 'danger-big'
-             }"
-             style="width: 80cqw; height: 50cqw; min-width: 600px; min-height: 400px;">
-            
-            <i class="fa-solid mb-8 animate-pulse" 
-               :class="{
-                  'fa-triangle-exclamation text-[15cqw]': notificationType === 'warning-big',
-                  'fa-circle-exclamation text-[15cqw]': notificationType === 'danger-big'
-               }"></i>
-               
-            <span class="font-black leading-tight drop-shadow-md whitespace-pre-line" 
-                  style="font-size: 8cqw;">
-                {{ notificationMsg }}
-            </span>
-            
+    <div class="w-full flex justify-end mb-4 shrink-0">
+    <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+        
+        <div @click.stop.prevent="setSensitivity('high')" 
+             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-2 py-1 rounded-lg"
+             :class="noiseThreshold === 50 ? 'bg-rose-50 border border-rose-200' : ''">
+             <span class="text-lg font-black transition-colors"
+                   :class="noiseThreshold === 50 ? 'text-rose-500' : 'text-slate-400 group-hover:text-rose-400'">📖 독서</span>
         </div>
+
+        <div class="relative w-48 flex items-center">
+            <input type="range" v-model.number="noiseThreshold" @change="saveToLocal" min="30" max="100" 
+                   class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all border border-slate-200">
+        </div>
+
+        <div @click.stop.prevent="setSensitivity('low')" 
+             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-2 py-1 rounded-lg"
+             :class="noiseThreshold === 80 ? 'bg-blue-50 border border-blue-200' : ''">
+             <span class="text-lg font-black transition-colors"
+                   :class="noiseThreshold === 80 ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-400'">🗣️ 토론</span>
+        </div>
+
+        <div class="w-px h-8 bg-slate-200 mx-1"></div>
+        <span class="font-mono font-black text-teal-600 text-3xl w-14 text-center">{{ noiseThreshold }}</span>
+
+        <div class="ml-2 flex gap-2">
+    
+    <button v-if="!isMeasuring" @click="startNoiseMeasurement" 
+            class="w-12 h-12 bg-teal-500 text-white rounded-xl shadow-md hover:bg-teal-600 transition-all flex items-center justify-center active:scale-95"
+            title="측정 시작 (재생)">
+        <i class="fa-solid fa-play text-xl pl-1"></i>
+    </button>
+    
+    <button v-else @click="pauseNoiseMeasurement"
+            class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95"
+            title="일시 정지">
+        <i class="fa-solid fa-pause text-xl"></i>
+    </button>
+
+    <button @click="stopAndReset" 
+            class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300"
+            title="중지 및 초기화 (0으로 리셋)">
+        <i class="fa-solid fa-stop text-xl"></i>
+    </button>
     </div>
-</transition>  
+</div>
+</div>
+    <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden">
+    <div class="flex flex-row items-center justify-center w-full" style="gap: 8cqmin;">
+        
+        <div class="transition-transform duration-1000 ease-out origin-center" 
+             :style="{ transform: `scale(${1 + noiseGauge/300})` }">
+            <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
+                 :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= 100 }"
+                 style="font-size: 40cqmin;"> 
+                <span v-if="noiseGauge < 30">😊</span>
+                <span v-else-if="noiseGauge < 60">😐</span>
+                <span v-else-if="noiseGauge < 90">😠</span>
+                <span v-else>👿</span>
+            </div>
+        </div>
+
+        <div class="flex items-baseline font-mono font-black text-slate-700 transition-colors duration-500 leading-none"
+             :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
+             style="font-size: 30cqmin; gap: 20px;"> <span>{{ displayedDb }}</span>
+            
+            <span class="font-bold text-slate-400 ml-6 tracking-widest" style="font-size: 8cqmin;">dB</span>
+        </div>
+
+    </div>
 </div>
 
+    <div class="mt-4 shrink-0 pb-6">
+        <div class="flex justify-between items-end mb-2 px-2">
+            <span class="font-black text-slate-600 text-lg">⚠️ 소음 경보</span>
+            <span class="font-mono font-bold text-xl" :class="noiseGauge > 80 ? 'text-red-500' : (noiseGauge > 50 ? 'text-orange-500' : 'text-teal-600')">
+                {{ noiseGauge.toFixed(0) }}%
+            </span>
+        </div>
+        
+        <div class="w-full h-20 bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner border-4 border-slate-300 relative">
+            <div class="h-full transition-all duration-500 ease-linear flex items-center justify-end px-4"
+                 :class="[
+                    noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-400'),
+                    { 'animate-pulse': noiseGauge > 90 }
+                 ]"
+                 :style="{ width: noiseGauge + '%' }">
+                 <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
+                 <span v-if="noiseGauge > 10" class="text-white font-black text-2xl opacity-50 tracking-widest">///</span>
+            </div>
+        </div>
+    </div>
+</div>
+        <div v-else-if="noiseMode === 'sound'" 
+     class="flex-1 w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden"
+     style="container-type: size;">
+    
+    <div class="grid grid-cols-4 items-center justify-items-center w-full h-full"
+         style="gap: 2cqmin; padding: 3cqmin;">
+        
+        <button @click="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🔔</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-yellow-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-yellow-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">주 목</span>
+        </button>
+
+        <button @click="triggerSoundEffect('schoolbell', $event); playCustomSound('./school bell.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🏫</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-orange-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-orange-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">학교종</span>
+        </button>
+
+        <button @click="triggerSoundEffect('drum', $event); playCustomSound('./drumroll.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🥁</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-yellow-600 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-yellow-300 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">두구두구</span>
+        </button>
+
+        <button @click="triggerSoundEffect('clean_simple', $event); playCustomSound('./위아래.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🧹</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-teal-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-teal-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">청소(3분)</span>
+        </button>
+
+        <button @click="triggerSoundEffect('magic', $event); playCustomSound('./correct.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-3">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🙆🏻‍♀️</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-emerald-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-emerald-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">정 답</span>
+        </button>
+
+        <button @click="triggerSoundEffect('fail', $event); playCustomSound('./wrong.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-3">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🙅🏻‍♀</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-blue-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-blue-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">땡!</span>
+        </button>
+
+        <button @click="triggerSoundEffect('news', $event); playCustomSound('./news.mp3')" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">📺</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-purple-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-purple-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">뉴 스</span>
+        </button>
+
+       <button @click="openLocalVideo" 
+                class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+            <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
+                <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none"
+                      style="font-size: 13cqmin;">🧼</span>
+            </div>
+            <span class="font-black text-slate-400 group-hover:text-sky-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-sky-200 whitespace-nowrap"
+                  style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">청소(5분)</span>
+        </button>
+
+    </div>
+
+    <div v-if="isVideoVisible" class="absolute inset-0 bg-black z-50 flex items-center justify-center">
+        <button @click="closeLocalVideo" 
+                class="absolute top-4 right-4 text-white/50 hover:text-white text-3xl z-50 bg-black/50 rounded-full w-12 h-12 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        
+        <video ref="localVideo" 
+               src="./5분 청소.mp4" 
+               controls 
+               autoplay 
+               class="w-full h-full object-contain"
+               @error="handleVideoError">
+        </video>
+    </div>
+</div>
+
+
+
+        <div v-if="!isNoiseMaximized" class="resize-handle" @mousedown.stop="startNoiseResize"></div>
+
+    </div>
+
+    <transition
+        enter-active-class="transition ease-out duration-300"
+        enter-from-class="opacity-0 scale-50"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-110">
+        
+        <div v-if="notificationMsg" 
+             class="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+             @click="notificationMsg = ''">
+            <div class="bg-white rounded-[3rem] shadow-2xl border-[8px] flex flex-col items-center justify-center text-center animate-bounce-slow"
+                 :class="{
+                    'border-orange-500 text-orange-600': notificationType === 'warning-big',
+                    'border-red-600 text-red-600': notificationType === 'danger-big'
+                 }"
+                 style="width: 80cqw; height: 50cqw; min-width: 600px; min-height: 400px;">
+                
+                <i class="fa-solid mb-8 animate-pulse" 
+                   :class="{
+                      'fa-triangle-exclamation text-[15cqw]': notificationType === 'warning-big',
+                      'fa-circle-exclamation text-[15cqw]': notificationType === 'danger-big'
+                   }"></i>
+                   
+                <span class="font-black leading-tight drop-shadow-md whitespace-pre-line" 
+                      style="font-size: 8cqw;">
+                    {{ notificationMsg }}
+                </span>
+            </div>
+        </div>
+    </transition>  
+
+</div>
  <script type="module">   
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -3838,6 +3951,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 isInitialLoad: true,
 showBombTimer: false,
 showNoiseMeter: false,
+isVideoVisible: false,
                 saveTimeout: null,
                 view: 'main', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, 
 lotteryPools: {
@@ -3845,6 +3959,8 @@ lotteryPools: {
             M:   [],   // 남학생 모드용 풀
             F:   []    // 여학생 모드용 풀
         },
+isEndingSoundPlayed: false,
+timerAudio: null,
 currentMaxZ: 20000, // 기준 높이
         boardZ: 20001,      // 판서
         timerZ: 20002,      // 타이머
@@ -3926,6 +4042,23 @@ ladderSelectionList: [],
         animatedStudent: null,
         animatedPosY: 0,
 
+// [소음 측정 관련 변수]
+        isMeasuring: false,      // 측정 중인지 여부
+        audioContext: null,      // 오디오 컨텍스트
+        analyser: null,          // 분석기
+        microphone: null,        // 마이크 스트림
+        dataArray: null,         // 소음 데이터 배열
+        volumeInterval: null,    // 반복 체크용 인터벌
+        currentVolume: 0,        // 현재 소음(dB 비슷하게 변환된 값)
+        noiseThreshold: 60,      // [설정] 기준 민감도 (슬라이더 값)
+        noiseGauge: 0,
+        currentVolume: 0,
+isNoiseCooldown: false,
+displayedDb: 0,   
+lastDbUpdate: 0,
+currentAudio: null,    
+currentAudioSrc: null,
+
 // [사운드]
                 sounds: {
     hover: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
@@ -4004,27 +4137,17 @@ fullBracketTree: [],
         noiseY: 100,
         noiseW: 400,
         noiseH: 300,
-        currentNoiseLevel: 0,  
-        noiseHistory: [],      
+        noiseZ: 5004,
         noiseAnalyzer: null,   
         noiseStream: null,     
         noiseInterval: null,
-lastTriggerType: null,
 noiseMode: 'sound',
-noiseLevels: {
-            safe: 50,     // 안전 ~ 주의 임계
-            caution: 75,  // 주의 ~ 경고 임계
-            warning: 100,  // 경고 ~ 탈락 임계
-        },
-statsWarningCount: 0, // 경고 횟수
-        statsPenaltyCount: 0, // 탈락 횟수
-        isNoiseCooldown: false, // 쿨타임 중인지? (중복 방지)
+        isWarningCooldown: false,
         isPenaltyShock: false,
 notificationMsg: '', // 알림 텍스트
         notificationType: '', // 알림 색상 (info, warning, danger)
         notificationTimer: null,
         notificationMsg: '',    // ★ 이게 있어야 알림이 뜹니다!
-maxDB: 100,
         noiseWarningCount: 3,  // 경고 누적 카운트
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
@@ -4114,6 +4237,13 @@ soundSettings: {
             }
         },
 computed: {
+
+gaugeColor() {
+        if (this.noiseGauge > 80) return 'text-red-500';
+        if (this.noiseGauge > 50) return 'text-orange-500';
+        return 'text-teal-600';
+    },
+
 
 ladderDynamicStyle() {
     const count = this.ladderStudents.length;
@@ -4311,12 +4441,11 @@ currentLotteryPool() {
         watch: {
 
 'soundSettings.game'(val) {
-    if (!val) {
-        // 게임 소리를 끄면, 루프 돌고 있는 긴 소리들은 즉시 정지
-        this.stopSound('bgm_race');
-        this.stopSound('whistle');
-    }
-},
+        if (!val) {
+            this.stopSound('bgm_race');
+            this.stopSound('whistle');
+        }
+    },
 
 showTimer(val) {
         if (val) {
@@ -4333,7 +4462,7 @@ showTimer(val) {
             this.focusWindow('noise');
         }
     },
-            // 1. 모드 변경 감지
+
     lotteryMode(newMode) {
         if (!this.lotteryPools[newMode] || this.lotteryPools[newMode].length === 0) {
             if (this.allStudents.length > 0) this.initializeLotteryPool(newMode);
@@ -4341,7 +4470,6 @@ showTimer(val) {
         this.displayWinner = this.lastWinners[newMode] || '?';
     },
 
-    // 2. 탭 변경 감지
     pickerTab(newTab) {
         if (newTab === 'ladder') this.$nextTick(this.resizeLadderCanvas);
         if (newTab === 'lottery') {
@@ -4349,12 +4477,6 @@ showTimer(val) {
         }
     },
 
-    // 3. 소음 측정기 감지
-    showNoiseMeter(val) {
-        if (!val) this.stopNoiseMeasurement();
-    },
-
-    // 4. 칠판 감지
     showBlackboard(val) {
         if (val) this.$nextTick(() => {
             const editor = document.getElementById('board-editor');
@@ -4416,6 +4538,86 @@ pickerTab(newTab) {
 
 
            methods: {
+openLocalVideo() {
+    // 1. 다른 소리 끄기
+    if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+    }
+    if (this.ytPlayer && this.isYtPlaying) {
+        this.ytPlayer.stopVideo();
+        this.isYtPlaying = false;
+    }
+
+    // 2. 비디오 플레이어 표시
+    this.isVideoVisible = true;
+
+    // 3. [핵심] 화면이 그려진 후(nextTick) 강제로 재생 명령 내리기
+    this.$nextTick(() => {
+        const video = this.$refs.localVideo;
+        if (video) {
+            video.currentTime = 0; // 처음부터
+            video.play().catch(e => {
+                console.log("자동 재생 차단됨 (사용자 클릭 필요):", e);
+            });
+        }
+    });
+},
+handleVideoError() {
+    alert("⚠️ 영상을 찾을 수 없습니다!\n\n1. 파일명이 '5분 청소.mp4'가 맞는지 확인해주세요.\n(띄어쓰기까지 정확해야 합니다)\n\n2. HTML 파일과 '같은 폴더'에 있는지 확인해주세요.");
+    this.isVideoVisible = false; // 창 닫기
+},
+// [추가] 청소 영상 닫기
+closeLocalVideo() {
+    this.isVideoVisible = false;
+    // 닫으면 영상 소리도 꺼짐 (v-if로 제거되므로 자동 처리됨)
+},
+setSensitivity(mode) {
+    if (mode === 'high') {
+        this.noiseThreshold = 50; 
+    } else {
+        this.noiseThreshold = 80; 
+    }
+    this.saveToLocal(); // 여기서 Firebase 저장이 실행됨
+},
+
+playCustomSound(src) {
+    // 1. 같은 소리를 다시 누르면 -> 멈춤 (Stop)
+    if (this.currentAudio && this.currentAudioSrc === src) {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+        this.currentAudio = null;
+        this.currentAudioSrc = null;
+        return; 
+    }
+
+    // 2. 다른 소리가 재생 중이면 -> 끄고 새 소리 재생
+    if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+    }
+
+    // 3. 새 소리 재생
+    this.currentAudio = new Audio(src);
+    this.currentAudioSrc = src;
+    this.currentAudio.play().catch(e => console.log('재생 오류:', e));
+
+    // 4. 재생이 끝나면 상태 초기화
+    this.currentAudio.onended = () => {
+        this.currentAudio = null;
+        this.currentAudioSrc = null;
+    };
+},
+
+triggerSoundEffect(key, event) {
+    // 1. 소리 재생
+    this.playSound(key);
+
+    // 2. (선택사항) 버튼 눌림 효과 강화
+    // Tailwind의 active 클래스로 대부분 처리되지만,
+    // 필요하다면 여기서 추가적인 JS 애니메이션을 넣을 수 있습니다.
+    // 현재는 CSS만으로 충분히 예쁩니다!
+},
 
 // 1. 카드를 클릭했을 때 실행되는 함수 (좌석배치도 & 대기화면용)
 handleCardClick(idx) { 
@@ -4747,21 +4949,6 @@ getLineStyle(roundIdx) {
 },
 // [신규] 소음 수치에 따른 바 색상 반환 함수
 // [1] 소음 바(Bar) 색상 반환 (4단계 적용)
-getNoiseBarColorClass() {
-    const safe = this.noiseLevels?.safe || 60;
-    const caution = this.noiseLevels?.caution || 80;
-    const warning = this.noiseLevels?.warning || 100;
-
-    if (this.currentNoiseLevel < safe) {
-        return 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]';
-    } else if (this.currentNoiseLevel < caution) {
-        return 'bg-gradient-to-r from-emerald-400 to-green-500 shadow-[0_0_15px_rgba(16,185,129,0.6)]';
-    } else if (this.currentNoiseLevel < warning) {
-        return 'bg-gradient-to-r from-orange-400 to-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.6)]';
-    } else {
-        return 'bg-gradient-to-r from-red-500 to-rose-700 shadow-[0_0_20px_rgba(239,68,68,0.8)]';
-    }
-},
 // [2] 현재 단계 이름 반환 (4단계 적용)
 getNoiseStage(level) {
     if (level < this.noiseLevels.safe) return '안전'; // 파랑
@@ -4885,69 +5072,215 @@ startGroupShuffle() {
         }
     }, 1000);
 },
-
-// 화살표 드래그 시작
-    startDrag(level, event) {
-    this.focusWindow('noise'); // ★ 추가
-    if (!event) return;
-    event.preventDefault();
-
-    const startX = event.clientX;
-    const startVal = this.noiseLevels[level];
-    const bar = this.$refs.noiseBar;
-    if (!bar) return;
-    const barRect = bar.getBoundingClientRect();
-
-    const move = (ev) => {
-        const delta = ev.clientX - startX;
-        const barWidth = barRect.width;
-        const change = Math.round((delta / barWidth) * this.maxDB);
-        let newVal = Math.max(0, Math.min(this.maxDB, startVal + change));
-
-        if (level === 'safe') newVal = Math.min(newVal, this.noiseLevels.caution - 1);
-        if (level === 'caution') newVal = Math.max(this.noiseLevels.safe + 1, Math.min(newVal, this.noiseLevels.warning - 1));
-        if (level === 'warning') newVal = Math.max(this.noiseLevels.caution + 1, newVal);
-
-        this.noiseLevels[level] = newVal;
-    };
-
-    const up = () => {
-        document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', up);
-        this.saveToLocal();
-    };
-
-    document.addEventListener('mousemove', move);
-    document.addEventListener('mouseup', up);
-},
-
-    // 단계 이름 반환
-    getNoiseStage(level) {
-        if (level < this.noiseLevels.safe) return '안전';
-        if (level < this.noiseLevels.caution) return '주의';
-        if (level < this.noiseLevels.warning) return '경고';
-        return '탈락';
-    },
-
-    // 클래스 반환 (bg용 추가)
-    getNoiseClass(level, type = 'text') {
-    const prefix = type === 'bg' ? 'bg-' : 'text-';
     
-    // 0. 레벨 설정값이 없는 경우 대비 (기본값 방어 코드)
-    const safe = this.noiseLevels?.safe || 60;
-    const caution = this.noiseLevels?.caution || 80;
-    const warning = this.noiseLevels?.warning || 100;
 
-    // 1단계: 안전 (Blue) - 🟦
-    if (level < safe) return prefix + 'blue-500';
-    // 2단계: 주의 (Green) - 🟩
-    if (level < caution) return prefix + 'green-500';
-    // 3단계: 경고 (Orange) - 🟧
-    if (level < warning) return prefix + 'orange-500';
-    // 4단계: 탈락 (Red) - 🟥
-    return prefix + 'red-600';
+    // 2. 소음 측정 시작
+async startNoiseMeasurement() {
+    if (this.isMeasuring) return;
+
+    // [핵심] 이미 오디오 연결이 살아있다면(일시정지 상태), 권한 요청 없이 루프만 재개
+    if (this.audioContext && this.microphone && this.noiseAnalyzer) {
+        this.isMeasuring = true;
+        if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+        this.updateVolume(); // 루프 재시작
+        return; 
+    }
+
+    // [최초 실행] 마이크 권한 요청 및 연결 설정
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioContext = new AudioContext();
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+        this.noiseStream = stream;
+        this.microphone = this.audioContext.createMediaStreamSource(stream);
+        this.noiseAnalyzer = this.audioContext.createAnalyser();
+        
+        this.noiseAnalyzer.fftSize = 512;
+        this.noiseAnalyzer.smoothingTimeConstant = 0.8;
+        
+        this.microphone.connect(this.noiseAnalyzer);
+        this.dataArray = new Uint8Array(this.noiseAnalyzer.frequencyBinCount);
+        
+        this.isMeasuring = true;
+        this.updateVolume(); 
+    } catch (err) {
+        alert("마이크 권한이 필요합니다.");
+        this.isMeasuring = false;
+    }
+},
+pauseNoiseMeasurement() {
+    this.isMeasuring = false;
+    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+    // 오디오 컨텍스트는 닫지 않음 -> 다시 재생 시 권한 요청 안 함
+},
+stopAndReset() {
+    this.isMeasuring = false;
+    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+
+    // 마이크 및 오디오 자원 완전히 해제
+    if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
+    if (this.microphone) { this.microphone.disconnect(); this.microphone = null; }
+    if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
+    this.noiseAnalyzer = null; 
+    
+    // 수치 0으로 리셋
+    this.noiseGauge = 0;
+    this.currentVolume = 0;
+    this.displayedDb = 0;
+},
+resetNoiseGauge() {
+    this.noiseGauge = 0;
+    this.currentVolume = 0;
+    // (선택) 측정 중이 아닐 때 화면 숫자도 0으로 맞추기
+    if (!this.isMeasuring) this.displayedDb = 0;
+},
+updateVolume() {
+    if (!this.isMeasuring || !this.noiseAnalyzer) return;
+
+    this.noiseAnalyzer.getByteFrequencyData(this.dataArray);
+    
+    let sum = 0;
+    // 저주파(웅웅거림) 제외
+    for (let i = 5; i < this.dataArray.length; i++) { sum += this.dataArray[i]; }
+    const average = sum / (this.dataArray.length - 5);
+    
+    let safeInput = Math.max(1, average);
+
+    // ============================================================
+    // [★ 선생님 전용 조절 매뉴얼 ★]
+    // 공식: (로그값 * 반응속도) - 기본차감
+    // 현재 설정: (Log * 135) - 145
+    // ============================================================
+    
+    // 1. "소리에 얼마나 민감하게 반응할까?" (반응속도/증가율)
+    // 현재값: 140
+    // - 숫자를 키우면(예: 150): 작은 소리 변화에도 숫자가 팍팍 튑니다.
+    // - 숫자를 줄이면(예: 120): 박수를 쳐도 숫자가 찔끔 오릅니다.
+    const sensitivity = 140; 
+
+    // 2. "전체적인 점수를 깎아내리기" (기본차감/베이스)
+    // 현재값: 145
+    // - 숫자를 키우면(예: 160): 전체적으로 dB가 낮게 나옵니다. (조용할 때 0 만들기 쉬움)
+    // - 숫자를 줄이면(예: 130): 전체적으로 dB가 높게 나옵니다. (기본 소음이 높게 잡힘)
+    const offset = 145; 
+
+    // 최종 계산식
+    let rawDb = Math.floor((Math.log10(safeInput) * sensitivity) - offset); 
+    // ============================================================
+
+    // 노이즈 게이트 (최소값 방어: 너무 낮게 나오면 25로 고정)
+    if (rawDb < 20) rawDb = 20;
+
+    // 수치 부드럽게 이동
+    if (Math.abs(rawDb - this.currentVolume) > 0.5) {
+        this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
+    }
+    
+    let calcVol = Math.floor(this.currentVolume);
+    calcVol = Math.max(0, Math.min(120, calcVol));
+
+    // 화면 표시 (0.5초마다 갱신)
+    const now = Date.now();
+    if (now - (this.lastDbUpdate || 0) > 500) { 
+        this.displayedDb = calcVol;
+        this.lastDbUpdate = now;
+    }
+
+  // ============================================================
+    // [★ 핵심 수정: 급발진 방지 (Speed Limit) ★]
+    // ============================================================
+    
+    if (calcVol > this.noiseThreshold) {
+        // 상황: 기준치 초과 (게이지 상승)
+        const gap = calcVol - this.noiseThreshold;
+        
+        // 1. 기본 속도 계산 (차이가 클수록 빨리 오름)
+        let increaseSpeed = 0.01 + (gap * 0.05); 
+
+        // 2. ★ 속도 제한 장치 (Safety Ceiling)
+        // 계산된 속도가 아무리 빨라도 '0.5'를 넘지 못하게 막습니다.
+        // - 0.5 설정 시: 박수 1번(0.2초)에 약 6~10% 정도만 오름.
+        // - 게이지가 0 -> 100% 되려면 최소 3.3초 동안 계속 시끄러워야 함.
+        increaseSpeed = Math.min(increaseSpeed, 0.5); 
+
+        this.noiseGauge += increaseSpeed;
+        
+  } else {        
+        // ▼ [조절 포인트] 내려가는 속도
+        // 원리: 매 프레임마다 게이지를 조금씩 깎습니다.
+        // - 기존값: 0.001
+        // - 더 느리게(천천히 회복): 숫자를 더 작게 (예: 0.001)
+        // - 더 빠르게(금방 회복): 숫자를 더 크게 (예: 0.01)
+        
+        this.noiseGauge -= 0.001; 
+    }
+    // ============================================================
+
+    if (this.noiseGauge < 0) this.noiseGauge = 0;
+    if (this.noiseGauge > 100) this.noiseGauge = 100;
+
+    if (this.noiseGauge >= 100) {
+        this.handleNoiseFail(); 
+        return; 
+    }
+
+    this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
 },
 
+// 2. [필수] 탈락 처리 함수 (이게 없으면 소리가 안 납니다!)
+handleNoiseFail() {
+    // 쿨타임 중이면 실행 안 함 (중복 실행 방지)
+    if (this.isNoiseCooldown) return;
+    this.isNoiseCooldown = true;
+
+    this.stopNoiseMeasurement(); // 측정 멈춤
+    
+    // 소리 및 효과
+    this.playCustomSound('./police.mp3'); 
+    this.triggerSoundEffect('fail'); 
+    
+    // ★ 알림창 띄우기 (이 함수가 있어야 화면에 뜹니다)
+    this.showToast("🚨탈락!", "danger-big");
+    
+    // 3초 뒤 쿨타임 해제
+    setTimeout(() => { this.isNoiseCooldown = false; }, 3000);
+},
+
+// 3. [필수] 알림창(Toast) 표시 함수 (이게 없으면 경고 문구가 안 뜹니다!)
+showToast(msg, type = 'warning') {
+    this.notificationMsg = msg;
+    this.notificationType = type;
+    
+    if (this.notificationTimer) clearTimeout(this.notificationTimer);
+        this.notificationTimer = setTimeout(() => {
+        this.notificationMsg = '';
+    }, 3000);
+},
+
+   // 3. 소음 측정 중단
+   stopNoiseMeasurement() {
+    this.isMeasuring = false;
+    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+    if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
+    if (this.microphone) { this.microphone.disconnect(); this.microphone = null; }
+    if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
+    this.noiseAnalyzer = null; 
+    this.currentVolume = 0;
+},
+
+handleWarning() {
+    // 경고 쿨타임은 별도로 짧게 (1.5초)
+    if (this.isWarningCooldown) return;
+    this.isWarningCooldown = true;
+
+    // 요청하신 경고음 (police.mp3)
+    this.playCustomSound('./police.mp3');
+    // this.showToast("⚠ 주의! 시끄러워요", "warning-big"); // 필요 시 주석 해제
+    
+    setTimeout(() => { this.isWarningCooldown = false; }, 10000);
+},
+    
 // 소음 측정기 열기 (좌측 하단 버튼용)
     openNoiseMeter() {
     this.showNoiseMeter = true;
@@ -4979,125 +5312,7 @@ setNoiseMode(mode) {
     // 이제 저장된 위치가 어디든 상관없이 그대로 뜹니다.
 },
 
-   // [최종 수정] 소음 측정 시작 (AGC 끄기 + 스무딩 적용)
-startNoiseMeasurement() {
-    if (this.noiseInterval) return;
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("⚠️ 마이크를 사용할 수 없습니다.");
-        return;
-    }
-
-    const constraints = {
-        audio: {
-            echoCancellation: false,
-            noiseSuppression: true,
-            autoGainControl: false // AGC 끄기
-        }
-    };
-
-    navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-            this.noiseStream = stream;
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            this.noiseAnalyzer = audioContext.createAnalyser();
-            
-            this.noiseAnalyzer.fftSize = 2048; 
-            this.noiseAnalyzer.smoothingTimeConstant = 0.8;
-            source.connect(this.noiseAnalyzer);
-            
-            const dataArray = new Uint8Array(this.noiseAnalyzer.frequencyBinCount);
-
-            // [설정 1] 보정값 (-20 ~ -30 추천)
-            const calibration = -20; 
-
-            // [설정 2] 노이즈 게이트 (이 값 이하의 미세 소리는 30으로 고정)
-            const noiseGateThreshold = 5;
-
-            // ★ [설정 3] 충격음 필터 (짧은 소음 무시)
-            // 소리가 갑자기 커졌을 때, 몇 번 연속으로 감지돼야 인정할지 설정
-            // 3 = 0.3초 이상 지속돼야 소음으로 인정 (마우스 클릭 무시)
-            const spikeDurationThreshold = 3; 
-            let spikeCounter = 0; // 시끄러운 상태가 얼마나 지속됐는지 세는 변수
-
-            // 이전 값 기억
-            let previousDb = 30; 
-
-            this.noiseInterval = setInterval(() => {
-                this.noiseAnalyzer.getByteFrequencyData(dataArray);
-                
-                // 1. RMS 계산 (저주파 제외)
-                let sum = 0;
-                for (let i = 15; i < dataArray.length; i++) {
-                    sum += dataArray[i] * dataArray[i];
-                }
-                const rms = Math.sqrt(sum / (dataArray.length - 15));
-
-                // 2. 1차 가공 (로그 변환 + 게이트)
-                let rawDb = 30; // 기본 조용한 상태
-                if (rms > noiseGateThreshold) {
-                    const db = 20 * Math.log10(rms / 255); 
-                    rawDb = Math.floor(db + 100 + calibration);
-                }
-                rawDb = Math.max(30, Math.min(120, rawDb));
-
-                // 3. ★ 충격음 필터 로직 (핵심)
-                // 현재 소리가 이전보다 10dB 이상 갑자기 커졌다면?
-                let targetDb = rawDb;
-
-                if (rawDb > previousDb + 5) { // 5dB 이상 급상승 시
-                    spikeCounter++; // 카운트 시작
-                    
-                    // 지속 시간이 짧으면(0.3초 미만) 무시하고 이전 값 유지
-                    if (spikeCounter < spikeDurationThreshold) {
-                        targetDb = previousDb; 
-                    } else {
-                        // 충분히 오래 지속되면 인정 (아이들이 떠드는 소리)
-                        targetDb = rawDb; 
-                    }
-                } else {
-                    // 소리가 줄어들거나 비슷하면 카운트 리셋
-                    spikeCounter = 0;
-                    targetDb = rawDb;
-                }
-
-                // 4. 스무딩 (부드러운 움직임)
-                const smoothingFactor = 0.8; 
-                let smoothDb = (targetDb * (1 - smoothingFactor)) + (previousDb * smoothingFactor);
-                let finalDb = Math.floor(smoothDb);
-
-                // 5. 화면 업데이트
-                if (Math.abs(finalDb - this.currentNoiseLevel) >= 1) {
-                    this.currentNoiseLevel = finalDb;
-                    this.updateNoiseLevel(); 
-                }
-
-                previousDb = smoothDb;
-
-            }, 100);
-        })
-        .catch(err => {
-    console.error("마이크 에러:", err);
-    this.stopNoiseMeasurement();  // ★ 추가: 실패 시 측정 중지
-    alert("⚠️ 마이크 접근이 거부되었습니다. 브라우저 설정을 확인해주세요.");
-});
-},
-
-   // 소음 측정 종료 (창 닫을 때)
-    stopNoiseMeasurement() {
-        if (this.noiseInterval) clearInterval(this.noiseInterval);
-        this.noiseInterval = null;
-        if (this.noiseStream) {
-            this.noiseStream.getTracks().forEach(track => track.stop());
-            this.noiseStream = null;
-        }
-        this.noiseAnalyzer = null;
-        this.currentNoiseLevel = 0;
-        this.noiseHistory = [];
-    },
-
-    // 모달 드래그 (picker와 비슷하게 복사)
+       // 모달 드래그 (picker와 비슷하게 복사)
     startNoiseDrag(e) {
         if (e.target.closest('button')) return;
         if (this.isNoiseMaximized) return;
@@ -5152,130 +5367,9 @@ this.saveToLocal();
     document.addEventListener('mousemove', mv);
     document.addEventListener('mouseup', mu);
 },
+      
 
-// 소음 업데이트 시 단계 체크 (기존 인터벌 안에 추가)
-    updateNoiseLevel() {
-    // 1단계: 안전 (Safe)
-    if (this.currentNoiseLevel < this.noiseLevels.safe) {
-        // 아무것도 안 함
-    }
-    // 2단계: 주의 (Caution)
-    else if (this.currentNoiseLevel < this.noiseLevels.caution) {
-        // 필요 시 여기에 주의 로직 추가
-    }
-    // 3단계: 경고 (Warning) - 주황색 구간
-    else if (this.currentNoiseLevel < this.noiseLevels.warning) {
-        this.triggerPenalty('warning');
-    }
-    // 4단계: 탈락 (Penalty) - 빨간색 구간
-    else {
-        this.triggerPenalty('penalty');
-    }
-},
-    // 경고 사운드 재생 (웹 오디오로 간단 구현)
-    playWarningSound() {
-        const audio = new Audio('https://freesound.org/data/previews/476/476545_10096752-lq.mp3'); // 무료 경고음 URL (필요 시 변경)
-        audio.play();
-    },
-
-    // 패널티 트리거 (단계별)
-   triggerPenalty(level) {
-    if (this.isNoiseCooldown) {
-        if (level === 'penalty' && this.lastTriggerType === 'warning') {
-            // 통과
-        } else {
-            return; 
-        }
-    }
-
-    if (level === 'warning') {
-    this.statsWarningCount++;
-    this.lastTriggerType = 'warning'; 
-    this.showToast("⚠ 쉿! 소음 기준 초과", "warning-big");
-    
-this.playSound('police', false, 0.6);
-    
-    this.isNoiseCooldown = true;
-    setTimeout(() => { this.isNoiseCooldown = false; this.lastTriggerType = null; }, 60000); 
-}
-    else if (level === 'penalty') {
-        this.statsPenaltyCount++;
-        this.lastTriggerType = 'penalty'; 
-        this.showToast("🚨 기준치 초과! 탈락", "danger-big");
-        this.isPenaltyShock = true;
-        this.playSound('explode', false, 0.8); // [소리 추가] 탈락음
-        
-        setTimeout(() => { this.isPenaltyShock = false; }, 5000);
-        this.isNoiseCooldown = true;
-        setTimeout(() => { this.isNoiseCooldown = false; this.lastTriggerType = null; }, 60000);
-    }
-    this.saveToLocal();
-},
-
-showToast(msg, type = 'warning') {
-    this.notificationMsg = msg;
-    this.notificationType = type;
-    
-    if (this.notificationTimer) clearTimeout(this.notificationTimer);
-    
-    // 3초 뒤 사라짐
-    this.notificationTimer = setTimeout(() => {
-        this.notificationMsg = '';
-    }, 3000);
-},
-
-// [신규] 통계 초기화 함수
-resetNoiseStats() {
-    if(confirm("누적된 경고/탈락 횟수를 초기화할까요?")) {
-        this.statsWarningCount = 0;
-        this.statsPenaltyCount = 0;
-        this.saveToLocal();
-    }
-},
-
-    // 그래프 그리기 (Canvas로 단계 색상 반영)
-    drawNoiseGraph() {
-    const canvas = this.$refs.noiseChart;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 배경 라인 (maxDB 기준 위치)
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.beginPath(); ctx.moveTo(0, canvas.height * (1 - this.noiseLevels.safe / this.maxDB)); ctx.lineTo(canvas.width, canvas.height * (1 - this.noiseLevels.safe / this.maxDB)); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, canvas.height * (1 - this.noiseLevels.caution / this.maxDB)); ctx.lineTo(canvas.width, canvas.height * (1 - this.noiseLevels.caution / this.maxDB)); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, canvas.height * (1 - this.noiseLevels.warning / this.maxDB)); ctx.lineTo(canvas.width, canvas.height * (1 - this.noiseLevels.warning / this.maxDB)); ctx.stroke();
-
-    // 실제 소음 라인 (클램핑)
-    ctx.beginPath();
-    this.noiseHistory.forEach((level, i) => {
-        const clamped = Math.min(this.maxDB, Math.max(0, level));
-        const x = (i / this.noiseHistory.length) * canvas.width;
-        const y = canvas.height - (clamped / this.maxDB * canvas.height);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-},
-
-    // 단계 수정 UI (모달에 버튼 추가 시 호출)
-    editNoiseLevels() {
-        // 기존 prompt 대신 슬라이더 UI (모달 안에 새 div 팝업)
-        // 하지만 코드 단순화를 위해 prompt 3개로 대체 (드래그 슬라이더는 별도 컴포넌트 필요 시 추가)
-        const newSafe = prompt("안전 ~ 주의 임계 (기본 50dB):", this.noiseLevels.safe);
-        const newCaution = prompt("주의 ~ 경고 임계 (기본 70dB):", this.noiseLevels.caution);
-        const newWarning = prompt("경고 ~ 탈락 임계 (기본 90dB):", this.noiseLevels.warning);
-        if (newSafe && newCaution && newWarning) {
-            this.noiseLevels.safe = parseInt(newSafe);
-            this.noiseLevels.caution = parseInt(newCaution);
-            this.noiseLevels.warning = parseInt(newWarning);
-            this.saveToLocal();
-        }
-    },
-
-cancelFinalWinner() {
+    cancelFinalWinner() {
     if (!this.finalWinner) return;
     // 마지막 라운드(결승전) 가져오기
     const lastRoundIdx = this.bracketTree.length - 1;
@@ -6434,15 +6528,28 @@ onTimerInput() {
     }
 },
 toggleTimer() {
+    // 1. [일시 정지]
     if (this.timerInterval) {
         clearInterval(this.timerInterval);
         this.timerInterval = null;
-    } else {
+        // (선택) 멈춤 시 소리 끄기
+        if (this.timerAudio) { this.timerAudio.pause(); this.timerAudio.currentTime = 0; }
+    } 
+    // 2. [시작]
+    else {
+        // (1) 모드 초기 설정
         if (!this.userSelectedMode) {
             this.syncInputToTime();
             this.isStopwatchMode = (this.timerSeconds === 0);
             this.userSelectedMode = this.isStopwatchMode ? 'stopwatch' : 'timer';
         }
+        
+        // (2) 시작 시 소리 재생 상태 초기화 (2.5초 이상 남았을 때만)
+        // 1초에 터지므로 여유를 두고 2.5초 정도로 설정
+        if (this.timerSeconds > 2.5) {
+            this.isEndingSoundPlayed = false;
+        }
+
         const now = Date.now();
         if (this.isStopwatchMode) {
             this.timerTargetTime = now - (this.timerSeconds * 1000);
@@ -6450,28 +6557,39 @@ toggleTimer() {
             this.timerTargetTime = now + (this.timerSeconds * 1000);
         }
 
-        // [★추가] 경고음 중복 재생 방지용 변수
-        let lastAlertSec = -1;
+        let lastAlertSec = -1; 
 
         this.timerInterval = setInterval(() => {
             const currentNow = Date.now();
+            
             if (this.isStopwatchMode) {
                 this.timerSeconds = (currentNow - this.timerTargetTime) / 1000;
             } else {
                 const remaining = (this.timerTargetTime - currentNow) / 1000;
                 
-                // [★수정] 10초 이하일 때 1초마다 경고음(warning) 재생
-                if (remaining <= 10 && remaining > 0) {
+                // [1] 10초 ~ 3초 구간: '삐-' 경고음
+                if (remaining <= 10 && remaining > 4) {
                     const currentSec = Math.ceil(remaining);
                     if (currentSec !== lastAlertSec) {
-                        this.playSound('warning', false, 0.6); // 삑! 소리
+                        this.playSound('warning', false, 0.6); 
                         lastAlertSec = currentSec;
                     }
                 }
 
-                if (remaining <= 0) {
-                    this.timerSeconds = 0;
-                    this.handleExplosion();
+                // [2] 2.1초 ~ 1초 구간: '타이머 효과음' 재생 (약 1.1초간 재생됨)
+                // 폭발이 1초에 일어나므로 1초보다 클 때만 소리 체크
+                if (remaining <= 4 && remaining > 1.0 && !this.isEndingSoundPlayed) {
+                    if (this.timerAudio) {
+                        this.timerAudio.currentTime = 0; 
+                        this.timerAudio.play().catch(e => console.log("재생 오류:", e));
+                    }
+                    this.isEndingSoundPlayed = true; 
+                }
+
+                // [3] ★수정됨★ 1초 남았을 때 종료 처리 (1.0초에 폭발!)
+                if (remaining <= 1.0) {
+                    this.timerSeconds = 0; // 화면 숫자는 0으로 바꿈
+                    this.handleExplosion(); 
                     return;
                 }
                 this.timerSeconds = remaining;
@@ -6480,6 +6598,7 @@ toggleTimer() {
         }, 50);
     }
 },
+
 updateCountdownEffect() {
     const el = document.querySelector('.bomb-window');
     if (!el) return;
@@ -6596,25 +6715,27 @@ startTimerResize(e) {
     document.addEventListener('mouseup', mu);
 },
 resetTimer() {
-                if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
-                this.timerSeconds = 0;
-                this.inputMin = "00";
-                this.inputSec = "00";
-                this.userSelectedMode = null;
-                this.isStopwatchMode = false;
-                this.isExploding = false;
-                const el = document.querySelector('.bomb-window');
-                if (el) el.style.setProperty('--glow-color', 'rgba(255, 0, 0, 0.5)');
-                this.syncTimeToInput();
-                this.saveToLocal();
-            },
+    if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
+    this.timerSeconds = 0;
+    this.inputMin = "00";
+    this.inputSec = "00";
+    this.userSelectedMode = null;
+    this.isStopwatchMode = false;
+    this.isExploding = false;
+    
+    // [추가] 소리 재생 플래그 초기화
+    this.isEndingSoundPlayed = false;
 
+    const el = document.querySelector('.bomb-window');
+    if (el) el.style.setProperty('--glow-color', 'rgba(255, 0, 0, 0.5)');
+    this.syncTimeToInput();
+    this.saveToLocal();
+},
 handleExplosion() { 
     clearInterval(this.timerInterval); 
     this.timerInterval = null; 
     this.showTimer = false; 
     this.isExploding = true; 
-    this.playSound('explode', false, 1.0); // [소리 추가] 폭발음
     setTimeout(() => { 
         this.isExploding = false; 
         this.timerSeconds = 0; 
@@ -6854,67 +6975,77 @@ this.playSound('finish', false, 0.5);
 },
 
 
-            saveToFirebase() {
+saveToFirebase() {
+    if (typeof db !== 'undefined' && typeof set !== 'undefined' && typeof ref !== 'undefined') {
+        
+        // 1. 동물 달리기 스냅샷
+        const currentAnimalRunners = this.animalRunners ? this.animalRunners.map(r => ({
+            pos: r.pos || 0, state: r.state || 'run', finished: r.finished || false, 
+            speed: r.speed || 0, timer: r.timer || 0, id: r.id || 0, name: r.name || '', 
+            avatar: r.avatar || '', finishRank: r.finishRank || 0, finishTime: r.finishTime || 0, isGold: r.isGold || false
+        })) : [];
 
-// 1. 동물 달리기 현재 상태 스냅샷 (달리는 도중에도 저장되도록)
-const currentAnimalRunners = this.animalRunners ? this.animalRunners.map(r => ({
-        pos: r.pos || 0, state: r.state || 'run', finished: r.finished || false, 
-        speed: r.speed || 0, timer: r.timer || 0, id: r.id || 0, name: r.name || '', 
-        avatar: r.avatar || '', finishRank: r.finishRank || 0, finishTime: r.finishTime || 0, isGold: r.isGold || false
-    })) : [];
+        // 2. 저장할 데이터 객체 구성
+        const dataToSave = {
+            // ★ [핵심] 민감도 수치 명시적 저장
+            noiseThreshold: this.noiseThreshold, 
 
-   const dataToSave = {
-currentView: this.view,
-isRotated: this.isRotated,
-capsules: this.capsules,
-                    seats: this.seats, 
-                    waitingRoom: this.waitingRoom, 
-                    seatConfig: this.seatConfig, 
-                    manualLocks: this.manualLocks,
-                    groups: this.groups, 
-                    separationPairs: this.separationPairs,
-                    shuffleHistory: this.shuffleHistory, 
-                    savedBoards: this.savedBoards, 
-                    savedRoulettes: this.savedRoulettes, 
-                    lotteryPools: this.lotteryPools, 
-                    lastWinners: this.lastWinners,
-                    lotteryMode: this.lotteryMode,
-                    savedGroupings: this.savedGroupings, 
-                    rouletteInput: this.rouletteInput,
-                    blackboardContent: this.blackboardContent, 
-                    groupingList: this.groupingList, 
-                    animalRunners: currentAnimalRunners,
-                    animalRaceResults: this.animalRaceResults,
-                    animalRaceFinished: this.animalRaceFinished,
-noiseLevels: this.noiseLevels,
-showGenderHint: this.showGenderHint,
-statsWarningCount: this.statsWarningCount,
+            currentView: this.view,
+            isRotated: this.isRotated,
+            capsules: this.capsules,
+            seats: this.seats, 
+            waitingRoom: this.waitingRoom, 
+            seatConfig: this.seatConfig, 
+            manualLocks: this.manualLocks,
+            groups: this.groups, 
+            separationPairs: this.separationPairs,
+            shuffleHistory: this.shuffleHistory, 
+            savedBoards: this.savedBoards, 
+            savedRoulettes: this.savedRoulettes, 
+            lotteryPools: this.lotteryPools, 
+            lastWinners: this.lastWinners,
+            lotteryMode: this.lotteryMode,
+            savedGroupings: this.savedGroupings, 
+            rouletteInput: this.rouletteInput,
+            blackboardContent: this.blackboardContent, 
+            groupingList: this.groupingList, 
+            animalRunners: currentAnimalRunners,
+            animalRaceResults: this.animalRaceResults,
+            animalRaceFinished: this.animalRaceFinished,
+            noiseLevels: this.noiseLevels,
+            showGenderHint: this.showGenderHint,
+            statsWarningCount: this.statsWarningCount,
             statsPenaltyCount: this.statsPenaltyCount,
-                    uiState: {
-           timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
-    board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized },
-    noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
-    picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
-    raceSetup: { w: this.setupW, h: this.setupH }
-        },
-    
-tournamentData: {
-            tree: this.visibleBracketTree,       // 대진표 전체 데이터
-            winner: this.finalWinner,            // 최종 우승자
-            mode: this.selectedBracketMode,      // 선택된 모드 (8강/16강 등)
-            left: this.leftSideBracket,          // (중요) 왼쪽 배치 데이터
-            right: this.rightSideBracket         // (중요) 오른쪽 배치 데이터
-       }
-    };
+            uiState: {
+                timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
+                board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized },
+                noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
+                picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
+                raceSetup: { w: this.setupW, h: this.setupH }
+            },
+            tournamentData: {
+                tree: this.visibleBracketTree,       
+                winner: this.finalWinner,            
+                mode: this.selectedBracketMode,      
+                left: this.leftSideBracket,          
+                right: this.rightSideBracket         
+            }
+        };
 
-                set(ref(db, DB_KEY), dataToSave)
-                    .then(() => console.log("데이터 저장 완료"))
-                    .catch((error) => console.error("저장 실패:", error));
-            },
-            saveToLocal() { 
-                if (this.saveTimeout) clearTimeout(this.saveTimeout); 
-                this.saveTimeout = setTimeout(() => { this.saveToFirebase(); }, 1000); 
-            },
+        // 3. Firebase에 전송
+        set(ref(db, DB_KEY), dataToSave)
+            .then(() => console.log("🔥 저장 완료 (민감도: " + this.noiseThreshold + ")"))
+            .catch((error) => console.error("저장 실패:", error));
+    }
+},
+            saveToLocal() {
+    localStorage.setItem('noiseThreshold', this.noiseThreshold);
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(() => { 
+        this.saveToFirebase(); 
+    }, 1000); 
+},
+
             loadFromFirebase() {
     const dbRef = ref(db);
     get(child(dbRef, DB_KEY)).then((snapshot) => {
@@ -6924,6 +7055,8 @@ tournamentData: {
             // 1. [기본 뷰 & 회전 상태 복구]
             this.view = 'main';
             this.isRotated = parsed.isRotated || false;
+this.noiseThreshold = (parsed.noiseThreshold !== undefined) ? Number(parsed.noiseThreshold) : 60;
+
 setTimeout(() => {
     const ww = window.innerWidth;
     const wh = window.innerHeight;
@@ -9243,6 +9376,36 @@ startReverseLadderGame(endColIdx) {
     // 1. 서버 데이터 로드
     this.loadFromFirebase(); 
 
+// ★ [추가] 저장된 민감도 수치 불러오기
+    const savedThreshold = localStorage.getItem('noiseThreshold');
+    if (savedThreshold) {
+        this.noiseThreshold = parseInt(savedThreshold);
+    } else {
+        // 저장된 값이 없으면 기본값 50 (독서 모드)
+        this.noiseThreshold = 50;
+    }
+
+if (typeof db !== 'undefined' && typeof onValue !== 'undefined' && typeof ref !== 'undefined') {
+        const settingsRef = ref(db, 'settings/noiseThreshold');
+        
+        onValue(settingsRef, (snapshot) => {
+            const val = snapshot.val();
+            if (val !== null) {
+                // Firebase에 저장된 값이 있으면 적용
+                this.noiseThreshold = Number(val);
+                console.log("Firebase 설정 로드 완료:", this.noiseThreshold);
+            } else {
+                // 없으면 로컬스토리지 확인
+                const localVal = localStorage.getItem('noiseThreshold');
+                if (localVal) this.noiseThreshold = Number(localVal);
+            }
+        });
+    } else {
+        // Firebase가 연결 안 된 경우 로컬만 사용
+        const localVal = localStorage.getItem('noiseThreshold');
+        if (localVal) this.noiseThreshold = Number(localVal);
+    }
+
     // 2. 이벤트 리스너
     window.addEventListener('keydown', this.handleEscKey);
     window.addEventListener('resize', () => { 
@@ -9252,6 +9415,8 @@ startReverseLadderGame(endColIdx) {
     });
     this.updateClock(); 
     this.clockInterval = setInterval(() => this.updateClock(), 1000);
+this.timerAudio = new Audio('./timer.mp3');
+    this.timerAudio.load();
 
     // [버튼 효과음 통일] 모든 버튼 클릭 시 '딸깍' 소리 재생
     document.addEventListener('mouseover', (e) => {

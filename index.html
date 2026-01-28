@@ -22,6 +22,19 @@
         body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; user-select: none; overflow: hidden; height: 100vh; }
         [v-cloak] { display: none !important; }
 
+@keyframes gentle-swing {
+    0% { transform: rotate(15deg); }
+    50% { transform: rotate(-15deg); }
+    100% { transform: rotate(15deg); }
+}
+
+.animate-violent {
+    display: inline-block !important;
+    /* 2초 동안 부드럽게(ease-in-out) 왕복하며 무한 반복 */
+    animation: gentle-swing 2s infinite ease-in-out !important; 
+    transform-origin: top center !important; /* 종의 윗부분을 축으로 흔들림 */
+}
+
 .rock-avatar-img {
     width: 110px;
     height: 110px;
@@ -2117,7 +2130,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 </div>
 <div v-if="isClockMaximized" 
      @click="handleClockWindowClick"
-     class="fixed inset-0 bg-slate-900 text-white select-none animate-fade-in"
+     class="fixed inset-0 bg-[#020617] text-white select-none animate-fade-in"
      style="z-index: 99999 !important;">
     
     <style>
@@ -2125,18 +2138,18 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        @keyframes bell-shake {
+       @keyframes violent-shake {
             0% { transform: rotate(0); }
-            10% { transform: rotate(15deg); }
-            20% { transform: rotate(-15deg); }
-            30% { transform: rotate(10deg); }
-            40% { transform: rotate(-10deg); }
-            50% { transform: rotate(5deg); }
-            60% { transform: rotate(-5deg); }
-            70% { transform: rotate(0); }
-            100% { transform: rotate(0); }
+            10% { transform: rotate(25deg) scale(1.1); }
+            20% { transform: rotate(-25deg) scale(1.1); }
+            30% { transform: rotate(15deg) scale(1.1); }
+            40% { transform: rotate(-15deg) scale(1.1); }
+            50% { transform: rotate(0) scale(1.1); }
+            100% { transform: rotate(0) scale(1); }
         }
-        .animate-bell { animation: bell-shake 0.8s infinite; }
+        .animate-violent {
+            animation: violent-shake 0.5s infinite; /* 0.5초마다 반복 */
+        }
     </style>
 
     <div class="absolute top-8 right-8 flex items-center gap-4 z-50" @click.stop>
@@ -2240,12 +2253,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
 
     <div v-if="isAlarmRinging" 
-         @click="stopAlarm"
-         class="fixed inset-0 z-[200000] bg-black/90 flex flex-col items-center justify-center animate-fade-in cursor-pointer">
-        <i class="fa-solid fa-bell text-[20rem] text-yellow-400 animate-bell drop-shadow-[0_0_80px_rgba(250,204,21,0.8)] pointer-events-none"></i>
-    </div>
+     @click="stopAlarm"
+     class="fixed inset-0 z-[200000] bg-black/100 flex flex-col items-center justify-center animate-fade-in cursor-pointer backdrop-blur-sm">
+    
+    <i class="fa-solid fa-bell text-[20rem] text-yellow-400 animate-violent drop-shadow-[0_0_100px_rgba(250,204,21,0.9)] pointer-events-none"></i>
+    
+</div></div>
 
-</div>
         <aside class="sidebar flex flex-col px-6 py-8 w-[320px] bg-white shadow-2xl z-40">
             <div class="flex items-center gap-3 mb-10 px-2">
                 <h1 class="text-2xl font-black text-slate-800">🏫 우리반 매니저</h1>
@@ -4163,6 +4177,13 @@ alarmList: [],
         isAlarmOn: false,    
         showAlarmModal: false,
 editingAlarmIndex: null,
+resumeState: {
+            audio: null,       // 듣던 음악
+            timerRunning: false, // 타이머 돌고 있었는지
+            isStopwatch: false,  // 스톱워치 모드였는지
+            activeGame: null,    // 게임 중이었는지 ('rock', 'animal')
+        },
+
 // [사운드]
                 sounds: {
     alarm: new Audio('./alarm.mp3'),
@@ -4613,12 +4634,100 @@ handleMiniClockClick() {
     }
 },
 stopAlarm() {
+    // 1. 알람 소리 끄기
     if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio = null;
     }
-    this.isAlarmRinging = false; // 알람 울림 상태 해제
-    this.notificationMsg = '';   // 알림창 닫기
+    
+    // 2. 알람 상태 해제
+    this.isAlarmRinging = false; 
+    this.notificationMsg = ''; 
+
+    // 3. 멈췄던 활동 다시 시작
+    this.resumeActivities();
+},
+pauseActivities() {
+    // (1) 배경음악/효과음 정지
+    if (this.currentAudio && !this.currentAudio.paused) {
+        this.currentAudio.pause();
+        this.resumeState.audio = this.currentAudio; // 듣던 음악 기억
+    } else {
+        this.resumeState.audio = null;
+    }
+    this.currentAudio = null; // 알람 소리를 위해 비워둠
+
+    // (2) 타이머/스톱워치 정지
+    if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+        this.timerInterval = null;
+        this.resumeState.timerRunning = true;
+        this.resumeState.isStopwatch = this.isStopwatchMode;
+    } else {
+        this.resumeState.timerRunning = false;
+    }
+
+    // (3) 게임 정지 (돌 레이스 / 동물 레이스)
+    if (this.isGameRunning) {
+        this.isGameRunning = false;
+        cancelAnimationFrame(this.animationId); // 애니메이션 루프 중단
+        this.resumeState.activeGame = 'rock';
+    } else if (this.isAnimalRacing) {
+        this.isAnimalRacing = false;
+        // 동물 레이스는 루프 내에서 isAnimalRacing 플래그로 멈춤
+        this.resumeState.activeGame = 'animal';
+    } else {
+        this.resumeState.activeGame = null;
+    }
+},
+
+// [신규] 활동 재개 함수
+resumeActivities() {
+    // (1) 타이머 복구
+    if (this.resumeState.timerRunning) {
+        const now = Date.now();
+        // 남은 시간(timerSeconds)을 기준으로 목표 시간 재설정
+        if (this.resumeState.isStopwatch) {
+            this.timerTargetTime = now - (this.timerSeconds * 1000);
+        } else {
+            this.timerTargetTime = now + (this.timerSeconds * 1000);
+        }
+        
+        // 타이머 인터벌 재시작 (기존 toggleTimer 로직 활용)
+        this.timerInterval = setInterval(() => {
+            const currentNow = Date.now();
+            if (this.isStopwatchMode) {
+                this.timerSeconds = (currentNow - this.timerTargetTime) / 1000;
+            } else {
+                const remaining = (this.timerTargetTime - currentNow) / 1000;
+                if (remaining <= 4 && remaining > 1.0 && !this.isEndingSoundPlayed) {
+                     if (this.timerAudio) { this.timerAudio.currentTime = 0; this.timerAudio.play().catch(()=>{}); }
+                     this.isEndingSoundPlayed = true;
+                }
+                if (remaining <= 1.0) {
+                    this.timerSeconds = 0; this.handleExplosion(); return;
+                }
+                this.timerSeconds = remaining;
+            }
+            this.syncTimeToInput();
+        }, 50);
+    }
+
+    // (2) 게임 복구
+    if (this.resumeState.activeGame === 'rock') {
+        this.isGameRunning = true;
+        this.loop(); // 루프 재시작
+    } else if (this.resumeState.activeGame === 'animal') {
+        this.isAnimalRacing = true;
+        this.runAnimalLoop(); // 루프 재시작
+    }
+
+    // (3) 배경음악 복구
+    if (this.resumeState.audio) {
+        this.currentAudio = this.resumeState.audio;
+        this.currentAudio.play().catch(() => {});
+        this.resumeState.audio = null;
+    }
 },
 openYoutube(url) {
     // 혹시 다른 소리가 재생 중이면 끄기
@@ -6003,7 +6112,7 @@ getDiceFace(value) {
     rollDice() {
     if (this.isRollingDice) return;
 
-    // [애니메이션 초기화] 기존 효과 제거 후 강제 리셋
+    // [애니메이션 초기화]
     const container = document.querySelector('.dice-wrapper'); 
     if (container) {
         container.classList.remove('effect-zoom-bounce', 'rolling-shake'); 
@@ -6013,7 +6122,7 @@ getDiceFace(value) {
 
     this.isRollingDice = true;
     
-    // 소리 재생 (반복 없음, 1.2초 후 중단)
+    // 소리 재생 (반복 없음, 2초 후 중단)
     this.playSound('dice_roll', false, 0.6); 
     setTimeout(() => { this.stopSound('dice_roll'); }, 2000);
 
@@ -6021,8 +6130,9 @@ getDiceFace(value) {
     this.diceSum = 0;
     
     let rolls = 0;
+    // [수정] 20번 변경 * 0.1초(100ms) = 총 2초 소요
     const maxRolls = 20; 
-    const intervalTime = 240; 
+    const intervalTime = 100; 
 
     const interval = setInterval(() => {
         this.diceValues = this.diceValues.map(() => Math.floor(Math.random() * 6) + 1);
@@ -6037,10 +6147,10 @@ getDiceFace(value) {
             this.updateDiceSum();
             this.isRollingDice = false;
             
-            // [결과 확정 시] 흔들기 끄고 -> 확대 효과(통통 튀기) 적용
+            // [결과 확정]
             if (container) {
                 container.classList.remove('rolling-shake');
-                void container.offsetWidth; // ★ 여기서도 강제 새로고침 필수
+                void container.offsetWidth; 
                 container.classList.add('effect-zoom-bounce');
             }
             this.saveToLocal();
@@ -6635,16 +6745,21 @@ toggleAlarm(index) {
     this.saveToLocal();
 },
 triggerAlarm(alarm) {
-    this.isAlarmRinging = true; // 울림 상태 표시
-    this.playSound('alarm', false, 1.0); 
-    this.showToast(`⏰ ${alarm.time} 알람 시간입니다!`, "warning-big");
-    
-    // [삭제됨] alarm.on = false;  <-- 이 줄을 지웠으므로 알람이 계속 켜져 있습니다 (매일 반복)
-    
-    // (선택) 알람이 울린 시간을 기록하거나 로그를 남길 수 있습니다.
-    // console.log("알람 실행됨:", alarm.time);
-},
+    if (this.isAlarmRinging) return; // 이미 울리고 있으면 패스
 
+    // 1. 하던 활동 일시 정지 & 상태 저장
+    this.pauseActivities();
+
+    // 2. 화면 강제 표시
+    this.isClockMaximized = true; 
+    this.isAlarmRinging = true;
+
+    // 3. 알람 소리 재생
+    this.playSound('alarm', false, 1.0); 
+    
+    // 알람 ON 상태 유지 (매일 반복)
+    this.saveToLocal();
+},
 saveAlarm() {
     if (!this.alarmTime) return alert("시간을 입력해주세요.");
     this.isAlarmOn = true;
@@ -7517,7 +7632,11 @@ this.showGenderHint = parsed.showGenderHint !== undefined ? parsed.showGenderHin
                 const colors = { 1: 'bg-red-500 border-red-600 text-white', 2: 'bg-orange-500 border-orange-600 text-white', 3: 'bg-yellow-400 border-yellow-500 text-black', 4: 'bg-green-500 border-green-600 text-white', 5: 'bg-blue-500 border-blue-600 text-white', 6: 'bg-purple-500 border-purple-600 text-white' };
                 return colors[score] || 'bg-white';
             },
-            openRankModal() { this.showRankModal = true; },
+openRankModal() { 
+    this.rankSortKey = 'number';  // 정렬 기준: 번호
+    this.rankSortOrder = 'asc';   // 정렬 순서: 오름차순 (1, 2, 3...)
+    this.showRankModal = true; 
+},
             sortRank(key) { 
                 if (this.rankSortKey === key) { this.rankSortOrder = this.rankSortOrder === 'asc' ? 'desc' : 'asc'; } 
                 else { this.rankSortKey = key; this.rankSortOrder = ['activityScore','checked','memo'].includes(key) ? 'desc' : 'asc'; } 

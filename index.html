@@ -2467,7 +2467,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <i class="fa-solid fa-list-ol text-4xl mb-3"></i>
                         <span class="text-sm font-bold break-keep">대기자가<br>없습니다</span>
                     </div>
-                    <div v-for="(s, idx) in sortedOrderedStudents" :key="s.name" draggable="true" @dragstart="draggedOrderIdx = idx" @dragover.prevent @drop.stop="onDropReorder(idx)" @contextmenu.prevent="s.order = null" class="flex items-center gap-3 border-4 px-3 py-3 rounded-2xl shrink-0 cursor-move transition-all shadow-sm hover:scale-[1.02]" :class="[isFirstOrder(s) ? 'bg-red-600 text-white border-white' : 'bg-yellow-400 text-black border-yellow-500']">
+                    <div v-for="(s, idx) in sortedOrderedStudents" :key="s.name" draggable="true" @dragstart="draggedOrderIdx = idx" @dragover.prevent @drop.stop="onDropReorder(idx)" @click="removeOrder(s)" @contextmenu.prevent="removeOrder(s)" class="flex items-center gap-3 border-4 px-3 py-3 rounded-2xl shrink-0 cursor-move transition-all shadow-sm hover:scale-[1.02]" :class="[isFirstOrder(s) ? 'bg-red-600 text-white border-white' : 'bg-yellow-400 text-black border-yellow-500']">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-base shrink-0" :class="isFirstOrder(s) ? 'bg-white/20 text-white' : 'bg-black/10 text-black'">{{ s.order }}</div>
                         <span class="font-black text-lg flex-1 truncate">{{ s.name }}</span>
                         <i class="fa-solid fa-grip-lines opacity-50 text-sm"></i>
@@ -4853,11 +4853,12 @@ handleCardClick(idx) {
             // 번호 부여 (선택)
             const maxOrder = Math.max(0, ...this.allStudents.map(x => x.order || 0));
             s.order = maxOrder + 1;
-            this.playSound('ding', false, 0.5); // [소리 추가] 띠링~
+            this.playSound('ding', false, 0.5); 
         } else {
-            // 번호 해제 (취소/완료)
+            // 번호 해제 (취소/완료) 및 남은 번호 앞으로 당기기
             s.order = null; 
-            this.playSound('ding', false, 0.5); // [소리 추가] 띠링~
+            this.recalculateOrders(); // ★ 순서 앞당기기 실행
+            this.playSound('ding', false, 0.5); 
         }
     } 
     // [2] 좌석 배치도(Main) 모드일 때 -> 도구 적용
@@ -4867,6 +4868,25 @@ handleCardClick(idx) {
     
     this.saveToLocal(); 
 },
+
+// ★ [신규] 중간 번호가 빠지면 남은 번호들을 1번부터 차례대로 다시 맞추는 함수
+recalculateOrders() {
+    // 번호가 있는 학생들만 모아서 현재 번호순으로 정렬
+    const ordered = this.allStudents.filter(st => st.order).sort((a, b) => a.order - b.order);
+    // 1번부터 차례대로 번호 재부여
+    ordered.forEach((st, index) => {
+        st.order = index + 1;
+    });
+},
+
+// ★ [신규] 우측 대기명단 칸에서 클릭/우클릭으로 완료(삭제)할 때 사용하는 함수
+removeOrder(s) {
+    s.order = null;
+    this.recalculateOrders(); // 번호 앞당기기
+    this.playSound('ding', false, 0.5);
+    this.saveToLocal();
+},
+
 applyTool(t, fromAll = false) {
     const key = t.hasOwnProperty('score') ? 'score' : 'activityScore';
     

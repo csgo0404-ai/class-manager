@@ -2330,23 +2330,70 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </aside>
 
 
-       <main class="flex-1 flex flex-col items-center justify-center p-8 relative" 
-      :class="view !== 'order' ? 'pr-32' : ''">
-           <div class="absolute top-8 right-8 z-50 flex flex-col gap-3">
-                <button v-if="view !== 'order'" title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-white rounded-2xl shadow-lg flex items-center justify-center text-slate-400 border-2 hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
+      <main class="flex-1 flex flex-col items-center justify-center p-8 relative transition-all duration-300" 
+              :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
+            
+            <div class="absolute top-8 right-8 z-50 flex flex-col gap-3 items-end">
+                <button v-if="view !== 'order'" title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
+                <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
+                <button v-if="view !== 'order'" title="선택 초기화" @click="resetCurrentSelection" class="w-14 h-14 bg-yellow-400 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
+                <button v-if="view !== 'order'" @click="clearMemos" title="메모 삭제" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
                 
-                <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-white rounded-2xl shadow-lg flex items-center justify-center text-red-400 border-2 hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
-                <button v-if="view !== 'order'" title="선택 초기화" @click="resetCurrentSelection" class="w-14 h-14 bg-white rounded-2xl shadow-lg flex items-center justify-center text-emerald-500 border-2 hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
-                <button v-if="view !== 'order'" @click="clearMemos" title="메모 삭제" class="w-14 h-14 bg-white rounded-2xl shadow-lg flex items-center justify-center text-indigo-500 border-2 hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
+                <template v-if="view === 'main'">
+                    <button @click="showStudentNumber = !showStudentNumber; saveToLocal();" title="번호 표시/숨기기" class="w-14 h-14 bg-blue-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid text-2xl" :class="showStudentNumber ? 'fa-eye' : 'fa-eye-slash'"></i>
+                    </button>
+                    <button title="자리 바꾸기" @click="openShuffleModal" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid fa-chair text-2xl"></i>
+                    </button>
+                    <button @click="openRockRace" title="돌 굴러가유~" class="w-14 h-14 bg-purple-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" width="32" height="32" alt="Rock">
+                    </button>
+                </template>
+
+                <template v-if="view === 'group'">
+                    <button @click="openGroupMaker" title="모둠 편성" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid fa-shuffle text-2xl"></i>
+                    </button>
+                    <button @click="openAnimalRaceModal" title="모둠 달리기" class="w-14 h-14 bg-purple-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid fa-person-running text-3xl"></i>
+                    </button>
+                </template>
+            </div>
+
+            <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-3 items-end">
+                
+                <template v-if="view === 'main' || view === 'group'">
+                    <button @click="allMode = !allMode" 
+                        :class="allMode ? 'bg-yellow-400 text-white border-white' : 'bg-white text-yellow-500 border-yellow-500'"
+                        class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center transition-all hover:scale-110 text-xl">
+                        ALL
+                    </button>
+                    <button @click="handleToolClick('check')" :class="activeTool === 'check' ? 'bg-emerald-500 text-white border-white' : 'bg-white text-emerald-500 border-emerald-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-check"></i></button>
+                    <button @click="handleToolClick('plus')" :class="activeTool === 'plus' ? 'bg-red-500 text-white border-white' : 'bg-white text-red-500 border-red-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-3xl transition-all">+</button>
+                    <button @click="handleToolClick('minus')" :class="activeTool === 'minus' ? 'bg-blue-600 text-white border-white' : 'bg-white text-blue-600 border-blue-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-4xl transition-all leading-none pb-1">-</button>
+                    <button @click="isMemoVisible = !isMemoVisible" :class="isMemoVisible ? 'bg-indigo-600 text-white border-white' : 'bg-white text-indigo-600 border-indigo-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-clipboard-list"></i></button>
+                </template>
+
+                <div v-if="view === 'order'" class="flex flex-row gap-3">
+                    <button @click="resetOrder" title="대기순서 초기화" class="w-14 h-14 bg-white text-purple-500 rounded-2xl shadow-2xl border-2 border-purple-500 flex items-center justify-center hover:scale-110 transition-all">
+                        <div class="relative mt-1">
+                            <i class="fa-solid fa-list-ol text-xl"></i>
+                            <i class="fa-solid fa-rotate-left text-[11px] absolute -bottom-2 -right-2 text-white bg-purple-500 rounded-full p-0.5 border border-white"></i>
+                        </div>
+                    </button>
+                    <button title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-white text-red-500 rounded-2xl shadow-2xl border-2 border-red-500 flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid fa-arrows-rotate text-2xl"></i>
+                    </button>
+                </div>
             </div>
 
             <div id="classroom-floor" 
-     class="classroom-floor shadow-2xl transition-all" 
-     :class="[
-        {'rotate-180': isRotated}, 
-        {'mr-[300px]': view === 'order'},
-        isInitialLoad ? 'duration-0' : 'duration-500' 
-     ]">
+                 class="classroom-floor shadow-2xl transition-all flex flex-col items-center justify-center" 
+                 :class="[
+                    {'rotate-180': isRotated}, 
+                    isInitialLoad ? 'duration-0' : 'duration-500' 
+                 ]">
                 <div class="flex justify-center mb-12">
                     <div class="content-reverse"><span class="bg-slate-800 text-white px-28 py-4 rounded-full text-2xl font-black inline-block shadow-xl">교 탁</span></div>
                 </div>
@@ -2360,8 +2407,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <div class="font-black text-2xl mb-2" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ idx + 1 }}모둠</div>
                             <div class="font-black text-7xl" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ g.score > 0 ? '+' : '' }}{{ g.score }}</div>
                             <div v-if="isMemoVisible" class="memo-container" @click.stop>
-                                <input v-model="g.memo" @change="saveToLocal" placeholder="메모..." class="memo-input" :class="{'memo-star-active': g.starred}">
                                 <button @click="g.starred = !g.starred; saveToLocal();"> <i :class="g.starred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star text-slate-400'"></i> </button>
+                                <input v-model="g.memo" @change="saveToLocal" placeholder="메모..." class="memo-input" :class="{'memo-star-active': g.starred}">
                             </div>
                         </div>
                     </div>
@@ -2382,6 +2429,11 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                          (view !== 'order' ? (seats[getIndex(bIdx, rIdx, pIdx)].activityScore >= 7 ? 'score-rainbow' : getScoreBg(seats[getIndex(bIdx, rIdx, pIdx)].activityScore)) : ''),
                                          { 'aura-gold': allMode && view !== 'order' }
                                      ]">
+                                    <div v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number" 
+                                         class="absolute top-1 left-1.5 text-[22px] font-black opacity-90 pointer-events-none tracking-tighter"
+                                         style="color: #9e8268;">
+                                        {{ seats[getIndex(bIdx, rIdx, pIdx)].number }}
+                                    </div>
                                     <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-7 h-7 bg-white rounded-full flex items-center justify-center text-emerald-600 border border-emerald-200 shadow-sm"><i class="fa-solid fa-check text-xs"></i></div>
                                     <div class="content-reverse card-container">
                                         <div class="font-black text-xl leading-none mb-3" 
@@ -2391,8 +2443,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                         <div v-if="view === 'main'" class="text-2xl font-black leading-none mb-1" :class="(seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0) ? 'text-inherit' : ''">{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore > 0 ? '+' : '' }}{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore }}</div>
                                         <div v-if="view === 'order' && seats[getIndex(bIdx, rIdx, pIdx)].order" class="w-8 h-8 bg-black/10 rounded-full flex items-center justify-center font-black text-sm text-black">{{ seats[getIndex(bIdx, rIdx, pIdx)].order }}</div>
                                         <div v-if="isMemoVisible && view !== 'order'" class="memo-container" @click.stop>
-                                            <input v-model="seats[getIndex(bIdx, rIdx, pIdx)].memo" @change="saveToLocal" placeholder="메모..." class="memo-input" :class="{'memo-star-active': seats[getIndex(bIdx, rIdx, pIdx)].starred}">
                                             <button @click="seats[getIndex(bIdx, rIdx, pIdx)].starred = !seats[getIndex(bIdx, rIdx, pIdx)].starred; saveToLocal();"> <i :class="seats[getIndex(bIdx, rIdx, pIdx)].starred ? 'fa-solid fa-star text-yellow-500' : 'fa-regular fa-star text-slate-400'"></i> </button>
+                                            <input v-model="seats[getIndex(bIdx, rIdx, pIdx)].memo" @change="saveToLocal" placeholder="메모..." class="memo-input" :class="{'memo-star-active': seats[getIndex(bIdx, rIdx, pIdx)].starred}">
                                         </div>
                                     </div>
                                 </div>
@@ -2402,8 +2454,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </div>
   
-           <div v-if="view === 'order'" 
-                 class="fixed right-10 top-10 w-[260px] h-[80vh] bg-white/90 backdrop-blur rounded-[2.5rem] flex flex-col items-center py-8 px-5 gap-5 shadow-2xl border-4 border-slate-200 z-30" 
+          <div v-if="view === 'order'" 
+                 class="fixed right-10 top-10 w-[220px] h-[80vh] bg-white/90 backdrop-blur rounded-[2.5rem] flex flex-col items-center py-8 px-4 gap-5 shadow-2xl border-4 border-slate-200 z-30" 
                  @dragover.prevent @drop="onDropToBottom">
                  <div class="shrink-0 w-full text-center border-b-2 border-slate-200 pb-4 mb-1">
                     <span class="text-slate-700 font-black text-3xl flex items-center justify-center gap-2">
@@ -2424,43 +2476,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </main>
   
-        <div class="fixed bottom-10 right-8 flex flex-col gap-4">
-            
-            <button v-if="view === 'main'" title="자리 바꾸기" @click="openShuffleModal" class="w-16 h-16 bg-blue-500 text-white rounded-3xl shadow-2xl border-4 border-white flex items-center justify-center text-2xl hover:scale-110 transition-all">
-                <i class="fa-solid fa-chair"></i>
-            </button>
-
-            <button v-if="view === 'group'" @click="openGroupMaker" title="모둠 편성" class="w-16 h-16 bg-blue-600 text-white rounded-3xl shadow-2xl border-4 border-white flex items-center justify-center text-2xl hover:scale-110 transition-all">
-                <i class="fa-solid fa-shuffle"></i>
-            </button>
-            
-            <button v-if="view === 'main'" @click="openRockRace" title="돌 굴러가유~" class="w-16 h-16 bg-orange-500 text-white rounded-3xl shadow-2xl border-4 border-white flex items-center justify-center text-2xl hover:scale-110 transition-all">
-    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" width="35" height="35" alt="Rock">
-</button>
-
-            <button v-if="view === 'group'" @click="openAnimalRaceModal" class="w-16 h-16 bg-orange-500 text-white rounded-3xl shadow-2xl border-4 border-white flex items-center justify-center text-2xl hover:scale-110 transition-all">
-                <i class="fa-solid fa-person-running"></i>
-            </button>
-            
-            <button v-if="view !== 'order'" @click="allMode = !allMode" class="w-16 h-16 rounded-3xl shadow-2xl border-4 font-black flex items-center justify-center transition-all bg-yellow-400 text-white hover:scale-110 text-lg">
-                ALL
-            </button>
-
-            <template v-if="view === 'main' || view === 'group'">
-                <button @click="handleToolClick('check')" :class="activeTool === 'check' ? 'bg-emerald-500 text-white' : 'bg-white text-emerald-500 border-emerald-500'" class="w-16 h-16 rounded-3xl shadow-xl border-4 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-check"></i></button>
-                <button @click="handleToolClick('plus')" :class="activeTool === 'plus' ? 'bg-red-500 text-white' : 'bg-white text-red-500 border-red-500'" class="w-16 h-16 rounded-3xl shadow-xl border-4 font-black text-3xl transition-all">+</button>
-                <button @click="handleToolClick('minus')" :class="activeTool === 'minus' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border-blue-600'" class="w-16 h-16 rounded-3xl shadow-xl border-4 font-black text-3xl transition-all">-</button>
-                <button @click="isMemoVisible = !isMemoVisible" :class="isMemoVisible ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border-indigo-600'" class="w-16 h-16 rounded-3xl shadow-xl border-4 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-clipboard-list"></i></button>
-            </template>
-
-            <div v-if="view === 'order'" class="flex gap-4">
-                <button v-if="view === 'order'" @click="resetOrder" class="w-16 h-16 bg-white rounded-3xl shadow-2xl flex items-center justify-center text-yellow-500 border-4 border-yellow-500 font-black text-xs leading-tight hover:scale-110 transition-all">순서<br>초기화</button>
-                <button title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-16 h-16 bg-white rounded-3xl shadow-2xl flex items-center justify-center text-slate-400 border-4 border-white font-black hover:scale-110 transition-all">
-                    <i class="fa-solid fa-arrows-rotate text-2xl"></i>
-                </button>
-            </div>
-        </div>
-  
+        
         <div v-if="showRockRace" class="rock-race-container">
              <div class="game-layout">
                 <div class="canvas-wrapper" ref="canvasContainer">
@@ -2919,13 +2935,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 
                 
-        <div v-if="showSettings" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center" @click.self="showSettings = false">
+<div v-if="showSettings" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center" @click.self="showSettings = false">
     <div class="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
         
         <div class="flex justify-between items-start mb-6">
             <div>
                 <h2 class="text-3xl font-black mb-2 text-slate-800">📝 명단 관리</h2>
-                <p class="text-slate-500 text-sm">번호, 이름, 성별 순서로 입력 (엑셀 붙여넣기 가능)<br>예: 1 홍길동 남</p>
+                <p class="text-slate-500 text-sm">번호, 이름, 성별 순서로 입력 (텍스트를 지우면 삭제됩니다)<br>예: 1 홍길동 남</p>
             </div>
 
             <div class="flex gap-3">
@@ -2948,12 +2964,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <textarea v-model="tempNameList" 
-                  class="w-full h-64 border-4 border-slate-200 rounded-3xl p-6 mb-6 outline-none text-lg font-bold text-slate-700 resize-none focus:border-slate-500 transition-colors custom-scrollbar" 
+                  class="w-full h-64 border-4 border-slate-200 rounded-3xl p-6 mb-6 outline-none text-lg font-bold text-slate-700 resize-none focus:border-blue-500 transition-colors custom-scrollbar" 
                   placeholder="1 홍길동 남"></textarea>
         
         <div class="flex gap-4">
              <button @click="showSettings = false" class="flex-1 bg-slate-200 text-slate-600 py-5 rounded-2xl font-black text-xl hover:bg-slate-300 transition-all">취소</button>
-             <button @click="saveNameList" class="flex-[2] bg-slate-800 text-white py-5 rounded-2xl font-black text-xl hover:bg-slate-900 shadow-xl transition-all">저장</button>
+             <button @click="saveNameList" class="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-blue-700 shadow-xl transition-all">저장 및 반영</button>
         </div>
     </div>
 </div>
@@ -4064,7 +4080,7 @@ showBombTimer: false,
 showNoiseMeter: false,
 isVideoVisible: false,
                 saveTimeout: null,
-                view: 'main', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, 
+                view: 'main', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
 lotteryPools: {
             all: [],   // 전체 모드용 풀
             M:   [],   // 남학생 모드용 풀
@@ -7160,8 +7176,7 @@ updateZoomDirect(e) {
     if (students.length === 0) {
         this.capsules = [];
         this.capsuleRevealedCount = 0;
-        alert("학생 명단이 없습니다! 명단을 먼저 등록해주세요.");
-        return;
+        return; // 경고창 제거 (초기화 시 거슬리지 않도록)
     }
 
     // 4. 랜덤 섞기
@@ -7170,9 +7185,10 @@ updateZoomDirect(e) {
         [students[i], students[j]] = [students[j], students[i]];
     }
 
-    // 5. 캡슐 배열 생성 (isPopping 제거됨)
+    // 5. 캡슐 배열 생성 (★ 캡슐 갱신 오류 해결: 고유 ID 부여)
+    const timestamp = Date.now();
     this.capsules = students.map((student, index) => ({
-        id: index,
+        id: `cap_${timestamp}_${index}`, 
         student: { name: student.name, gender: student.gender },
         revealed: false // 초기엔 닫힌 상태
     }));
@@ -7219,32 +7235,33 @@ this.playSound('finish', false, 0.5);
         }
     },
        // 캡슐 섞기 (위치 재배치 + chaos 효과)
+    // 캡슐 섞기 및 명단 강제 동기화
     shuffleCapsules() {
-    if (this.isShuffling) return;
-    this.isShuffling = true;
-    this.capsuleSwitchState = 'closed'; 
+        if (this.isShuffling) return;
+        this.isShuffling = true;
+        this.capsuleSwitchState = 'closed'; 
 
-    // [★수정] 섞을 때는 end(finish) 소리로 변경
-    this.playSound('end', false, 0.6);
+        this.playSound('end', false, 0.6);
 
-    // 1. 순차적으로 하나씩 앞면으로 뒤집기
-    this.capsules.forEach((c, index) => {
+        // 1. 화면에 있는 기존 캡슐들을 먼저 닫는 애니메이션 실행
+        this.capsules.forEach((c, index) => {
+            setTimeout(() => {
+                if(c) c.revealed = false; 
+            }, index * 30); 
+        });
+
+        const totalDelay = this.capsules.length * 30 + 500; 
+
+        // 2. 모든 캡슐이 닫힌 직후, 최신 명단을 불러와 완전히 새로 엎어치기
         setTimeout(() => {
-            c.revealed = false; 
-        }, index * 30); 
-    });
-
-    // 2. 섞기 완료 대기
-    const totalDelay = this.capsules.length * 30 + 500; 
-
-    setTimeout(() => {
-        for (let i = this.capsules.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.capsules[i], this.capsules[j]] = [this.capsules[j], this.capsules[i]];
-        }
-        this.isShuffling = false;
-    }, totalDelay);
-},
+            // ★ [핵심] 현재 교실(좌석+대기실) 명단을 다시 긁어와서 캡슐을 완전히 새로 만듭니다.
+            // (initCapsules 내부에 이미 랜덤 섞기 로직이 들어있어서 자동으로 섞입니다!)
+            this.initCapsules();
+            
+            this.isShuffling = false;
+            this.saveToLocal();
+        }, totalDelay);
+    },
     // 탭 전환 메서드 수정 (capsule 탭일 때 초기화 추가)
     setPickerTab(tab) {
     this.pickerTab = tab;
@@ -7336,6 +7353,7 @@ saveToFirebase() {
             animalRaceFinished: this.animalRaceFinished,
             noiseLevels: this.noiseLevels,
             showGenderHint: this.showGenderHint,
+            showStudentNumber: this.showStudentNumber, // [신규] 번호 표시 상태 저장
             statsWarningCount: this.statsWarningCount,
             statsPenaltyCount: this.statsPenaltyCount,
 clockMessage: this.clockMessage,
@@ -7379,6 +7397,7 @@ alarmList: this.alarmList,
             // 1. [기본 뷰 & 회전 상태 복구]
             this.view = 'main';
             this.isRotated = parsed.isRotated || false;
+            this.showStudentNumber = parsed.showStudentNumber || false; // [신규] 번호 표시 상태 불러오기
 this.noiseThreshold = (parsed.noiseThreshold !== undefined) ? Number(parsed.noiseThreshold) : 60;
 this.clockMessage = parsed.clockMessage !== undefined ? parsed.clockMessage : "-";
 
@@ -7955,8 +7974,39 @@ this.playSound('whistle', false, 0.8);
             }, 
 
 
-            saveNameList() { 
-               try {
+          deleteStudentDirectly(targetName) {
+    if (!confirm(`'${targetName}' 학생을 명단에서 삭제하시겠습니까?`)) return;
+
+    // 1. 좌석에서 해당 학생 지우기 (앉아있던 자리만 빈칸으로 변경)
+    for (let i = 0; i < this.seats.length; i++) {
+        if (this.seats[i] && this.seats[i].name === targetName) {
+            this.seats[i] = null;
+        }
+    }
+    
+    // 2. 대기실 및 고정석(자물쇠) 설정에서 제거
+    this.waitingRoom = this.waitingRoom.filter(s => s.name !== targetName);
+    this.manualLocks = this.manualLocks.filter(l => l.student !== targetName);
+
+    // 3. 하단 텍스트 에어리어(tempNameList)에서도 이름 삭제하여 동기화
+    const lines = this.tempNameList.split('\n');
+    const newLines = lines.filter(line => !line.includes(targetName));
+    this.tempNameList = newLines.join('\n');
+
+    // ★ [핵심] 삭제 즉시 캡슐과 추첨 명단을 강제로 비우고 0.05초 뒤 재설정
+    this.capsules = [];
+    setTimeout(() => {
+        this.initCapsules();
+        this.lotteryPools = { all: [], M: [], F: [] };
+        this.lastWinners = { all: null, M: null, F: null };
+        this.displayWinner = '?';
+        this.initializeLotteryPool(this.lotteryMode);
+        this.saveToFirebase();
+    }, 50);
+},
+
+saveNameList() { 
+    try {
         const lines = this.tempNameList.split('\n');
         const newStudentList = [];
         const processedNames = new Set(); 
@@ -7964,80 +8014,143 @@ this.playSound('whistle', false, 0.8);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim(); 
             if (!line) continue; 
+            
             let parts = line.split(/[\t\s,]+/); 
-            let number = null;
-            let name = '';
-            let gender = 'U'; 
+            let number = null, gender = 'U'; 
 
             if (/^\d+/.test(parts[0])) { 
                 number = parseInt(parts[0].replace(/[^0-9]/g, '')); 
                 parts.shift(); 
             }
-
-            if (parts.length > 0) name = parts[0];
+            if (parts.length > 0) {
+                const lastPart = parts[parts.length - 1].toUpperCase();
+                if (['남', '남자', 'M', 'MALE'].includes(lastPart)) { gender = 'M'; parts.pop(); } 
+                else if (['여', '여자', 'F', 'FEMALE'].includes(lastPart)) { gender = 'F'; parts.pop(); }
+            }
+            const name = parts.join(' ').trim();
             if (!name || processedNames.has(name)) continue; 
             processedNames.add(name); 
-
-            if (parts.length > 1) {
-                const genderStr = parts[parts.length - 1].toUpperCase();
-                if (['남', '남자', 'M', 'MALE'].includes(genderStr)) gender = 'M';
-                else if (['여', '여자', 'F', 'FEMALE'].includes(genderStr)) gender = 'F';
-            } else {
+            
+            if (gender === 'U') {
                 if (name.includes('남') || name.includes('(남)')) gender = 'M';
                 if (name.includes('여') || name.includes('(여)')) gender = 'F';
             }
             
-            newStudentList.push({ 
-                number, name, gender, 
-                activityScore: 0, checked: false, order: null, memo: "", starred: false 
-            });
+            let existingData = { activityScore: 0, checked: false, order: null, memo: "", starred: false };
+            const oldStudent = [...this.seats.filter(s => s), ...this.waitingRoom].find(s => s && s.name === name);
+            if (oldStudent) existingData = { ...oldStudent };
+
+            newStudentList.push({ ...existingData, number, name, gender });
         }
 
         if (newStudentList.length === 0) {
-            alert("학생을 찾을 수 없습니다. 형식을 확인해주세요.\n(예: 1번 홍길동 남)");
+            if (confirm("입력된 학생이 없습니다. 모든 학생을 삭제할까요?")) {
+                this.seats = Array(30).fill(null);
+                this.waitingRoom = [];
+                this.manualLocks = [];
+                
+                // ★ 빈 명단 적용
+                this.capsules = [];
+                setTimeout(() => {
+                    this.initCapsules();
+                    this.lotteryPools = { all: [], M: [], F: [] };
+                    this.displayWinner = '?';
+                    this.showSettings = false;
+                    this.saveToFirebase();
+                }, 50);
+            }
             return;
         }
 
-        if (!confirm(`총 ${newStudentList.length}명의 학생을 저장하시겠습니까?`)) return;
+        const newNameSet = new Set(newStudentList.map(s => s.name));
+        let updatedSeats = [...this.seats];
 
-        // 기존 데이터 유지 로직
-        const oldDataMap = new Map();
-        [...this.seats.filter(s => s), ...this.waitingRoom].forEach(s => {
-            if(s && s.name) oldDataMap.set(s.name, s);
-        });
-
-        const finalAllStudents = newStudentList.map(newItem => {
-            const oldItem = oldDataMap.get(newItem.name);
-            if (oldItem) { 
-                oldItem.number = newItem.number; 
-                oldItem.gender = newItem.gender; 
-                return oldItem; 
+        for (let i = 0; i < updatedSeats.length; i++) {
+            const seat = updatedSeats[i];
+            if (seat) {
+                if (!newNameSet.has(seat.name)) {
+                    updatedSeats[i] = null; 
+                } else {
+                    const latestInfo = newStudentList.find(ns => ns.name === seat.name);
+                    updatedSeats[i].number = latestInfo.number;
+                    updatedSeats[i].gender = latestInfo.gender;
+                }
             }
-            return newItem; 
+        }
+
+        const currentSeatedNames = new Set(updatedSeats.filter(s => s).map(s => s.name));
+        const addedStudents = newStudentList
+            .filter(ns => !currentSeatedNames.has(ns.name))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        const visualOrder = [
+            0, 2, 4, 6, 8,    
+            1, 3, 5, 7, 9,    
+            10, 12, 14, 16, 18, 
+            11, 13, 15, 17, 19, 
+            20, 22, 24, 26, 28, 
+            21, 23, 25, 27, 29  
+        ];
+
+        addedStudents.forEach(student => {
+            let placed = false;
+            for (let i = 0; i < visualOrder.length; i++) {
+                const idx = visualOrder[i];
+                const isLocked = this.manualLocks.some(l => l.seatIdx === idx);
+
+                if (updatedSeats[idx] === null && this.seatConfig[idx] === student.gender && !isLocked) {
+                    updatedSeats[idx] = student;
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                for (let i = 0; i < visualOrder.length; i++) {
+                    const idx = visualOrder[i];
+                    const isLocked = this.manualLocks.some(l => l.seatIdx === idx);
+
+                    if (updatedSeats[idx] === null && this.seatConfig[idx] === null && !isLocked) {
+                        updatedSeats[idx] = student;
+                        placed = true;
+                        break;
+                    }
+                }
+            }
         });
 
-        // 좌석 업데이트
-        const newNameSet = new Set(finalAllStudents.map(s => s.name));
-        this.seats = this.seats.map(s => (s && newNameSet.has(s.name)) ? oldDataMap.get(s.name) : null);
+        const finalSeatedNames = new Set(updatedSeats.filter(s => s).map(s => s.name));
+        this.waitingRoom = newStudentList.filter(ns => !finalSeatedNames.has(ns.name));
+        this.manualLocks = this.manualLocks.filter(lock => newNameSet.has(lock.student));
 
-        // 대기실 업데이트 (★ 여기가 수정된 부분: parsed 대신 finalAllStudents 사용)
-        const seatedNames = new Set(this.seats.filter(s => s).map(s => s.name));
-        this.waitingRoom = finalAllStudents.filter(fs => !seatedNames.has(fs.name));
-
+        this.seats = updatedSeats;
         this.showSettings = false; 
-        this.saveToFirebase(); // Firebase에 즉시 저장
-        alert("저장 완료되었습니다! 🎉"); 
+        
+        // ★ [핵심] 저장 시 캡슐과 추첨 명단을 강제로 비우고 0.05초 뒤 다시 꽉 채움!
+        this.capsules = []; 
+        setTimeout(() => {
+            this.initCapsules();
+            this.lotteryPools = { all: [], M: [], F: [] };
+            this.lastWinners = { all: null, M: null, F: null };
+            this.displayWinner = '?';
+            this.initializeLotteryPool(this.lotteryMode);
+            this.saveToFirebase();
+            
+            alert("명단이 정상적으로 저장 및 반영되었습니다! 🎉"); 
+        }, 50);
+
     } catch (e) {
         alert("오류 발생: " + e.message);
         console.error(e);
     }
 },
-            
-            getIndex(b, r, p) { return ((b-1)*10) + ((r-1)*2) + (p-1); },
-            
-            openBlackboard() { 
+
+getIndex(b, r, p) { 
+    return ((b-1)*10) + ((r-1)*2) + (p-1); 
+},
+
+openBlackboard() { 
     this.showBlackboard = true; 
-    this.focusWindow('board'); // ★ 추가
+    this.focusWindow('board'); 
     this.closePalettes(); 
     this.$nextTick(() => { 
         const editor = this.$refs.boardEditor || document.getElementById('board-editor');
@@ -8046,8 +8159,6 @@ this.playSound('whistle', false, 0.8);
         }
     });
 },
-
-
             applyStyle(cmd, val = null) { const editor = document.getElementById('board-editor');
                 
                 // 1. 에디터에 포커스가 없으면 강제로 맞춤 (선택 영역 유지 노력)

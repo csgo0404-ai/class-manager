@@ -1366,9 +1366,11 @@ body .blackboard-editor::-webkit-scrollbar-thumb { background: rgba(255, 255, 25
 
 /* 실제 글씨 레이어 (좌측 상단 정렬 최적화) */
 .board-zoom-container {
-    transform-origin: top left; min-width: 100%; min-height: 100vh !important;
+    transform-origin: top left; min-height: 100vh !important;
     padding: 5px 12px !important; outline: none; display: block !important; 
     color: white; text-align: left; cursor: text;
+    word-break: break-word; /* 긴 단어 강제 줄바꿈 */
+    white-space: pre-wrap; /* 여백 유지 및 가로폭에 맞춘 줄바꿈 */
 }
 
 /* [추가] 아무것도 없을 때도 마우스 클릭이 잘 되도록 함 */
@@ -3070,9 +3072,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     <div class="blackboard-editor">
         <div ref="boardEditor" id="board-editor" contenteditable="true" class="board-zoom-container"
-            :style="{ transform: `scale(${boardZoom})`, width: (boardZoom > 1 ? 100 : 100 / boardZoom) + '%', height: (100 / boardZoom) + '%' }"
-            @input="updateBoardContent" @click="closePalettes">
-        </div>
+    :style="{ transform: `scale(${boardZoom})`, width: (100 / boardZoom) + '%', height: (100 / boardZoom) + '%' }"
+    @input="updateBoardContent" @click="closePalettes">
+</div>
     </div>
     
     <div v-if="!isMaximized" class="resize-handle" @mousedown="startBoardResize"></div>
@@ -7162,21 +7164,22 @@ startLotteryResize(e) {
     document.addEventListener('mouseup', mu);
 },
 updateZoomDirect(e) {
-                let val = parseFloat(e.target.innerText.replace('%', '')) / 100;
-                if (!isNaN(val)) this.boardZoom = Math.min(Math.max(0.5, val), 10.0);
-                e.target.innerText = Math.round(this.boardZoom * 100) + '%';
-            },
-            startZoom(delta) {
-    this.focusWindow('board'); // ★ 추가
+    let val = parseFloat(e.target.innerText.replace('%', '')) / 100;
+    if (!isNaN(val)) this.boardZoom = Math.min(Math.max(0.5, val), 10.0);
+    e.target.innerText = Math.round(this.boardZoom * 100) + '%';
+    this.saveToLocal(); // 추가
+},
+startZoom(delta) {
+    this.focusWindow('board'); 
     this.stopZoom();
     this.changeZoom(delta);
     this.zoomTimer = setInterval(() => { this.changeZoom(delta); }, 100);
 },
-            stopZoom() { if (this.zoomTimer) { clearInterval(this.zoomTimer); this.zoomTimer = null; } },
-           changeZoom(delta) {
-                this.boardZoom = Math.min(Math.max(0.5, this.boardZoom + delta), 10.0);
-            },
-   
+stopZoom() { if (this.zoomTimer) { clearInterval(this.zoomTimer); this.zoomTimer = null; } },
+changeZoom(delta) {
+    this.boardZoom = Math.min(Math.max(0.5, this.boardZoom + delta), 10.0);
+    this.saveToLocal(); // 추가
+},   
 
 // 캡슐 뽑기 초기화 (탭 전환 또는 모달 열 때 호출)
    initCapsules() {
@@ -7380,7 +7383,7 @@ clockMessage: this.clockMessage,
 alarmList: this.alarmList,
             uiState: {
                 timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
-                board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized },
+               board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom },
                 noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
                 picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
                 raceSetup: { w: this.setupW, h: this.setupH }
@@ -7626,12 +7629,13 @@ this.seats = Array.from({length: 30}, (_, i) => {
                 
                 // [3] 그 외 창들 (판서, 뽑기 등)
                 if (parsed.uiState.board) {
-                    this.boardX = getNum(parsed.uiState.board.x, 100);
-                    this.boardY = getNum(parsed.uiState.board.y, 100);
-                    this.boardW = getNum(parsed.uiState.board.w, 600);
-                    this.boardH = getNum(parsed.uiState.board.h, 400);
-                    this.isMaximized = parsed.uiState.board.isMaximized || false;
-                }
+    this.boardX = getNum(parsed.uiState.board.x, 100);
+    this.boardY = getNum(parsed.uiState.board.y, 100);
+    this.boardW = getNum(parsed.uiState.board.w, 600);
+    this.boardH = getNum(parsed.uiState.board.h, 400);
+    this.isMaximized = parsed.uiState.board.isMaximized || false;
+    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0; // 추가
+}
                 if (parsed.uiState.picker) {
                     this.pickerX = getNum(parsed.uiState.picker.x, 100);
                     this.pickerY = getNum(parsed.uiState.picker.y, 100);

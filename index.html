@@ -3036,11 +3036,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
     
     <div class="blackboard-toolbar">
-        <select @change="applyStyle('fontSize', $event.target.value)" class="toolbar-select !h-[52px] !text-lg bg-white">
-            <option value="3">작게</option>
-            <option value="5">보통</option>
-            <option value="7">크게</option>
-        </select>
+        <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
+    <option value="" disabled selected hidden>크기</option>
+    <option value="3">작게</option>
+    <option value="5">보통</option>
+    <option value="7">크게</option>
+</select>
 
         <button @click="applyStyle('bold')" class="toolbar-btn font-black text-3xl">B</button>
         <button @click="applyStyle('italic')" class="toolbar-btn italic font-serif text-3xl">I</button>
@@ -3057,7 +3058,22 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div v-if="showHiliteColorPalette" class="color-palette"><div v-for="color in paletteColors" :key="'bg-' + color" :style="{background: color}" class="color-dot" @click="applyColor('hiliteColor', color)"></div><div class="color-dot bg-transparent border-slate-300 flex items-center justify-center" @click="applyColor('hiliteColor', 'transparent')">/</div></div>
         </div>
 
+        <div class="relative">
+            <button @click="toggleSymbolPalette" class="toolbar-btn text-slate-600 hover:text-slate-900" title="특수기호">
+                <i class="fa-solid fa-star text-2xl"></i>
+            </button>
+            <div v-if="showSymbolPalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-2 rounded-lg shadow-xl z-[9999] grid grid-cols-5 gap-1 w-max">
+                <button v-for="sym in specialSymbols" :key="sym" @click="insertSymbol(sym)" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded text-xl font-bold text-slate-700 cursor-pointer">
+                    {{ sym }}
+                </button>
+            </div>
+        </div>
+
         <div class="flex-1"></div>
+
+        <button @click="createNewBoard" class="toolbar-btn text-slate-600 hover:text-slate-900" title="새로 만들기">
+    <i class="fa-regular fa-square-plus text-2xl"></i>
+</button>
 
         <button @click="clearBoard" class="toolbar-btn text-slate-600 hover:text-slate-900" title="지우개">
             <i class="fa-solid fa-eraser text-2xl"></i>
@@ -4326,7 +4342,8 @@ userSelectedMode: null,
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
                 
-                showBlackboard: false, blackboardContent: '', boardX: 100, boardY: 100, boardW: 600, boardH: 400, showBoardList: false, savedBoards: [],
+                showBlackboard: false, blackboardContent: '', boardX: 100, boardY: 100, boardW: 600, boardH: 400, showBoardList: false, savedBoards: [], showSymbolPalette: false,
+specialSymbols: ['★', '♥', '□', '■', '●', '▶', '→', '←', '↑', '↓', '①', '②', '③', '④', '⑤'],
 paletteColors: ['#ffffff', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#d946ef', '#000000'],                showForeColorPalette: false, showHiliteColorPalette: false,
 
                 /* 자리 바꾸기 */
@@ -4633,7 +4650,21 @@ currentLotteryPool() {
 focusInput(event) {
     event.target.select();
 },
-
+handleFontSizeChange(e) {
+    const val = e.target.value;
+    if (!val) return;
+    
+    // 선택한 크기 적용
+    this.applyStyle('fontSize', val);
+    
+    // 선택 즉시 셀렉트 박스를 기본 상태('크기')로 되돌려, 
+    // 다음 번에 똑같은 크기를 선택해도 클릭(change)을 인식하도록 처리
+    this.$nextTick(() => {
+        if (this.$refs.fontSizeSelect) {
+            this.$refs.fontSizeSelect.value = "";
+        }
+    });
+},
 handleClockWindowClick() {
     // 1. 알람이 울리는 중이면 -> 알람을 끈다.
     if (this.isAlarmRinging) {
@@ -8200,9 +8231,21 @@ openBlackboard() {
                 this.closePalettes();
             },
             applyColor(cmd, color) { this.applyStyle(cmd, color); },
-            toggleForeColorPalette() { this.showForeColorPalette = !this.showForeColorPalette; this.showHiliteColorPalette = false; },
-            toggleHiliteColorPalette() { this.showHiliteColorPalette = !this.showHiliteColorPalette; this.showForeColorPalette = false; },
-            closePalettes() { this.showForeColorPalette = false; this.showHiliteColorPalette = false; },
+toggleForeColorPalette() { 
+                this.showForeColorPalette = !this.showForeColorPalette; 
+                this.showHiliteColorPalette = false; 
+                this.showSymbolPalette = false; // 추가됨
+            },
+            toggleHiliteColorPalette() { 
+                this.showHiliteColorPalette = !this.showHiliteColorPalette; 
+                this.showForeColorPalette = false; 
+                this.showSymbolPalette = false; // 추가됨
+            },
+            closePalettes() { 
+                this.showForeColorPalette = false; 
+                this.showHiliteColorPalette = false; 
+                this.showSymbolPalette = false; // 추가됨
+            },
             updateBoardContent(e) {
     this.blackboardContent = e.target.innerHTML;
     // 너무 잦은 저장을 막기 위해 saveToLocal 사용 (디바운싱 되어있음)
@@ -8218,6 +8261,37 @@ openBlackboard() {
         }
     }
 },
+toggleSymbolPalette() {
+                this.showSymbolPalette = !this.showSymbolPalette;
+                this.showForeColorPalette = false;
+                this.showHiliteColorPalette = false;
+            },
+            insertSymbol(sym) {
+                const editor = document.getElementById('board-editor');
+                // 포커스가 에디터에 없으면 강제로 맞춤
+                if (document.activeElement !== editor) {
+                    editor.focus();
+                }
+                // 현재 커서 위치에 특수기호 텍스트 삽입
+                document.execCommand('insertText', false, sym);
+                this.showSymbolPalette = false; // 기호 삽입 후 팔레트 닫기
+                this.saveToLocal();
+            },
+            createNewBoard() {
+                // 내용이 있을 때만 경고창 띄움
+                if (this.blackboardContent && this.blackboardContent.trim() !== '') {
+                    if (!confirm("작성 중인 내용이 지워집니다. 새로 만드시겠습니까?")) return;
+                }
+                
+                // 칠판 완전 초기화
+                this.blackboardContent = '';
+                const editor = this.$refs.boardEditor || document.getElementById('board-editor');
+                if (editor) {
+                    editor.innerHTML = '';
+                    editor.focus(); // 바로 글을 쓸 수 있게 커서 활성화
+                }
+                this.saveToLocal();
+            },
             saveBoardToList() { 
 const editor = document.getElementById('board-editor');
                 const textContent = editor.innerText.trim(); // 텍스트만 추출

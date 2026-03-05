@@ -1384,48 +1384,32 @@ span[contenteditable="true"] {
     min-width: 35px;
     cursor: text;
 }
+/* [판서 글씨체 정상화 및 거대 커서 버그 수정] */
+        body .blackboard-editor font,
+        body .blackboard-editor span {
+            display: inline !important; /* 핵심: inline-block 제거하여 줄바꿈 커서 오류 방지 */
+            vertical-align: baseline !important;
+            line-height: 1.5 !important;
+            margin: 0 !important;
+            cursor: text;
+            outline: none;
+        }
 
-/* 모든 font 태그: 위쪽 여백을 음수(-)로 주어 더 위로 끌어올림 */
-body .blackboard-editor font {
-    display: inline-block !important;
-    outline: none;       /* 클릭 시 생기는 파란 테두리 제거 */
-    min-width: 35px;    /* 숫자를 다 지워도 클릭할 수 있는 최소 공간 확보 */
-    cursor: text;       /* 마우스를 올리면 입력 가능한 아이콘으로 변경 */
-}
-
-    /* 글자 위쪽 공간을 강제로 깎아서 천장에 붙입니다 */
-    margin-top: -30px !important; 
-    margin-left: -10 !important;
-    margin-bottom: 10px;
-}
-/* 모든 font 태그에 대해 크기 조절이 가능하도록 '상자' 형태로 만듭니다 (핵심) */
-body .blackboard-editor font {
-    display: inline-block !important;
-    vertical-align: top;
-    margin-bottom: 20px;
-}
-
-/* [글씨 크기 단계별 2배 확대 설정] */
-
-/* 2단계: 작게 (기존 1000px -> 2000px) */
-body .blackboard-editor font[size="3"] { 
-    font-size: 2000px !important; 
-}
-
-/* 3단계: 보통 (기존 2000px -> 4000px) */
-body .blackboard-editor font[size="5"] { 
-    font-size: 4000px !important; 
-    font-weight: 800 !important;
-}
-
-/* 4단계: 크게 (기존 3000px -> 6000px) 
-   브라우저가 그릴 수 있는 사실상의 최대 크기입니다. */
-body .blackboard-editor font[size="7"] { 
-    font-size: 6000px !important; 
-    font-weight: 900 !important; 
-    letter-spacing: -0.05em;
-    -webkit-font-smoothing: antialiased;
-}
+        /* 글씨 크기를 현재 줌(Zoom) 비율에 맞게 정상적인 px 크기로 조정 */
+        body .blackboard-editor font[size="3"] { 
+            font-size: 24px !important; 
+            font-weight: 500 !important;
+        }
+        body .blackboard-editor font[size="5"] { 
+            font-size: 40px !important; 
+            font-weight: 800 !important;
+        }
+        body .blackboard-editor font[size="7"] { 
+            font-size: 64px !important; 
+            font-weight: 900 !important; 
+            letter-spacing: -0.05em;
+            -webkit-font-smoothing: antialiased;
+        }
   /* 팔레트 z-index 상향 조정 */
         .color-palette { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #e2e8f0; padding: 0.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 9999; display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.25rem; width: max-content; }
         .color-dot { width: 1.5rem; height: 1.5rem; border-radius: 9999px; cursor: pointer; border: 1px solid rgba(0,0,0,0.2); transition: all 0.1s; }
@@ -7359,11 +7343,11 @@ this.playSound('finish', false, 0.5);
     this.shuffleHistory.unshift({
         id: Date.now(),
         date: dateStr,
-        mode: currentMode, // 수정됨
+        mode: currentMode,
         seats: JSON.parse(JSON.stringify(this.seats))
     });
     
-    this.saveToLocal();
+    this.saveToFirebase(); // 즉시 저장으로 변경
     alert("현재 배치가 기록에 저장되었습니다! 💾\n(다음 자리 배치 시 이 짝꿍들은 피하게 됩니다)");
 },
 
@@ -7501,24 +7485,23 @@ if (parsed.alarmList) {
                 this.alarmList = [];
             }
 
-            // 2. [좌석] 데이터 복구 (배열이 객체로 변환되는 현상 방어)
+            // 2. [좌석] 데이터 복구 (Firebase 빈 배열/객체 변환 완벽 대응)
             const rawSeats = parsed.seats || {};
-const seatValues = Array.isArray(rawSeats) ? rawSeats : Object.values(rawSeats);  // ★ 추가: 객체 → 배열 변환
-this.seats = Array.from({length: 30}, (_, i) => {
-    const s = seatValues[i] || null;  // ★ 수정: seatValues[i]
-    if (s && s.name) {
-        return {
-            ...s,
-            activityScore: s.activityScore || 0,
-            checked: s.checked || false,
-            memo: s.memo || "",
-            starred: s.starred || false,
-            order: s.order || null
-        };
-    }
-    return null;
-});
-
+            this.seats = Array.from({length: 30}, (_, i) => {
+                // Object.values를 쓰면 앞자리로 다 당겨지므로, 원래 고유 자리(i) 번호로 직접 꺼냅니다.
+                const s = rawSeats[i] || null; 
+                if (s && s.name) {
+                    return {
+                        ...s,
+                        activityScore: s.activityScore || 0,
+                        checked: s.checked || false,
+                        memo: s.memo || "",
+                        starred: s.starred || false,
+                        order: s.order || null
+                    };
+                }
+                return null;
+            });
             // 3. [대기실] 데이터 복구
             const rawWaiting = parsed.waitingRoom || [];
             const waitingList = Array.isArray(rawWaiting) ? rawWaiting : Object.values(rawWaiting);
@@ -7594,7 +7577,21 @@ this.seats = Array.from({length: 30}, (_, i) => {
             }
 
             // 7. [이력 및 저장 목록] 복구
-            this.shuffleHistory = parsed.shuffleHistory || [];
+            let rawHistory = parsed.shuffleHistory || [];
+            
+            // Firebase가 기록 배열을 객체로 압축한 경우 다시 배열로 폅니다.
+            if (!Array.isArray(rawHistory)) {
+                rawHistory = Object.values(rawHistory);
+            }
+            
+            // 기록 안의 좌석 배치도 앞당겨지지 않게 30칸으로 정확히 복구합니다.
+            this.shuffleHistory = rawHistory.map(rec => {
+                if (rec.seats && !Array.isArray(rec.seats)) {
+                    rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
+                }
+                return rec;
+            });
+
             this.savedBoards = parsed.savedBoards || [];
             this.savedRoulettes = parsed.savedRoulettes || [];
 
@@ -8214,22 +8211,27 @@ openBlackboard() {
         }
     });
 },
-            applyStyle(cmd, val = null) { const editor = document.getElementById('board-editor');
+            applyStyle(cmd, val = null) { 
+                const editor = document.getElementById('board-editor');
                 
-                // 1. 에디터에 포커스가 없으면 강제로 맞춤 (선택 영역 유지 노력)
                 if (document.activeElement !== editor) {
                     editor.focus();
                 }
 
-                // 2. CSS 스타일 모드 켜기 (최신 브라우저 호환성)
-                document.execCommand('styleWithCSS', false, true);
+                // ★ 수정됨: 글씨 크기(fontSize)를 바꿀 때는 구형 호환모드(false)로 작동시켜
+                // 거대 커서 오류를 막고 CSS가 정확히 타겟팅할 수 있게 <font> 태그를 생성합니다.
+                if (cmd === 'fontSize') {
+                    document.execCommand('styleWithCSS', false, false);
+                } else {
+                    document.execCommand('styleWithCSS', false, true);
+                }
 
-                // 3. 명령 실행
                 document.execCommand(cmd, false, val);
                 
-                // 4. 팔레트 닫기
                 this.closePalettes();
             },
+
+
             applyColor(cmd, color) { this.applyStyle(cmd, color); },
 toggleForeColorPalette() { 
                 this.showForeColorPalette = !this.showForeColorPalette; 
@@ -8701,13 +8703,13 @@ deleteGrouping(idx) {
                     this.waitingRoom = all.filter(s => !seatedNames.has(s.name));
                     this.showHistoryPreview = false; 
                     this.showShuffleHistory = false; 
-                    this.saveToLocal(); 
+                    this.saveToFirebase(); // 즉시 저장으로 변경
                     alert("배치가 복구되었습니다.");
                 }
             },
             
-            deleteShuffle(idx) { if(confirm("삭제할까요?")) { this.shuffleHistory.splice(idx, 1); this.saveToLocal(); } },
-            deleteAllShuffles() { if(confirm("기록을 모두 삭제할까요?")) { this.shuffleHistory = []; this.saveToLocal(); } },
+            deleteShuffle(idx) { if(confirm("삭제할까요?")) { this.shuffleHistory.splice(idx, 1); this.saveToFirebase(); } },
+deleteAllShuffles() { if(confirm("기록을 모두 삭제할까요?")) { this.shuffleHistory = []; this.saveToFirebase(); } },
             addSeparationPair() { if(this.selectedStudentA && this.selectedStudentB && this.selectedStudentA !== this.selectedStudentB) { this.separationPairs.push({ student1: this.selectedStudentA, student2: this.selectedStudentB }); this.selectedStudentA = ''; this.selectedStudentB = ''; this.saveToLocal(); } },
             removeSeparationPair(idx) { this.separationPairs.splice(idx, 1); this.saveToLocal(); },
             confirmSeatLock(studentName) { if (studentName) { this.manualLocks = this.manualLocks.filter(l => l.seatIdx !== this.targetLockSeatIdx && l.student !== studentName); this.manualLocks.push({ student: studentName, seatIdx: this.targetLockSeatIdx }); } else { this.manualLocks = this.manualLocks.filter(l => l.seatIdx !== this.targetLockSeatIdx); } this.showStudentSelectModal = false; this.targetLockSeatIdx = null; this.saveToLocal(); },

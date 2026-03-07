@@ -948,8 +948,10 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
 .bomb-window.fixed.inset-0 .timer-input {
     font-size: 9.5vw !important; /* 기존 15vw에서 축소 */
     margin: 0 !important;
-    width: auto !important;
+    width: 100% !important; /* auto를 100%로 변경하여 클릭 영역 충분히 확보 */
     text-align: center;
+    position: relative; 
+    z-index: 20 !important; /* 입력창이 콜론보다 무조건 위에 오도록 설정하여 클릭 방해 해결 */
 }
 
 .bomb-window.fixed.inset-0 .timer-colon {
@@ -958,7 +960,7 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     margin-left: -0.5vw !important;
     margin-right: -0.5vw !important;
     position: relative;
-    z-index: 10; /* 숫자보다 위에 오도록 */
+    z-index: 10;
 }
 
 /* 최대화 시 하단 버튼들 크기 및 위치 조정 */

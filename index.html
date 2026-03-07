@@ -2871,9 +2871,23 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     <option value="" disabled>학생 B</option>
     <option v-for="s in sortedStudentsByName" :key="s.name" :value="s.name">{{ s.name }}</option>
 </select><button @click="addSeparationPair" class="bg-slate-800 text-white px-5 rounded-xl font-bold text-sm hover:bg-slate-700">추가</button></div>
-                            <div class="flex flex-wrap gap-2"><span v-for="(pair, idx) in separationPairs" :key="idx" class="bg-red-50 border border-red-100 px-3 py-2 rounded-xl text-xs font-bold text-red-500 flex items-center gap-2">{{ pair.student1 }} 💔 {{ pair.student2 }} <button @click="removeSeparationPair(idx)" class="text-red-300 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button></span></div>
-                            <label class="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl mt-2"><div class="relative"><input type="checkbox" v-model="avoidPrevious" class="sr-only peer"><div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div></div><span class="font-bold text-slate-600 text-sm">이전 짝꿍 피하기 (스마트 배치)</span></label>
-                        </div>
+                            <div class="flex flex-col gap-2 mt-2"><span v-for="(pair, idx) in separationPairs" :key="idx" class="bg-red-50 border border-red-100 px-3 py-2 rounded-xl text-xs font-bold text-red-500 flex items-center gap-2">{{ pair.student1 }} 💔 {{ pair.student2 }} <button @click="removeSeparationPair(idx)" class="text-red-300 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button></span></div>
+                            <label class="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl">
+        <div class="relative">
+            <input type="checkbox" v-model="avoidPrevious" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+        </div>
+        <span class="font-bold text-slate-600 text-sm">이전 짝꿍 피하기 (스마트 배치)</span>
+    </label>
+    <label class="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl">
+        <div class="relative">
+            <input type="checkbox" v-model="avoidPreviousSeat" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+        </div>
+        <span class="font-bold text-slate-600 text-sm">이전 자리 피하기 (스마트 배치)</span>
+    </label>
+</div>
+
                     </div>
                     <div v-else class="flex flex-col gap-8 justify-center items-center flex-1 py-10">
                         <button @click="startShuffleSequence" class="relative group"><div class="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500 btn-start-pulse"></div><div class="w-64 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative z-10 group-hover:scale-105 transition-transform duration-300 border-8 border-white/20"><i class="fa-solid fa-shuffle text-6xl mb-4 group-hover:rotate-180 transition-transform duration-700"></i><span class="text-3xl font-black tracking-tighter">START</span><span class="text-xs text-blue-200 mt-2 font-bold uppercase tracking-widest">Shuffle Seats</span></div></button>
@@ -4352,8 +4366,8 @@ paletteColors: ['#ffffff', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'
                 seatConfig: Array(30).fill(null), manualLocks: [], currentSeatTool: 'random', 
                 isDrawingSeats: false, dragStartIdx: null, separationPairs: [],
                 shuffleMode: 'mixed', mixedOrder: 'MF', sameOrder: 'M_First',  
-                selectedStudentA: '', selectedStudentB: '', avoidPrevious: true, 
-                showStudentSelectModal: false, targetLockSeatIdx: null,
+selectedStudentA: '', selectedStudentB: '', avoidPrevious: true, avoidPreviousSeat: true,
+showStudentSelectModal: false, targetLockSeatIdx: null,
                 isShufflingCountdown: false, shuffleCountdownNum: 3,
                 showHistoryPreview: false, previewHistoryItem: null,
 
@@ -5443,13 +5457,13 @@ updateVolume() {
     // 현재값: 140
     // - 숫자를 키우면(예: 150): 작은 소리 변화에도 숫자가 팍팍 튑니다.
     // - 숫자를 줄이면(예: 120): 박수를 쳐도 숫자가 찔끔 오릅니다.
-    const sensitivity = 140; 
+    const sensitivity = 100; 
 
     // 2. "전체적인 점수를 깎아내리기" (기본차감/베이스)
     // 현재값: 145
     // - 숫자를 키우면(예: 160): 전체적으로 dB가 낮게 나옵니다. (조용할 때 0 만들기 쉬움)
     // - 숫자를 줄이면(예: 130): 전체적으로 dB가 높게 나옵니다. (기본 소음이 높게 잡힘)
-    const offset = 145; 
+    const offset = 85; 
 
     // 최종 계산식
     let rawDb = Math.floor((Math.log10(safeInput) * sensitivity) - offset); 
@@ -8959,8 +8973,7 @@ async startShuffleSequence() {
                         if (this.shuffleMode === 'same' && me.gender !== target.gender) return false;
                         
                         // ★ [중요] 이력 확인: 이미 짝꿍이었으면(historyMap에 있으면) 제외
-                        if (historyMap.has(me.name) && historyMap.get(me.name).has(target.name)) return false;
-                        
+if (this.avoidPrevious && historyMap.has(me.name) && historyMap.get(me.name).has(target.name)) return false;                        
                         return true;
                     });
 
@@ -9019,7 +9032,7 @@ async startShuffleSequence() {
                         if (this.shuffleMode === 'same' && s1.gender !== s2.gender) continue;
                         
                         // 이력이 있어도 허용하되, 가중치를 둠
-                        let hCount = (historyMap.has(s1.name) && historyMap.get(s1.name).has(s2.name)) ? 100 : 0;
+                        let hCount = (this.avoidPrevious && historyMap.has(s1.name) && historyMap.get(s1.name).has(s2.name)) ? 100 : 0;
                         if (hCount < minHistory) { minHistory = hCount; bestIdx = k; }
                     }
                     if(bestIdx !== -1) { units.push([s1, tempPool[bestIdx]]); tempPool.splice(bestIdx, 1); } 
@@ -9050,15 +9063,37 @@ async startShuffleSequence() {
             targetUnits.forEach(unit => {
                 if (unit.length === 2 && doubleSlots.length > 0) {
                     let placed = false;
+                    
+                    // [1순위] 성별 조건 OK + 둘 다 이전 자리가 아님 (강력한 가중치)
                     for(let i=0; i<doubleSlots.length; i++) {
                         const slot = doubleSlots[i];
                         const c1 = this.seatConfig[slot[0]], c2 = this.seatConfig[slot[1]];
                         const u1 = unit[0], u2 = unit[1];
                         const normal = (!c1 || c1===u1.gender) && (!c2 || c2===u2.gender);
                         const reverse = (!c1 || c1===u2.gender) && (!c2 || c2===u1.gender);
-                        if(normal) { newSeats[slot[0]] = u1; newSeats[slot[1]] = u2; doubleSlots.splice(i, 1); placed = true; break; }
-                        else if(reverse) { newSeats[slot[0]] = u2; newSeats[slot[1]] = u1; doubleSlots.splice(i, 1); placed = true; break; }
+
+                        // 이전 자리 겹치는지 확인
+                        const prevNormal = this.avoidPreviousSeat && ((backupSeats[slot[0]] && backupSeats[slot[0]].name === u1.name) || (backupSeats[slot[1]] && backupSeats[slot[1]].name === u2.name));
+                        const prevReverse = this.avoidPreviousSeat && ((backupSeats[slot[0]] && backupSeats[slot[0]].name === u2.name) || (backupSeats[slot[1]] && backupSeats[slot[1]].name === u1.name));
+
+                        if(normal && !prevNormal) { newSeats[slot[0]] = u1; newSeats[slot[1]] = u2; doubleSlots.splice(i, 1); placed = true; break; }
+                        else if(reverse && !prevReverse) { newSeats[slot[0]] = u2; newSeats[slot[1]] = u1; doubleSlots.splice(i, 1); placed = true; break; }
                     }
+
+                    // [2순위] 1순위에서 자리가 없다면, 성별만 맞춰서 일단 배치 (이후 족집게 Swap이 구출함)
+                    if(!placed) {
+                        for(let i=0; i<doubleSlots.length; i++) {
+                            const slot = doubleSlots[i];
+                            const c1 = this.seatConfig[slot[0]], c2 = this.seatConfig[slot[1]];
+                            const u1 = unit[0], u2 = unit[1];
+                            const normal = (!c1 || c1===u1.gender) && (!c2 || c2===u2.gender);
+                            const reverse = (!c1 || c1===u2.gender) && (!c2 || c2===u1.gender);
+
+                            if(normal) { newSeats[slot[0]] = u1; newSeats[slot[1]] = u2; doubleSlots.splice(i, 1); placed = true; break; }
+                            else if(reverse) { newSeats[slot[0]] = u2; newSeats[slot[1]] = u1; doubleSlots.splice(i, 1); placed = true; break; }
+                        }
+                    }
+
                     if(!placed) failed.push(...unit);
                 } else { failed.push(...unit); }
             });
@@ -9072,14 +9107,89 @@ async startShuffleSequence() {
         emptyIndices.sort(() => Math.random() - 0.5);
 
         leftovers.forEach(s => {
-            let tidx = emptyIndices.findIndex(idx => !this.seatConfig[idx] || this.seatConfig[idx] === s.gender);
+            // [1순위] 성별이 맞고, 이전 자리도 아님 (강력한 가중치)
+            let tidx = emptyIndices.findIndex(idx => 
+                (!this.seatConfig[idx] || this.seatConfig[idx] === s.gender) &&
+                (!this.avoidPreviousSeat || !backupSeats[idx] || backupSeats[idx].name !== s.name)
+            );
+            
+            // [2순위] 어쩔 수 없다면 성별만 맞춰서 일단 배치 (마찬가지로 Swap 대기)
+            if(tidx === -1) tidx = emptyIndices.findIndex(idx => !this.seatConfig[idx] || this.seatConfig[idx] === s.gender);
+            
+            // [3순위] 그것도 안 되면 그냥 빈자리
             if(tidx === -1) tidx = emptyIndices.findIndex(idx => !this.seatConfig[idx]);
             if(tidx === -1) tidx = 0;
+            
             if(tidx !== -1) { newSeats[emptyIndices[tidx]] = s; emptyIndices.splice(tidx, 1); }
         });
 
+        // =====================================================================
+        // [신규 기능] 이전 자리 피하기 (족집게 교환 Swap 후처리)
+        // =====================================================================
+        if (this.avoidPreviousSeat) {
+            let sameSeatIndices = [];
+            for (let i = 0; i < 30; i++) {
+                if (newSeats[i] && backupSeats[i] && newSeats[i].name === backupSeats[i].name) {
+                    if (!this.manualLocks.some(l => l.seatIdx === i)) {
+                        sameSeatIndices.push(i);
+                    }
+                }
+            }
+
+            const canSit = (student, targetIdx) => {
+                const conf = this.seatConfig[targetIdx];
+                if (conf === 'X') return false; // ★ 핵심: '❌빈자리(X)'로 설정된 곳으로는 절대 스왑 금지!
+
+                if (!student) return true; 
+                if (this.manualLocks.some(l => l.seatIdx === targetIdx)) return false;
+                
+                if (conf === 'M' && student.gender !== 'M') return false;
+                if (conf === 'F' && student.gender !== 'F') return false;
+                return true;
+            };
+
+            const isBadPartner = (student, seatIdx, proposedSeats) => {
+                if (!student) return false;
+                const pIdx = (seatIdx % 2 === 0) ? seatIdx + 1 : seatIdx - 1;
+                const partner = proposedSeats[pIdx];
+                if (!partner) return false;
+                
+                if (this.separationPairs.some(p => (p.student1 === student.name && p.student2 === partner.name) || (p.student1 === partner.name && p.student2 === student.name))) return true;
+                if (this.avoidPrevious && historyMap.has(student.name) && historyMap.get(student.name).has(partner.name)) return true;
+                if (this.shuffleMode === 'mixed' && student.gender === partner.gender) return true;
+                if (this.shuffleMode === 'same' && student.gender !== partner.gender) return true;
+
+                return false;
+            };
+
+            for (let badIdx of sameSeatIndices) {
+                let studentA = newSeats[badIdx];
+                let candidates = Array.from({length: 30}, (_, k) => k).sort(() => Math.random() - 0.5);
+
+                for (let cIdx of candidates) {
+                    if (cIdx === badIdx) continue;
+                    let studentB = newSeats[cIdx];
+
+                    if (!canSit(studentA, cIdx) || !canSit(studentB, badIdx)) continue;
+                    if (studentB && backupSeats[badIdx] && studentB.name === backupSeats[badIdx].name) continue;
+                    if (studentA && backupSeats[cIdx] && studentA.name === backupSeats[cIdx].name) continue;
+
+                    let tempSeats = [...newSeats];
+                    tempSeats[badIdx] = studentB;
+                    tempSeats[cIdx] = studentA;
+
+                    if (isBadPartner(studentB, badIdx, tempSeats) || isBadPartner(studentA, cIdx, tempSeats)) continue;
+
+                    newSeats[badIdx] = studentB;
+                    newSeats[cIdx] = studentA;
+                    break; 
+                }
+            }
+        }
+        // =====================================================================
+
         this.seats = newSeats;
-        await this.runReferee(); 
+        await this.runReferee();
 
         const seatedNames = new Set(this.seats.filter(s => s).map(s => s.name));
         this.waitingRoom = Array.from(uniqueMap.values()).filter(s => !seatedNames.has(s.name));
@@ -9105,10 +9215,27 @@ async startShuffleSequence() {
         const now = new Date();
         const dateStr = `${now.getMonth()+1}/${now.getDate()}`;
         
-        // [수정] 자동 생성 결과도 이력에 올바르게 저장
+        // [신규 수정] 기록에 저장할 때는 점수나 메모를 비운 '순수 자리 배치'만 캡처하여 저장
+        const pureLayoutSnapshot = this.seats.map(s => {
+            if (s && s.name) {
+                return {
+                    name: s.name, number: s.number, gender: s.gender,
+                    activityScore: 0, checked: false, order: null, memo: "", starred: false
+                };
+            }
+            return null;
+        });
+
         const currentMode = this.shuffleMode === 'mixed' ? '이성' : (this.shuffleMode === 'same' ? '동성' : '랜덤');
-        this.shuffleHistory.unshift({ id: Date.now(), date: dateStr, mode: currentMode, seats: JSON.parse(JSON.stringify(this.seats)) });
-        this.saveToLocal();
+        
+        this.shuffleHistory.unshift({ 
+            id: Date.now(), 
+            date: dateStr, 
+            mode: currentMode, 
+            seats: pureLayoutSnapshot 
+        });
+        
+        this.saveToFirebase(); // saveToLocal의 지연시간 없이 즉시 서버에 확정 저장
 
     } catch (e) {
         alert("배치 중 오류 발생: " + e.message);

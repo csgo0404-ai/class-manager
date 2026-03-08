@@ -1355,17 +1355,40 @@ body .blackboard-window {
 
 /* 초록색 배경 에디터 영역 (스크롤바 숨김 처리 추가) */
 body .blackboard-editor { 
-    outline: none; flex: 1; width: 100%; height: 100%; overflow: auto !important; 
-    background-color: #0f4c3a !important; position: relative; padding: 0 !important; 
-    scrollbar-width: none; -ms-overflow-style: none;
+    outline: none; 
+    flex: 1; 
+    width: 100%; 
+    height: 100%; 
+    /* 핵심: auto 대신 scroll을 사용하여 항상 우측에 스크롤바 공간을 만들어둠 (밀림 원천 차단) */
+    overflow-y: scroll !important; 
+    overflow-x: hidden !important;
+    background-color: #0f4c3a !important; 
+    position: relative; 
+    padding: 0 !important; 
+    scrollbar-width: thin; 
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
-body .blackboard-editor:hover { scrollbar-width: auto; }
-body .blackboard-editor::-webkit-scrollbar { display: none; }
-body .blackboard-editor:hover::-webkit-scrollbar { display: block; width: 8px; }
-body .blackboard-editor::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+/* 웹킷(크롬, 엣지, 사파리) 스크롤바 디자인 */
+body .blackboard-editor::-webkit-scrollbar { 
+    display: block !important;
+    width: 10px !important;
+    background-color: #0f4c3a !important; /* 칠판 배경색과 동일하게 */
+}
 
-/* 배율 표시 숫자 스타일 */
+body .blackboard-editor::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body .blackboard-editor::-webkit-scrollbar-thumb { 
+    background: rgba(255, 255, 255, 0.3); /* 반투명 하얀색 손잡이 */
+    border-radius: 10px; 
+    border: 2px solid #0f4c3a; /* 여백을 줘서 얇게 보이도록 처리 */
+}
+
+body .blackboard-editor::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5); /* 마우스 올리면 살짝 더 밝아짐 */
+}/* 배율 표시 숫자 스타일 */
 .zoom-text-input {
     font-size: 1.2rem; /* 크기 약간 확대 */
     font-weight: 800;
@@ -1390,9 +1413,7 @@ body .blackboard-editor::-webkit-scrollbar-thumb { background: rgba(255, 255, 25
     white-space: pre-wrap; /* 여백 유지 및 가로폭에 맞춘 줄바꿈 */
 }
 
-/* [추가] 아무것도 없을 때도 마우스 클릭이 잘 되도록 함 */
-    cursor: text;
-}
+
 
 /* 확대 비율 숫자 입력 시 강조 효과 제거 */
 span[contenteditable="true"] {
@@ -1414,36 +1435,44 @@ span[contenteditable="true"] {
 
         /* 글씨 크기를 현재 줌(Zoom) 비율에 맞게 정상적인 px 크기로 조정 */
         body .blackboard-editor font[size="3"] { 
-            font-size: 24px !important; 
-            font-weight: 500 !important;
-        }
-        body .blackboard-editor font[size="5"] { 
-            font-size: 40px !important; 
-            font-weight: 800 !important;
-        }
-        body .blackboard-editor font[size="7"] { 
-            font-size: 64px !important; 
-            font-weight: 900 !important; 
-            letter-spacing: -0.05em;
-            -webkit-font-smoothing: antialiased;
-        }
+    font-size: 24px !important; 
+    /* font-weight 강제 고정 삭제 */
+}
+body .blackboard-editor font[size="5"] { 
+    font-size: 40px !important; 
+    /* font-weight 강제 고정 삭제 */
+}
+body .blackboard-editor font[size="7"] { 
+    font-size: 64px !important; 
+    letter-spacing: -0.05em;
+    -webkit-font-smoothing: antialiased;
+    /* font-weight 강제 고정 삭제 */
+}
+/* 💡 추가: 굵게(B) 버튼 작동 시 확실하게 굵어지도록 강제 적용 */
+body .blackboard-editor b,
+body .blackboard-editor strong,
+body .blackboard-editor span[style*="font-weight: bold"],
+body .blackboard-editor span[style*="font-weight: 700"],
+body .blackboard-editor span[style*="font-weight: 900"] {
+    font-weight: 900 !important;
+}
   /* 팔레트 z-index 상향 조정 */
         .color-palette { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #e2e8f0; padding: 0.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 9999; display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.25rem; width: max-content; }
         .color-dot { width: 1.5rem; height: 1.5rem; border-radius: 9999px; cursor: pointer; border: 1px solid rgba(0,0,0,0.2); transition: all 0.1s; }
         .board-list-mini {
-            position: absolute;
-            top: 50px;
-            right: 0;
-            width: 250px;
-            bottom: 0;
-            background: white;
-            border-left: 1px solid #e2e8f0;
-            z-index: 20;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            animation: slideInRight 0.2s ease-out;
-        }
+    position: absolute;
+    top: 128px; /* 64px(헤더) + 64px(툴바) */
+    right: 0;
+    width: 280px; /* 가독성을 위해 너비 약간 확대 */
+    bottom: 0;
+    background: white;
+    border-left: 1px solid #e2e8f0;
+    z-index: 20;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.2s ease-out;
+}
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }       /* [좌석 설정 아이콘] */
         .seat-preview { width: 45px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid; cursor: pointer; transition: all 0.1s; position: relative; user-select: none; }
         .seat-active { background-color: #fff; border-color: #cbd5e1; color: #64748b; }
@@ -2121,7 +2150,39 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         .tight-spacing { letter-spacing: -0.05em; }
   
 
-</style>
+/* 그리기 캔버스 및 커서 변경 */
+.board-draw-canvas { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    pointer-events: none; 
+    z-index: 10; 
+    object-fit: fill; /* 추가: 비율 왜곡을 방지하여 좌표 계산을 일정하게 만듦 */
+}
+.board-draw-canvas.draw-mode { pointer-events: auto; cursor: crosshair; }
+.board-draw-canvas.eraser-mode { 
+    pointer-events: auto; 
+    cursor: none !important; /* 기본 커서를 숨겨야 커스텀 지우개가 보입니다 */
+}
+.board-draw-canvas.move-mode { pointer-events: auto; cursor: move; }
+.disable-text-events { pointer-events: none !important; user-select: none; }
+
+/* 브라우저 한계 없이 무한으로 커지는 커스텀 지우개 */
+.custom-eraser-cursor { 
+    position: fixed; /* absolute에서 fixed로 변경하면 계산이 더 정확합니다 */
+    pointer-events: none;
+    z-index: 9999;
+    border: 2px solid #334155;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+/* 팔레트 표시 버그 해결을 위한 z-index 강제 할당 */
+.blackboard-toolbar { z-index: 50 !important; overflow: visible !important; }
+.color-palette { z-index: 99999 !important; }
+</style>  
 </head>
 <body>
 <div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>        
@@ -3020,13 +3081,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          zIndex: boardZ  /* z-index 연결 추가 */
      }">
 
-    <div class="blackboard-header justify-between" @mousedown="startBoardDrag">
-    <span class="text-slate-700 flex items-center gap-3 pointer-events-none">
-        <i class="fa-solid fa-chalkboard text-3xl"></i> 
-        <span class="font-bold">판서 {{ isMaximized ? '(전체 화면)' : '' }}</span>
-    </span>
+   <div class="blackboard-header justify-between" @mousedown="startBoardDrag">
+        <span class="text-slate-700 flex items-center gap-3 pointer-events-none">
+            <i class="fa-solid fa-chalkboard text-3xl"></i> 
+            <span class="font-bold">판서 {{ isMaximized ? '(전체 화면)' : '' }}</span>
+        </span>
 
         <div class="flex items-center gap-1">
+            
+
             <div class="flex items-center gap-2 px-3 bg-white rounded-xl border border-slate-200 shadow-sm mr-3" @mousedown.stop style="height: 44px;">
                 <span contenteditable="true" @blur="updateZoomDirect" @keydown.enter.prevent="$event.target.blur()" class="zoom-text-input">
                     {{ Math.round(boardZoom * 100) }}%
@@ -3043,69 +3106,112 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button v-else @click="isMaximized = true" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="전체 화면">
                 <i class="fa-solid fa-expand"></i>
             </button>
-            
             <button @click="showBlackboard = false" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
     </div>
     
-    <div class="blackboard-toolbar">
-        <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
-    <option value="" disabled selected hidden>크기</option>
-    <option value="3">작게</option>
-    <option value="5">보통</option>
-    <option value="7">크게</option>
-</select>
+    <div class="blackboard-toolbar" style="overflow: visible !important;" @mousedown="saveSelection">
+    <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
+        <option value="" disabled selected hidden>크기</option>
+        <option value="3">작게</option>
+        <option value="5">보통</option>
+        <option value="7">크게</option>
+    </select>
 
-        <button @click="applyStyle('bold')" class="toolbar-btn font-black text-3xl">B</button>
-        <button @click="applyStyle('italic')" class="toolbar-btn italic font-serif text-3xl">I</button>
-        <button @click="applyStyle('underline')" class="toolbar-btn underline text-3xl">U</button>
-        
-        <div class="w-px h-10 bg-slate-200 mx-1"></div>
-
-        <div class="relative">
-            <button @click="toggleForeColorPalette" class="toolbar-btn"><i class="fa-solid fa-font"></i></button>
-            <div v-if="showForeColorPalette" class="color-palette"><div v-for="color in paletteColors" :key="'fg-' + color" :style="{background: color}" class="color-dot" @click="applyColor('foreColor', color)"></div></div>
-        </div>
-        <div class="relative">
-            <button @click="toggleHiliteColorPalette" class="toolbar-btn"><i class="fa-solid fa-fill-drip"></i></button>
-            <div v-if="showHiliteColorPalette" class="color-palette"><div v-for="color in paletteColors" :key="'bg-' + color" :style="{background: color}" class="color-dot" @click="applyColor('hiliteColor', color)"></div><div class="color-dot bg-transparent border-slate-300 flex items-center justify-center" @click="applyColor('hiliteColor', 'transparent')">/</div></div>
-        </div>
-
-        <div class="relative">
-            <button @click="toggleSymbolPalette" class="toolbar-btn text-slate-600 hover:text-slate-900" title="특수기호">
-                <i class="fa-solid fa-star text-2xl"></i>
+    <button @mousedown.stop.prevent="applyStyle('bold')" class="toolbar-btn font-black text-3xl">B</button>
+    <button @mousedown.stop.prevent="applyStyle('italic')" class="toolbar-btn italic font-serif text-3xl">I</button>
+    <button @mousedown.stop.prevent="applyStyle('underline')" class="toolbar-btn underline text-3xl">U</button>
+    
+    <div class="relative">
+        <button @mousedown.stop.prevent="toggleSymbolPalette" class="toolbar-btn text-slate-600 hover:text-slate-900" title="특수기호">
+            <i class="fa-solid fa-star text-2xl"></i>
+        </button>
+        <div v-show="showSymbolPalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-2 rounded-lg shadow-xl z-[9999] grid grid-cols-5 gap-1 w-max" @mousedown.stop.prevent>
+            <button v-for="sym in specialSymbols" :key="sym" @mousedown.stop.prevent="insertSymbol(sym)" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded text-xl font-bold text-slate-700 cursor-pointer">
+                {{ sym }}
             </button>
-            <div v-if="showSymbolPalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-2 rounded-lg shadow-xl z-[9999] grid grid-cols-5 gap-1 w-max">
-                <button v-for="sym in specialSymbols" :key="sym" @click="insertSymbol(sym)" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded text-xl font-bold text-slate-700 cursor-pointer">
-                    {{ sym }}
-                </button>
-            </div>
         </div>
-
-        <div class="flex-1"></div>
-
-        <button @click="createNewBoard" class="toolbar-btn text-slate-600 hover:text-slate-900" title="새로 만들기">
-    <i class="fa-regular fa-square-plus text-2xl"></i>
-</button>
-
-        <button @click="clearBoard" class="toolbar-btn text-slate-600 hover:text-slate-900" title="지우개">
-            <i class="fa-solid fa-eraser text-2xl"></i>
-        </button>
-        <button @click="saveBoardToList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="저장">
-            <i class="fa-solid fa-floppy-disk text-2xl"></i>
-        </button>
-        <button @click="toggleBoardList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="목록">
-            <i class="fa-solid fa-list-ul text-2xl"></i>
-        </button>
     </div>
 
-    <div class="blackboard-editor">
-        <div ref="boardEditor" id="board-editor" contenteditable="true" class="board-zoom-container"
-    :style="{ transform: `scale(${boardZoom})`, width: (100 / boardZoom) + '%', height: (100 / boardZoom) + '%' }"
-    @input="updateBoardContent" @click="closePalettes">
+    <div class="w-px h-10 bg-slate-200 mx-1"></div>
+
+    <div class="relative">
+        <button @mousedown.stop.prevent="toggleForeColorPalette" class="toolbar-btn"><i class="fa-solid fa-font"></i></button>
+        <div v-show="showForeColorPalette" class="color-palette" @mousedown.stop.prevent>
+            <div v-for="color in paletteColors" :key="'fg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('foreColor', color)"></div>
+        </div>
+    </div>
+    <div class="relative">
+        <button @mousedown.stop.prevent="toggleHiliteColorPalette" class="toolbar-btn"><i class="fa-solid fa-fill-drip"></i></button>
+        <div v-show="showHiliteColorPalette" class="color-palette" @mousedown.stop.prevent>
+            <div v-for="color in paletteColors" :key="'bg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('hiliteColor', color)"></div>
+            <div class="color-dot bg-transparent border-slate-300 flex items-center justify-center" @mousedown.stop.prevent="applyColor('hiliteColor', 'transparent')">/</div>
+        </div>
+    </div>
+
+    <div class="w-px h-10 bg-slate-200 mx-1"></div>
+
+    <button @mousedown.stop.prevent="setDrawTool('pen')" class="toolbar-btn" :class="{'bg-slate-200 text-blue-600': isDrawMode && drawTool === 'pen'}" title="펜 그리기">
+        <i class="fa-solid fa-pen"></i>
+    </button>
+    <button @mousedown.stop.prevent="setDrawTool('eraser')" class="toolbar-btn" :class="{'bg-slate-200 text-pink-600': isDrawMode && drawTool === 'eraser'}" title="부분 지우개">
+        <i class="fa-solid fa-eraser"></i>
+    </button>
+    <button @mousedown.stop.prevent="clearOnlyDrawings" class="toolbar-btn text-slate-600 hover:text-red-500" title="그림만 지우기">
+        <i class="fa-solid fa-broom"></i>
+    </button>
+    <button @mousedown.stop.prevent="setDrawTool('move')" class="toolbar-btn" :class="{'bg-slate-200 text-emerald-600': isDrawMode && drawTool === 'move'}" title="그림 이동">
+        <i class="fa-solid fa-arrows-up-down-left-right"></i>
+    </button>
+
+    <div class="flex-1"></div>
+    
+    <button @click="createNewBoard" class="toolbar-btn text-slate-600 hover:text-blue-600" title="새로 만들기">
+        <i class="fa-solid fa-file-circle-plus text-2xl"></i>
+    </button>
+    <button @click="clearBoard" class="toolbar-btn text-slate-600 hover:text-red-600" title="모두 지우기">
+        <i class="fa-solid fa-trash-can text-2xl"></i>
+    </button>
+    <button @click="saveBoardToList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="목록에 저장">
+        <i class="fa-solid fa-floppy-disk text-2xl"></i>
+    </button>
+    <button @click="toggleBoardList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="저장 목록">
+        <i class="fa-solid fa-list-ul text-2xl"></i>
+    </button>
 </div>
+
+    <div v-show="isDrawMode && drawTool === 'eraser' && isMouseOverCanvas" 
+     class="custom-eraser-cursor"
+     :style="{ 
+        width: eraserSize + 'px', 
+        height: eraserSize + 'px', 
+        left: mouseX + 'px', 
+        top: mouseY + 'px', 
+        transform: 'translate(-50%, -50%)' 
+     }">
+</div>
+
+    <div class="blackboard-editor relative" :style="isCornellMode ? 'background-color: #ffffff !important;' : ''">
+        <div class="board-zoom-container w-full h-full relative p-0"
+             :style="{ transform: `scale(${boardZoom})`, width: (100 / boardZoom) + '%', height: (100 / boardZoom) + '%' }">
+            
+            <canvas ref="drawCanvas" class="board-draw-canvas" 
+                    :class="{'draw-mode': isDrawMode && drawTool === 'pen', 'eraser-mode': isDrawMode && drawTool === 'eraser', 'move-mode': isDrawMode && drawTool === 'move'}"
+                    width="1920" height="1080"
+                    @mousedown="startDrawing" @mousemove="draw" @mouseup="stopDrawing" 
+                    @mouseleave="handleCanvasLeave" @mouseenter="isMouseOverCanvas = true"></canvas>
+
+            <div class="w-full h-full absolute inset-0 z-0 p-4" :class="{'disable-text-events': isDrawMode}" @mousedown="closePalettes">
+                
+                <div v-show="!isCornellMode" ref="boardEditor" id="board-editor" contenteditable="true" 
+                     class="w-full h-full outline-none" @input="updateBoardContent" 
+                     @blur="saveSelection" @mouseup="saveSelection" @keyup="saveSelection">
+                </div>
+
+                            </div>
+        </div>
     </div>
     
     <div v-if="!isMaximized" class="resize-handle" @mousedown="startBoardResize"></div>
@@ -4108,6 +4214,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     createApp({
         data() {
             return {
+paths: [],          // 모든 그림 획 데이터를 저장
+        currentPath: null,   // 현재 그리고 있는 획
+        selectedPath: null,
 isInitialLoad: true,
 showBombTimer: false,
 showNoiseMeter: false,
@@ -4361,6 +4470,24 @@ userSelectedMode: null,
 specialSymbols: ['★', '♥', '□', '■', '●', '▶', '→', '←', '↑', '↓', '①', '②', '③', '④', '⑤'],
 paletteColors: ['#ffffff', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#d946ef', '#000000'],                showForeColorPalette: false, showHiliteColorPalette: false,
 
+isDrawMode: false,
+                drawTool: 'pen',
+                isDrawing: false,
+                drawColor: '#ffffff',
+                drawLastX: 0,
+                drawLastY: 0,
+                // 👇 직선 그리기를 위해 3개 추가
+               drawStartX: 0,
+                drawStartY: 0,
+                drawStartClientX: 0, // 완벽한 원을 그리기 위한 시각적 좌표
+                drawStartClientY: 0,
+                savedCanvasSnapshot: null,
+                eraserSize: 64,             
+                               savedRange: null, // 텍스트 선택 보존 변수
+mouseX: 0,
+                mouseY: 0,
+                isMouseOverCanvas: false,
+                offscreenCanvas: null,
                 /* 자리 바꾸기 */
                 showShuffleModal: false, showShuffleSettings: false, showShuffleHistory: false, shuffleHistory: [],
                 seatConfig: Array(30).fill(null), manualLocks: [], currentSeatTool: 'random', 
@@ -4413,7 +4540,12 @@ soundSettings: {
             }
         },
 computed: {
-
+eraserCursorStyle() {
+                const size = this.eraserSize;
+                const half = size / 2;
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect x="2" y="2" width="${size-4}" height="${size-4}" rx="8" fill="%23ffffff" fill-opacity="1" stroke="%23333333" stroke-width="3"/></svg>`;
+                return `url('data:image/svg+xml;utf8,${svg}') ${half} ${half}, crosshair`;
+            },
 gaugeColor() {
         if (this.noiseGauge > 80) return 'text-red-500';
         if (this.noiseGauge > 50) return 'text-orange-500';
@@ -4654,14 +4786,35 @@ currentLotteryPool() {
             showBlackboard(val) {
                 if (val) this.$nextTick(() => {
                     const editor = document.getElementById('board-editor');
-                    if (editor) editor.innerHTML = this.blackboardContent;
+                    if (editor && !this.isCornellMode) {
+                        editor.innerHTML = this.blackboardContent;
+                    } else if (this.isCornellMode) {
+                        this.populateCornell(); // 창 열 때 글씨 뿌려주기
+                    }
+                    
+                    // 캔버스 그림 복구
+                    const canvas = this.$refs.drawCanvas;
+                    if (canvas && this.canvasStateUrl) {
+                        const ctx = canvas.getContext('2d');
+                        const img = new Image();
+                        img.onload = () => { ctx.drawImage(img, 0, 0); };
+                        img.src = this.canvasStateUrl;
+                    }
                 });
             }
         },
 
 
            methods: {
-
+getDistToSegment(px, py, x1, y1, x2, y2) {
+    const l2 = (x2 - x1)**2 + (y2 - y1)**2;
+    if (l2 === 0) return Math.sqrt((px - x1)**2 + (py - y1)**2);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t * (x2 - x1);
+    const projY = y1 + t * (y2 - y1);
+    return Math.sqrt((px - projX)**2 + (py - projY)**2);
+},
 focusInput(event) {
     event.target.select();
 },
@@ -7429,7 +7582,11 @@ clockMessage: this.clockMessage,
 alarmList: this.alarmList,
             uiState: {
                 timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
-               board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom },
+                // 👇 여기 보드 부분 교체
+                board: { 
+                    x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, 
+                    isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize
+                                    },
                 noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
                 picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
                 raceSetup: { w: this.setupW, h: this.setupH }
@@ -7688,13 +7845,19 @@ if (parsed.alarmList) {
                 
                 // [3] 그 외 창들 (판서, 뽑기 등)
                 if (parsed.uiState.board) {
-    this.boardX = getNum(parsed.uiState.board.x, 100);
-    this.boardY = getNum(parsed.uiState.board.y, 100);
-    this.boardW = getNum(parsed.uiState.board.w, 600);
-    this.boardH = getNum(parsed.uiState.board.h, 400);
-    this.isMaximized = parsed.uiState.board.isMaximized || false;
-    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0; // 추가
-}
+                    this.boardX = getNum(parsed.uiState.board.x, 100);
+                    this.boardY = getNum(parsed.uiState.board.y, 100);
+                    this.boardW = getNum(parsed.uiState.board.w, 600);
+                    this.boardH = getNum(parsed.uiState.board.h, 400);
+                    this.isMaximized = parsed.uiState.board.isMaximized || false;
+                    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0;
+this.eraserSize = getNum(parsed.uiState.board.eraserSize, 64);
+                    
+                    // 👇 비율 복구 추가
+                    this.cornellColPct = getNum(parsed.uiState.board.cornellColPct, 30);
+                    this.cornellRow1Pct = getNum(parsed.uiState.board.cornellRow1Pct, 15);
+                    this.cornellRow3Pct = getNum(parsed.uiState.board.cornellRow3Pct, 20);
+                }
                 if (parsed.uiState.picker) {
                     this.pickerX = getNum(parsed.uiState.picker.x, 100);
                     this.pickerY = getNum(parsed.uiState.picker.y, 100);
@@ -7743,64 +7906,62 @@ openRankModal() {
                 if (this.rankSortKey === key) { this.rankSortOrder = this.rankSortOrder === 'asc' ? 'desc' : 'asc'; } 
                 else { this.rankSortKey = key; this.rankSortOrder = ['activityScore','checked','memo'].includes(key) ? 'desc' : 'asc'; } 
             },
-// [메서드 추가] ESC 키 누르면 창 닫기
+// [수정] 단축키 로직 (지우개 크기 조절 기능 강화)
     handleEscKey(e) {
-    if (e.key === 'Escape') {
-        // 1순위: 소리가 나고 있으면 무조건 끈다! (알람, 타이머 등)
-        if (this.currentAudio && !this.currentAudio.paused) {
-            this.currentAudio.pause();
-            this.currentAudio.currentTime = 0; // 재생 위치 초기화
-            this.currentAudio = null;
-            this.notificationMsg = ''; // 알림창도 닫기
-            return; // 여기서 함수 종료 (창은 안 닫음)
-        }
-        
-        // 2순위: 알림 메시지가 떠 있으면 닫기
-        if (this.notificationMsg) {
-            this.notificationMsg = '';
+    if (this.isDrawMode && this.drawTool === 'eraser') {
+        if (e.key === '+' || e.key === '=') {
+            this.eraserSize = Math.min(2000, this.eraserSize + 20);
+            this.saveToLocal(); // 추가: 크기 변경 시 저장
+            e.preventDefault();
             return;
         }
-
-        // 3순위: 열려있는 창 닫기 (역순)
-        if (this.showAlarmModal) { this.showAlarmModal = false; return; }
-        if (this.showSettings) { this.showSettings = false; return; }
-        if (this.showBoardList) { this.showBoardList = false; return; }
-        if (this.showHistoryPreview) { this.showHistoryPreview = false; return; }
-        if (this.showShuffleHistory) { this.showShuffleHistory = false; return; }
-        if (this.showShuffleModal) { this.showShuffleModal = false; return; }
-        if (this.showGroupingHistory) { this.showGroupingHistory = false; return; }
-        if (this.showGroupingResultModal) { this.showGroupingResultModal = false; return; }
-        if (this.showGroupMakerModal) { this.showGroupMakerModal = false; return; }
-        if (this.showRaceResult) { this.showRaceResult = false; this.showRaceSetup = true; return; }
-        if (this.showRockRace) { this.closeRace(); return; }
-        if (this.showAnimalRace) { this.showAnimalRace = false; return; }
-        if (this.showRankModal) { this.showRankModal = false; return; }
-        if (this.showPickerMaster) { this.showPickerMaster = false; return; }
-        
-        // 최후순위: 전체 화면 기능 종료
-        if (this.showBlackboard) { this.showBlackboard = false; return; }
-        if (this.showTimer) { this.showTimer = false; return; }
-        if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
-        if (this.isClockMaximized) { this.isClockMaximized = false; return; }
-    } 
-
-    // Enter 키 로직 (기존 유지)
-    if (e.key === 'Enter') {
-        if (this.isAlarmRinging) {
-            this.stopAlarm();
-            return; }
-        if (this.showGroupingResultModal && !this.showGroupingHistory) { e.preventDefault(); this.saveCurrentGrouping(); return; }
-        if (this.showHistoryPreview) { e.preventDefault(); this.restoreHistory(); return; }
-        if (this.showRoulette && !this.showRouletteList && !this.isSpinningRoulette) {
-            if(document.activeElement.tagName !== 'TEXTAREA') { this.saveCurrentRoulette(); }
+        if (e.key === '-' || e.key === '_') {
+            this.eraserSize = Math.max(10, this.eraserSize - 20);
+            this.saveToLocal(); // 추가: 크기 변경 시 저장
+            e.preventDefault();
+            return;
         }
-
-        // 알람 모달에서 엔터 시 추가
-        if (this.showAlarmModal && this.alarmTime) { this.addAlarm(); }
     }
-},
-
-
+        
+        // (이후 ESC 닫기 기능 유지)
+        if (e.key === 'Escape') {
+            if (this.currentAudio && !this.currentAudio.paused) {
+                this.currentAudio.pause();
+                this.currentAudio.currentTime = 0;
+                this.currentAudio = null;
+                this.notificationMsg = '';
+                return;
+            }
+            if (this.notificationMsg) { this.notificationMsg = ''; return; }
+            if (this.showAlarmModal) { this.showAlarmModal = false; return; }
+            if (this.showSettings) { this.showSettings = false; return; }
+            if (this.showBoardList) { this.showBoardList = false; return; }
+            if (this.showHistoryPreview) { this.showHistoryPreview = false; return; }
+            if (this.showShuffleHistory) { this.showShuffleHistory = false; return; }
+            if (this.showShuffleModal) { this.showShuffleModal = false; return; }
+            if (this.showGroupingHistory) { this.showGroupingHistory = false; return; }
+            if (this.showGroupingResultModal) { this.showGroupingResultModal = false; return; }
+            if (this.showGroupMakerModal) { this.showGroupMakerModal = false; return; }
+            if (this.showRaceResult) { this.showRaceResult = false; this.showRaceSetup = true; return; }
+            if (this.showRockRace) { this.closeRace(); return; }
+            if (this.showAnimalRace) { this.showAnimalRace = false; return; }
+            if (this.showRankModal) { this.showRankModal = false; return; }
+            if (this.showPickerMaster) { this.showPickerMaster = false; return; }
+            if (this.showBlackboard) { this.showBlackboard = false; return; }
+            if (this.showTimer) { this.showTimer = false; return; }
+            if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
+            if (this.isClockMaximized) { this.isClockMaximized = false; return; }
+        }
+        if (e.key === 'Enter') {
+            if (this.isAlarmRinging) { this.stopAlarm(); return; }
+            if (this.showGroupingResultModal && !this.showGroupingHistory) { e.preventDefault(); this.saveCurrentGrouping(); return; }
+            if (this.showHistoryPreview) { e.preventDefault(); this.restoreHistory(); return; }
+            if (this.showRoulette && !this.showRouletteList && !this.isSpinningRoulette) {
+                if(document.activeElement.tagName !== 'TEXTAREA') { this.saveCurrentRoulette(); }
+            }
+            if (this.showAlarmModal && this.alarmTime) { this.addAlarm(); }
+        }
+    },
           // 🐇 [1] 동물 레이스 시작
           async startAnimalRace() { 
     // 1. 충돌 방지 및 초기화
@@ -8243,71 +8404,403 @@ openBlackboard() {
     });
 },
             applyStyle(cmd, val = null) { 
-                const editor = document.getElementById('board-editor');
-                
-                if (document.activeElement !== editor) {
-                    editor.focus();
+                this.restoreSelection();
+
+                if (this.isCornellMode) {
+                    if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
+                        const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
+                        if(box) box.focus();
+                    }
                 }
 
-                // ★ 수정됨: 글씨 크기(fontSize)를 바꿀 때는 구형 호환모드(false)로 작동시켜
-                // 거대 커서 오류를 막고 CSS가 정확히 타겟팅할 수 있게 <font> 태그를 생성합니다.
-                if (cmd === 'fontSize') {
-                    document.execCommand('styleWithCSS', false, false);
-                } else {
-                    document.execCommand('styleWithCSS', false, true);
-                }
+                if (cmd === 'fontSize') document.execCommand('styleWithCSS', false, false);
+                else document.execCommand('styleWithCSS', false, true);
 
                 document.execCommand(cmd, false, val);
-                
-                this.closePalettes();
+                this.closePalettes(); 
+                this.saveToLocal();
             },
 
+saveSelection() {
+                if (window.getSelection) {
+                    const sel = window.getSelection();
+                    if (sel.getRangeAt && sel.rangeCount > 0) {
+                        this.savedRange = sel.getRangeAt(0);
+                    }
+                }
+            },
+            restoreSelection() {
+                if (this.savedRange && window.getSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(this.savedRange);
+                }
+            },
 
-            applyColor(cmd, color) { this.applyStyle(cmd, color); },
-toggleForeColorPalette() { 
-                this.showForeColorPalette = !this.showForeColorPalette; 
-                this.showHiliteColorPalette = false; 
-                this.showSymbolPalette = false; // 추가됨
+            // 텍스트 스타일 적용
+            applyStyle(cmd, val = null) { 
+                this.restoreSelection(); // 선택 영역 복구!
+
+                if (this.isCornellMode) {
+                    if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
+                        const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
+                        if(box) box.focus();
+                    }
+                }
+
+                if (cmd === 'fontSize') document.execCommand('styleWithCSS', false, false);
+                else document.execCommand('styleWithCSS', false, true);
+
+                document.execCommand(cmd, false, val);
+                this.closePalettes(); 
+                this.saveToLocal();
             },
-            toggleHiliteColorPalette() { 
-                this.showHiliteColorPalette = !this.showHiliteColorPalette; 
-                this.showForeColorPalette = false; 
-                this.showSymbolPalette = false; // 추가됨
+
+            // 색상 적용 및 펜 색상 동기화
+            applyColor(cmd, color) { 
+                if (cmd === 'foreColor') {
+                    this.drawColor = color; 
+                }
+                this.applyStyle(cmd, color); 
             },
-            closePalettes() { 
-                this.showForeColorPalette = false; 
-                this.showHiliteColorPalette = false; 
-                this.showSymbolPalette = false; // 추가됨
-            },
-            updateBoardContent(e) {
-    this.blackboardContent = e.target.innerHTML;
-    // 너무 잦은 저장을 막기 위해 saveToLocal 사용 (디바운싱 되어있음)
-    this.saveToLocal();
-},
+          
+
+     // 기존 clearBoard 덮어쓰기 (텍스트와 그림 동시 삭제)
             clearBoard() {
-    if (confirm("칠판을 지울까요?")) {
-        this.blackboardContent = '';
-        const editor = this.$refs.boardEditor || document.getElementById('board-editor');
-        if (editor) {
-            editor.innerHTML = ''; // 내용을 비우고
-            editor.focus();       // 즉시 글쓰기 가능한 상태로 포커스 이동
+                if (confirm("칠판(글씨와 그림 모두)을 완전히 지울까요?")) {
+                    this.blackboardContent = '';
+                    this.cornellData = { title: '', cue: '', note: '', summary: '' };
+                    
+                    const canvas = this.$refs.drawCanvas;
+                    if(canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        this.canvasStateUrl = null;
+                    }
+                    
+                    const editor = this.$refs.boardEditor || document.getElementById('board-editor');
+                    if (editor && !this.isCornellMode) {
+                        editor.innerHTML = '';
+                        editor.focus();
+                    }
+                    this.saveToLocal();
+                }
+            },
+
+setDrawTool(tool) {
+                if (this.isDrawMode && this.drawTool === tool) {
+                    this.isDrawMode = false;
+                } else {
+                    this.isDrawMode = true;
+                    this.drawTool = tool;
+                    this.closePalettes();
+                }
+            },        
+
+closePalettes() {
+                this.showForeColorPalette = false;
+                this.showHiliteColorPalette = false;
+                this.showSymbolPalette = false;
+            },
+
+            
+        handleCanvasLeave() {
+        this.isMouseOverCanvas = false;
+        this.stopDrawing();
+    },
+                   /* [신규] 캔버스 그리기 함수 */
+            getCanvasCoords(e) {
+    const canvas = this.$refs.drawCanvas;
+    const rect = canvas.getBoundingClientRect(); // 화면상 실제 보이는 위치와 크기
+    
+    // 화면 마우스 좌표에서 캔버스의 화면상 시작점 빼기
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+
+    // 화면상 크기(rect)와 실제 캔버스 해상도(1920x1080)의 비율로 변환
+    // 이 방식은 우측창 유무나 브라우저 크기에 영향을 받지 않습니다.
+    return {
+        x: clientX * (canvas.width / rect.width),
+        y: clientY * (canvas.height / rect.height)
+    };
+},
+
+// [2] 캔버스 다시 그리기
+redrawCanvas() {
+    const canvas = this.$refs.drawCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    this.paths.forEach(path => {
+        if (path.points.length < 1) return;
+        ctx.beginPath();
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth = path.width || 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (path.type === 'line' && path.points[1]) {
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            ctx.lineTo(path.points[1].x, path.points[1].y);
+        } else if (path.type === 'circle' && path.points[1]) {
+            // 원(ellipse) 렌더링 복원
+            ctx.ellipse(path.points[0].x, path.points[0].y, path.points[1].rx, path.points[1].ry, 0, 0, Math.PI * 2);
+        } else {
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            for (let i = 1; i < path.points.length; i++) {
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+            }
+        }
+        ctx.stroke();
+    });
+},
+// [3] 그리기 시작
+startDrawing(e) {
+    if(!this.isDrawMode) return;
+    this.isDrawing = true;
+    const coords = this.getCanvasCoords(e);
+    this.drawStartX = coords.x;
+    this.drawStartY = coords.y;
+    this.drawLastX = coords.x;
+    this.drawLastY = coords.y;
+    
+    // 원의 완벽한 형태를 위해 화면상 마우스 시작점 저장
+    this.drawStartClientX = e.clientX;
+    this.drawStartClientY = e.clientY;
+
+    if (this.drawTool === 'move') {
+        this.selectedPath = null;
+        let minInfo = { index: -1, dist: 30 }; 
+
+        this.paths.forEach((path, pIdx) => {
+            if (path.type === 'circle' && path.points[1]) {
+                const rx = path.points[1].rx;
+                const ry = path.points[1].ry;
+                const nx = (coords.x - path.points[0].x) / rx;
+                const ny = (coords.y - path.points[0].y) / ry;
+                const d = Math.abs(Math.sqrt(nx*nx + ny*ny) - 1) * Math.max(rx, ry);
+                if (d < minInfo.dist) { minInfo.dist = d; minInfo.index = pIdx; }
+            } else if (path.type === 'line' && path.points[1]) {
+                // 직선 중간을 잡아도 인식
+                const d = this.getDistToSegment(coords.x, coords.y, path.points[0].x, path.points[0].y, path.points[1].x, path.points[1].y);
+                if (d < minInfo.dist) { minInfo.dist = d; minInfo.index = pIdx; }
+            } else {
+                path.points.forEach(pt => {
+                    const d = Math.sqrt((pt.x - coords.x)**2 + (pt.y - coords.y)**2);
+                    if (d < minInfo.dist) { minInfo.dist = d; minInfo.index = pIdx; }
+                });
+            }
+        });
+
+        if (minInfo.index !== -1) {
+            this.selectedPath = this.paths[minInfo.index];
+            this.playSound('click', false, 0.3);
+        }
+    } else if (this.drawTool === 'eraser') {
+        this.eraseAt(coords.x, coords.y, e.ctrlKey);
+    } else {
+        let type = 'pen';
+        if (e.shiftKey) type = 'line';
+        else if (e.ctrlKey) type = 'circle';
+
+        this.currentPath = {
+            type: type,
+            points: [{ x: coords.x, y: coords.y }],
+            color: this.drawColor,
+            width: 6
+        };
+    }
+},
+
+// [3] 그리는 중 (동그라미 찌그러짐 완벽 해결)
+draw(e) {
+    this.mouseX = e.clientX;
+    this.mouseY = e.clientY;
+    if(!this.isDrawing || !this.isDrawMode) return;
+    const coords = this.getCanvasCoords(e);
+    const canvas = this.$refs.drawCanvas;
+    const ctx = canvas.getContext('2d');
+
+    if (this.drawTool === 'move' && this.selectedPath) {
+        const dx = coords.x - this.drawLastX;
+        const dy = coords.y - this.drawLastY;
+        this.selectedPath.points.forEach(pt => { pt.x += dx; pt.y += dy; });
+        this.drawLastX = coords.x;
+        this.drawLastY = coords.y;
+        this.redrawCanvas();
+    } 
+    else if (this.drawTool === 'eraser') {
+        this.eraseAt(coords.x, coords.y, e.ctrlKey);
+    } 
+    else if (this.currentPath) {
+        if (this.currentPath.type !== 'pen') {
+            this.redrawCanvas(); 
+            ctx.beginPath();
+            ctx.strokeStyle = this.drawColor;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+
+            if (this.currentPath.type === 'line') {
+                ctx.moveTo(this.drawStartX, this.drawStartY);
+                ctx.lineTo(coords.x, coords.y);
+                this.currentPath.points[1] = { x: coords.x, y: coords.y };
+            } else if (this.currentPath.type === 'circle') {
+                // [정원 로직] 화면에서 이동한 시각적 거리 계산
+                const rect = canvas.getBoundingClientRect();
+                const screenDx = e.clientX - this.drawStartClientX;
+                const screenDy = e.clientY - this.drawStartClientY;
+                const visualRadius = Math.sqrt(screenDx*screenDx + screenDy*screenDy);
+                
+                // 화면의 정원을 캔버스 비율에 맞게 변환하여 저장
+                const rx = visualRadius * (canvas.width / rect.width);
+                const ry = visualRadius * (canvas.height / rect.height);
+
+                ctx.ellipse(this.drawStartX, this.drawStartY, rx, ry, 0, 0, Math.PI * 2);
+                this.currentPath.points[1] = { rx: rx, ry: ry };
+            }
+            ctx.stroke();
+        } else {
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.strokeStyle = this.drawColor; ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(this.drawLastX, this.drawLastY);
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+            this.currentPath.points.push({ x: coords.x, y: coords.y });
+            this.drawLastX = coords.x;
+            this.drawLastY = coords.y;
         }
     }
 },
-toggleSymbolPalette() {
+
+// [4] 지우개 로직 (직선/원도 통째로 지워짐)
+eraseAt(x, y, isStrokeMode) {
+    const threshold = this.eraserSize / 2;
+    let newPaths = [];
+    let changed = false;
+
+    this.paths.forEach(path => {
+        let isHit = false;
+        
+        if (path.type === 'circle' && path.points[1]) {
+            const rx = path.points[1].rx;
+            const ry = path.points[1].ry;
+            const nx = (x - path.points[0].x) / rx;
+            const ny = (y - path.points[0].y) / ry;
+            const d = Math.abs(Math.sqrt(nx*nx + ny*ny) - 1) * Math.max(rx, ry);
+            isHit = d < threshold;
+        } else if (path.type === 'line' && path.points[1]) {
+            // 직선상의 어느 곳이든 지우개가 닿으면 인식
+            const d = this.getDistToSegment(x, y, path.points[0].x, path.points[0].y, path.points[1].x, path.points[1].y);
+            isHit = d < threshold;
+        } else {
+            isHit = path.points.some(pt => Math.sqrt((pt.x - x)**2 + (pt.y - y)**2) < threshold);
+        }
+
+        if (!isHit) {
+            newPaths.push(path);
+            return;
+        }
+
+        changed = true;
+        // 도형은 무조건 통째로 지우기
+        if (isStrokeMode || path.type === 'line' || path.type === 'circle') {
+            return; 
+        } else {
+            let currentSegment = [];
+            path.points.forEach(pt => {
+                if (Math.sqrt((pt.x - x)**2 + (pt.y - y)**2) < threshold) {
+                    if (currentSegment.length > 1) newPaths.push({ ...path, points: currentSegment });
+                    currentSegment = [];
+                } else {
+                    currentSegment.push(pt);
+                }
+            });
+            if (currentSegment.length > 1) newPaths.push({ ...path, points: currentSegment });
+        }
+    });
+
+    if (changed) {
+        this.paths = newPaths;
+        this.redrawCanvas();
+    }
+},
+// 보조 함수: 직선을 점들로 채움
+interpolateLine(p0, p1) {
+    const points = [];
+    const dist = Math.sqrt((p1.x-p0.x)**2 + (p1.y-p0.y)**2);
+    const steps = dist / 2; // 2px 간격으로 점 생성
+    for(let i=0; i<=steps; i++) {
+        points.push({
+            x: p0.x + (p1.x - p0.x) * (i / steps),
+            y: p0.y + (p1.y - p0.y) * (i / steps)
+        });
+    }
+    return points;
+},
+
+// 보조 함수: 원의 테두리를 점들로 채움
+interpolateCircle(center, r) {
+    const points = [];
+    const steps = r * Math.PI; // 반지름에 비례하여 점 개수 설정
+    for(let i=0; i<=steps; i++) {
+        const angle = (i / steps) * Math.PI * 2;
+        points.push({
+            x: center.x + Math.cos(angle) * r,
+            y: center.y + Math.sin(angle) * r
+        });
+    }
+    return points;
+},
+
+stopDrawing() {
+    if(this.isDrawing) {
+        if (this.drawTool === 'pen' && this.currentPath) {
+            this.paths.push(this.currentPath);
+        }
+        this.isDrawing = false;
+        this.currentPath = null;
+        this.selectedPath = null;
+        this.saveToLocal();
+    }
+},
+
+// [수정] 그림만 지우기 시 배열도 비우기
+clearOnlyDrawings() {
+    if(confirm("그린 그림만 모두 지울까요?")) {
+        this.paths = [];
+        const canvas = this.$refs.drawCanvas;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        this.saveToLocal();
+    }
+},
+toggleForeColorPalette() {
+                this.showForeColorPalette = !this.showForeColorPalette;
+                this.showHiliteColorPalette = false;
+                this.showSymbolPalette = false;
+            },
+            toggleHiliteColorPalette() {
+                this.showHiliteColorPalette = !this.showHiliteColorPalette;
+                this.showForeColorPalette = false;
+                this.showSymbolPalette = false;
+            },
+            toggleSymbolPalette() {
                 this.showSymbolPalette = !this.showSymbolPalette;
                 this.showForeColorPalette = false;
                 this.showHiliteColorPalette = false;
             },
             insertSymbol(sym) {
-                const editor = document.getElementById('board-editor');
-                // 포커스가 에디터에 없으면 강제로 맞춤
-                if (document.activeElement !== editor) {
-                    editor.focus();
+                this.restoreSelection();
+                if (this.isCornellMode) {
+                    if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
+                        const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
+                        if(box) box.focus();
+                    }
                 }
-                // 현재 커서 위치에 특수기호 텍스트 삽입
                 document.execCommand('insertText', false, sym);
-                this.showSymbolPalette = false; // 기호 삽입 후 팔레트 닫기
+                this.showSymbolPalette = false;
                 this.saveToLocal();
             },
             createNewBoard() {
@@ -8326,41 +8819,72 @@ toggleSymbolPalette() {
                 this.saveToLocal();
             },
             saveBoardToList() { 
-const editor = document.getElementById('board-editor');
-                const textContent = editor.innerText.trim(); // 텍스트만 추출
-                
-                if (!textContent && !editor.innerHTML.includes('<img')) {
-                    alert("내용이 없습니다.");
-                    return;
+                let title = "판서 기록";
+                let preview = "(내용 없음)";
+                let htmlContent = '';
+
+                if (this.isCornellMode) {
+                    htmlContent = JSON.stringify(this.cornellData);
+                    title = this.cornellData.title.replace(/<[^>]*>?/gm, '').substring(0, 15) || "코넬 공책";
+                    preview = this.cornellData.note.replace(/<[^>]*>?/gm, ' ').substring(0, 30);
+                } else {
+                    const editor = document.getElementById('board-editor');
+                    htmlContent = editor.innerHTML;
+                    const textContent = editor.innerText.trim();
+                    if (!textContent && !htmlContent.includes('<img') && !this.canvasStateUrl) return alert("내용이 없습니다.");
+                    
+                    const lines = textContent.split('\n').filter(line => line.trim() !== '');
+                    title = lines.length > 0 ? lines[0].substring(0, 15) : "일반 칠판";
+                    preview = textContent.replace(/\n/g, ' ').substring(0, 30);
                 }
 
                 const now = new Date();
                 const timeString = `${now.getHours() < 12 ? '오전' : '오후'} ${now.getHours() > 12 ? now.getHours()-12 : now.getHours()}시 ${now.getMinutes()}분`;
 
-                // 1. 첫 번째 줄을 제목으로 추출
-                const lines = textContent.split('\n').filter(line => line.trim() !== '');
-                let title = lines.length > 0 ? lines[0] : "이미지/내용 없음";
-                
-                // 제목이 너무 길면 자르기 (15자)
-                if (title.length > 15) title = title.substring(0, 15) + '...';
-
-                // 2. 미리보기 (내용) 생성
-                let preview = textContent.replace(/\n/g, ' ').substring(0, 30);
-                if (textContent.length > 30) preview += '...';
-                if (!preview) preview = "(내용 없음)";
-
                 this.savedBoards.unshift({
                     id: Date.now(),
-                    content: editor.innerHTML, // HTML 스타일 포함 원본
-                    title: title,              // [NEW] 추출한 제목
+                    content: htmlContent,
+                    cornell: this.isCornellMode,
+                    canvas: this.canvasStateUrl,
+                    title: title,
                     time: timeString,
                     preview: preview
                 });
 
                 this.saveToLocal();
                 alert("목록에 저장되었습니다!");
-            },            toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
-            loadBoard(board) { if(confirm("이 판서를 불러오시겠습니까?")) { this.blackboardContent = board.content; document.getElementById('board-editor').innerHTML = board.content; this.showBoardList = false; } },
+            },
+
+           toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
+            loadBoard(board) { 
+                if(confirm("이 판서를 불러오시겠습니까?")) { 
+                    this.isCornellMode = board.cornell || false;
+                    
+                    if (this.isCornellMode) {
+                        try { 
+                            this.cornellData = JSON.parse(board.content); 
+                            this.populateCornell(); // 데이터 불러올 때 글씨 뿌려주기
+                        } catch(e) {}
+                    } else {
+                        this.blackboardContent = board.content; 
+                        this.$nextTick(() => { document.getElementById('board-editor').innerHTML = board.content; });
+                    }
+
+                    this.canvasStateUrl = board.canvas || null;
+                    this.$nextTick(() => {
+                        const canvas = this.$refs.drawCanvas;
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        if (this.canvasStateUrl) {
+                            const img = new Image();
+                            img.onload = () => { ctx.drawImage(img, 0, 0); };
+                            img.src = this.canvasStateUrl;
+                        }
+                    });
+
+                    this.showBoardList = false; 
+                } 
+            },
             deleteBoard(idx) { if(confirm("정말 삭제할까요?")) { this.savedBoards.splice(idx, 1); this.saveToLocal(); } },
             deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this.savedBoards = []; this.saveToLocal(); } },
            /* 판서 창 드래그 (이탈 방지 포함) */

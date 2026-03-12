@@ -1354,15 +1354,11 @@ body .blackboard-window {
 }
 
 /* 초록색 배경 에디터 영역 (스크롤바 숨김 처리 추가) */
-body .blackboard-editor { 
-    outline: none; 
-    flex: 1; 
-    width: 100%; 
-    height: 100%; 
-    /* 핵심: auto 대신 scroll을 사용하여 항상 우측에 스크롤바 공간을 만들어둠 (밀림 원천 차단) */
+body .blackboard-editor {
     overflow-y: scroll !important; 
     overflow-x: hidden !important;
     background-color: #0f4c3a !important; 
+    padding-bottom: 120px !important;   /* ← 핵심 추가: 마지막 글자 날아감 완전 방지 */
     position: relative; 
     padding: 0 !important; 
     scrollbar-width: thin; 
@@ -1406,15 +1402,17 @@ body .blackboard-editor::-webkit-scrollbar-thumb:hover {
 
 /* 실제 글씨 레이어 (좌측 상단 정렬 최적화) */
 .board-zoom-container {
-    transform-origin: top left; min-height: 100vh !important;
-    padding: 5px 12px !important; outline: none; display: block !important; 
-    color: white; text-align: left; cursor: text;
-    word-break: break-word; /* 긴 단어 강제 줄바꿈 */
-    white-space: pre-wrap; /* 여백 유지 및 가로폭에 맞춘 줄바꿈 */
+    transform-origin: top left; 
+    min-height: 100vh !important;
+    padding: 5px 12px 120px 12px !important;   /* ← padding-bottom 크게 */
+    outline: none; 
+    display: block !important; 
+    color: white; 
+    text-align: left; 
+    cursor: text;
+    word-break: break-word; 
+    white-space: pre-wrap; 
 }
-
-
-
 /* 확대 비율 숫자 입력 시 강조 효과 제거 */
 span[contenteditable="true"] {
     display: inline-block;
@@ -1422,40 +1420,81 @@ span[contenteditable="true"] {
     min-width: 35px;
     cursor: text;
 }
-/* [판서 글씨체 정상화 및 거대 커서 버그 수정] */
-        body .blackboard-editor font,
-        body .blackboard-editor span {
-            display: inline !important; /* 핵심: inline-block 제거하여 줄바꿈 커서 오류 방지 */
-            vertical-align: baseline !important;
-            line-height: 1.5 !important;
-            margin: 0 !important;
-            cursor: text;
-            outline: none;
-        }
+/* [시간 은행 전용 애니메이션 및 스타일] */
+@keyframes float-up-fade {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -40px); opacity: 0; }
+}
+.animate-float-up {
+    animation: float-up-fade 1.5s ease-out forwards;
+}
+@keyframes bank-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px) rotate(-1deg); }
+    40%, 80% { transform: translateX(5px) rotate(1deg); }
+}
+.animate-bank-shake {
+    animation: bank-shake 0.4s ease-in-out;
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+/* [시계 & 저금통 공통 스타일] */
+/* [시계 & 저금통 공통 스타일] */
+.sidebar-widget {
+    width: 100%;
+    min-height: 125px; /* [수정] 세로 높이를 살짝 줄임 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 2rem;
+    border-width: 4px;
+    padding: 0.75rem 1.25rem; /* [수정] 위아래 여백 축소 */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.sidebar-timer-display {
+    font-size: 3.5rem !important;
+    letter-spacing: -0.05em !important;
+    line-height: 1;
+    font-family: 'Quantico', sans-serif !important;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+}
 
-        /* 글씨 크기를 현재 줌(Zoom) 비율에 맞게 정상적인 px 크기로 조정 */
-        body .blackboard-editor font[size="3"] { 
-    font-size: 24px !important; 
-    /* font-weight 강제 고정 삭제 */
+/* 파스텔 버튼 스타일 */
+.btn-save-pastel {
+    background-color: #fb7185 !important;
+    color: white !important;
+    border: none !important;
 }
-body .blackboard-editor font[size="5"] { 
-    font-size: 40px !important; 
-    /* font-weight 강제 고정 삭제 */
+.btn-waste-pastel {
+    background-color: #fb7185 !important; 
+    color: white !important;
+    border: none !important;
 }
-body .blackboard-editor font[size="7"] { 
-    font-size: 64px !important; 
-    letter-spacing: -0.05em;
-    -webkit-font-smoothing: antialiased;
-    /* font-weight 강제 고정 삭제 */
+.no-transition { transition: none !important; }
+
+        #board-editor {
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif !important;
+    font-weight: 700; /* 기본적으로 굵게 설정하여 얇아짐 방지! */
+    font-size: 64px;  /* 기본 크기를 크게 유지 */
+    letter-spacing: 0.5px;
+    color: white;
 }
-/* 💡 추가: 굵게(B) 버튼 작동 시 확실하게 굵어지도록 강제 적용 */
-body .blackboard-editor b,
-body .blackboard-editor strong,
-body .blackboard-editor span[style*="font-weight: bold"],
-body .blackboard-editor span[style*="font-weight: 700"],
-body .blackboard-editor span[style*="font-weight: 900"] {
-    font-weight: 900 !important;
-}
+
+/* [2] 툴바 크기 조절 연동 (이게 있어야 크기 버튼이 먹힙니다) */
+body .blackboard-editor font[size="3"] { font-size: 40px !important; }
+body .blackboard-editor font[size="5"] { font-size: 60px !important; }
+body .blackboard-editor font[size="7"] { font-size: 80px !important; }
+
+/* [3] B, I, U 툴바 버튼 기능 활성화 */
+body .blackboard-editor b, body .blackboard-editor strong { font-weight: 900 !important; }
+body .blackboard-editor i, body .blackboard-editor em { font-style: italic !important; }
+body .blackboard-editor u { text-decoration: underline !important; }
+
+
   /* 팔레트 z-index 상향 조정 */
         .color-palette { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #e2e8f0; padding: 0.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 9999; display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.25rem; width: max-content; }
         .color-dot { width: 1.5rem; height: 1.5rem; border-radius: 9999px; cursor: pointer; border: 1px solid rgba(0,0,0,0.2); transition: all 0.1s; }
@@ -2182,6 +2221,27 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 /* 팔레트 표시 버그 해결을 위한 z-index 강제 할당 */
 .blackboard-toolbar { z-index: 50 !important; overflow: visible !important; }
 .color-palette { z-index: 99999 !important; }
+
+/* [시간 은행 전용 애니메이션] */
+@keyframes float-up-fade {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -40px); opacity: 0; }
+}
+.animate-float-up {
+    animation: float-up-fade 1.5s ease-out forwards;
+}
+
+@keyframes bank-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px) rotate(-1deg); }
+    40%, 80% { transform: translateX(5px) rotate(1deg); }
+}
+.animate-bank-shake {
+    animation: bank-shake 0.4s ease-in-out;
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
 </style>  
 </head>
 <body>
@@ -2324,76 +2384,141 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     
 </div></div>
 
-        <aside class="sidebar flex flex-col px-6 py-8 w-[320px] bg-white shadow-2xl z-40">
-            <div class="flex items-center gap-3 mb-10 px-2">
-                <h1 class="text-2xl font-black text-slate-800">🏫 우리반 매니저</h1>
+        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
+            <div class="flex items-center gap-3 mb-8 px-2"> 
+                <h1 class="text-3xl font-black text-slate-800">🏫 우리반 매니저</h1>
                 <button @click="openSettings" class="text-slate-300 hover:text-orange-500 transition-all"><i class="fa-solid fa-gear"></i></button>
             </div>
             
-            <nav class="mb-6 flex-1 overflow-y-auto px-2 pt-2 space-y-3">
-                <div @click="view = 'main'; playSound('click')" 
-     :class="view === 'main' ? 'ring-4 ring-red-200' : ''" 
-     class="menu-item bg-red-500 cursor-pointer p-4 rounded-2xl font-black text-white text-center shadow-md">
-     좌석 배치도
-</div>
-                <div @click="view = 'order'; playSound('click')" 
-     :class="view === 'order' ? 'ring-4 ring-orange-200' : ''" 
-     class="menu-item bg-orange-500 cursor-pointer p-4 rounded-2xl font-black text-white text-center shadow-md">
-     대기 번호
-</div>
-
-<div @click="view = 'group'; playSound('click')" 
-     :class="view === 'group' ? 'ring-4 ring-yellow-200' : ''" 
-     class="menu-item bg-yellow-400 cursor-pointer p-4 rounded-2xl font-black text-black text-center shadow-md">
-     모둠 활동
-</div>
+            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-2 space-y-4 flex flex-col"> 
+                <div @click="view = 'main'; playSound('click')" :class="view === 'main' ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
+                <div @click="view = 'order'; playSound('click')" :class="view === 'order' ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
+                <div @click="view = 'group'; playSound('click')" :class="view === 'group' ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
                 
-                <button @click="openRankModal" class="w-full text-left bg-yellow-50 border-4 border-yellow-200 rounded-[2.5rem] p-6 cursor-pointer hover:bg-yellow-100 transition-all mt-6 relative block">
-                    <h3 class="font-black text-yellow-600 mb-4 text-center text-sm">🏆 명예의 전당</h3>
-                    <div class="flex flex-col gap-2">
-                        <div v-for="(s, idx) in topStudents" :key="idx" class="bg-white p-2 px-4 rounded-xl flex justify-between items-center text-sm border border-yellow-100 shadow-sm">
-                            <span class="font-bold text-slate-700 flex items-center gap-2">
-                                <span v-if="idx===0">🥇</span><span v-else-if="idx===1">🥈</span><span v-else-if="idx===2">🥉</span><span v-else>🏅</span>
-                                {{ s.name }}
-                            </span>
-                            <span class="font-black text-orange-500">{{ s.activityScore }}</span>
+               <button @click="openRankModal" class="w-full h-[180px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all mt-4 flex flex-col"> 
+                    <h3 class="font-black text-emerald-600 mb-2 text-center text-base shrink-0">🏆 명예의 전당</h3>
+                   <div class="flex flex-row justify-between gap-2 flex-1 w-full relative px-1">
+                        <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 flex flex-col items-center justify-center rank-item-transparent h-full">
+                            <div v-if="s.name !== '?'" class="flex flex-col items-center justify-center gap-1 w-full bg-gradient-to-b from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-2xl shadow-sm py-2 px-1 text-slate-800 transition-all">
+                                <span class="text-3xl drop-shadow-sm leading-none">
+                                    <span v-if="s.displayRank === 1">🥇</span>
+                                    <span v-else-if="s.displayRank === 2">🥈</span>
+                                    <span v-else-if="s.displayRank === 3">🥉</span>
+                                </span>
+                                <span class="font-black text-sm truncate w-full text-center">{{ s.name }}</span>
+                            </div>
+                            
+                            <div v-else class="flex flex-col items-center justify-center gap-1 w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-2 px-1 text-slate-400 opacity-60">
+                                <span class="text-3xl opacity-50 leading-none">🏅</span>
+                                <span class="font-black text-sm truncate w-full text-center">?</span>
+                            </div>
                         </div>
                     </div>
-                </button>
-<div @click="handleMiniClockClick"
-     class="mt-6 w-full bg-white border-4 border-slate-200 rounded-[2.5rem] p-5 shadow-sm text-center select-none hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-center items-center gap-2">
-    <!-- 날짜 -->
-    <div class="text-slate-400 font-bold text-base flex items-center gap-2 group-hover:text-blue-400 transition-colors">
-        <i class="fa-regular fa-calendar-check"></i>
-        {{ currentDate }}
-    </div>
+                                    </button>
 
-    <!-- 시간 (콜론 깜빡임 복구) -->
-    <div class="text-6xl font-black text-slate-800 tracking-tight leading-none digital-font flex items-baseline">
-        <span>{{ miniTime.split(':')[0] }}</span>
-        <span class="blink-colon mx-2">:</span>
-        <span>{{ miniTime.split(':')[1] }}</span>
-    </div>
-</div>            </nav>
-  
-           <div class="mt-auto pt-4 border-t border-slate-100 flex justify-center gap-4">
-                <button @click="openBlackboard" title="판서" class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-chalkboard-user"></i></button>
-                 <button @click="openTimer" title="폭탄 타이머" class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
-    <i class="fa-solid fa-bomb"></i>
-</button>
+                <div @click="handleMiniClockClick" 
+                     class="sidebar-widget bg-blue-50 border-blue-200 hover:border-blue-300 mt-4">
+                    <div class="text-blue-500 font-bold text-base flex items-center gap-2 mb-1">
+    <i class="fa-regular fa-calendar-check"></i> {{ currentDate }}
+</div>
+                    <div class="sidebar-timer-display font-black text-blue-900 flex items-baseline">
+                        <span>{{ miniTime.split(':')[0] }}</span>
+                        <span class="blink-colon mx-1 text-blue-400">:</span>
+                        <span>{{ miniTime.split(':')[1] }}</span>
+                    </div>
+                </div>
 
-                <button @click="openPickerMaster" title="뽑기 도구" class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl hover:bg-purple-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
-    <i class="fa-solid fa-gift"></i>
-</button>
-                
-               
-                
-<button @click="openNoiseMeter" title="주의집중" class="w-14 h-14 bg-pink-100 text-pink-600 rounded-2xl hover:bg-pink-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl">
-    <i class="fa-solid fa-bell"></i>
-</button>            </div>
+                <div @click="showTimeBankHistoryModal = true" 
+                     class="sidebar-widget bg-pink-50 border-pink-200 hover:border-pink-300 mt-4 relative"
+                     :class="{'animate-bank-shake': timeBankEffect === 'shake'}">
+                    
+                    <div class="w-full flex justify-between items-center mb-1">
+                        <button @click.stop="openTimeBankModal('save')" 
+                                class="btn-save-pastel w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 z-10">+</button>
+                        <h3 class="font-black text-pink-600 text-center flex items-center justify-center gap-1.5 text-base z-0">
+    <i class="fa-solid fa-piggy-bank text-pink-400 text-xl"></i> 시간 저금통
+</h3>
+                        <button @click.stop="openTimeBankModal('waste')" 
+                                class="btn-waste-pastel w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 z-10">-</button>
+                    </div>
+
+                    <div class="sidebar-timer-display font-black text-center transition-colors relative" 
+                         :class="timeBankSeconds >= 0 ? 'text-white drop-shadow-[0_2px_4px_rgba(244,114,182,0.6)]' : 'text-red-500 drop-shadow-[0_2px_4px_rgba(239,68,68,0.5)]'">
+                        
+                        <div class="flex items-baseline justify-center">
+                            <span>{{ timeBankSeconds > 0 ? '+' : (timeBankSeconds < 0 ? '-' : '') }}{{ String(Math.floor(Math.abs(timeBankSeconds) / 60)).padStart(2, '0') }}</span>
+                            <span class="text-xl font-bold mx-0.5 opacity-90">분</span>
+                            <span>{{ String(Math.abs(timeBankSeconds) % 60).padStart(2, '0') }}</span>
+                            <span class="text-xl font-bold ml-0.5 opacity-90">초</span>
+                        </div>
+                        <div v-if="timeBankEffect === 'float'" class="absolute -top-3 left-1/2 text-white font-black text-2xl animate-float-up pointer-events-none z-50 drop-shadow-[0_2px_4px_rgba(244,114,182,0.6)]">
+                            +{{ lastAddedTime }}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="mt-auto pt-5 border-t border-slate-100 flex justify-between gap-3 shrink-0 pb-1">
+                <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-16 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bomb"></i></button>
+                <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-16 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-gift"></i></button>
+                <button @click="openNoiseMeter" title="주의집중" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bell"></i></button>
+                <button @click="openBlackboard" title="판서" class="flex-1 h-16 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-chalkboard-user"></i></button>
+            </div>
         </aside>
 
+<div v-if="showTimeBankModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showTimeBankModal = false">
+            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 animate-pop-in flex flex-col gap-4" :class="timeBankInputType === 'save' ? 'border-green-400' : 'border-red-400'">
+                <h3 class="text-2xl font-black text-center" :class="timeBankInputType === 'save' ? 'text-green-600' : 'text-red-500'">{{ timeBankInputType === 'save' ? '➕ 시간 절약' : '➖ 시간 낭비' }}</h3>
+                <div class="flex items-center justify-center gap-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                    <input type="number" v-model="timeBankInputMin" @focus="$event.target.select()" class="w-16 h-12 text-3xl font-black text-center bg-transparent outline-none" placeholder="0"><span class="font-black text-slate-400 text-xl">분</span>
+                    <input type="number" v-model="timeBankInputSec" @focus="$event.target.select()" class="w-16 h-12 text-3xl font-black text-center bg-transparent outline-none" placeholder="0"><span class="font-black text-slate-400 text-xl">초</span>
+                </div>
+                <input type="text" v-model="timeBankInputMemo" placeholder="메모 입력..." class="w-full p-4 bg-slate-100 rounded-2xl text-sm font-bold outline-none border-none">
+                <div class="flex gap-2">
+                    <button @click="showTimeBankModal = false" class="flex-1 py-4 bg-slate-200 text-slate-600 font-black rounded-2xl">취소</button>
+                    <button @click="submitTimeBank" class="flex-1 py-4 text-white font-black rounded-2xl shadow-lg" :class="timeBankInputType === 'save' ? 'bg-green-500' : 'bg-red-500'">확인</button>
+                </div>
+            </div>
+        </div>
 
+        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showTimeBankHistoryModal = false">
+            <div class="bg-white rounded-[3rem] p-8 w-[450px] max-h-[80vh] shadow-2xl border-8 border-slate-100 animate-pop-in flex flex-col">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-blue-500"></i> 시간 저금 통장
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button @click="clearAllTimeBankHistory" v-if="timeBankHistory.length > 0" 
+                                class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="모든 내역 삭제 및 0초로 초기화">
+                            <i class="fa-solid fa-trash-can text-lg"></i>
+                        </button>
+                        <button @click="showTimeBankHistoryModal = false" class="text-slate-400 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2 min-h-[300px]">
+                    <div v-if="timeBankHistory.length === 0" class="h-64 flex flex-col items-center justify-center text-slate-300">
+                        <i class="fa-solid fa-box-open text-6xl mb-4 opacity-20"></i>
+                        <span class="font-bold">기록된 내역이 없습니다.</span>
+                    </div>
+                    <div v-for="(h, idx) in timeBankHistory" :key="h.id" @click="deleteTimeBankHistory(idx)" 
+                         class="flex justify-between items-center p-4 rounded-2xl bg-slate-50 border-2 border-transparent hover:border-red-200 hover:bg-red-50 cursor-pointer group transition-all shadow-sm">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg font-black" :class="h.type === 'save' ? 'text-green-600' : 'text-red-500'">
+                                    {{ h.type === 'save' ? '＋' : '－' }}{{ h.displayTime }}
+                                </span>
+                                <span class="bg-white px-2 py-0.5 rounded-lg text-xs font-bold text-slate-400 border">{{ h.date || '오늘' }}</span>
+                            </div>
+                            <div class="text-slate-700 font-bold">{{ h.memo }}</div>
+                        </div>
+                        <i class="fa-solid fa-trash-can text-slate-300 group-hover:text-red-500 transition-colors"></i>
+                    </div>
+                </div>
+                
+                <button @click="showTimeBankHistoryModal = false" class="mt-6 w-full py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-slate-700 transition-all">닫기</button>
+            </div>
+        </div>
       <main class="flex-1 flex flex-col items-center justify-center p-8 relative transition-all duration-300" 
               :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
             
@@ -2453,10 +2578,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
 
             <div id="classroom-floor" 
-                 class="classroom-floor shadow-2xl transition-all flex flex-col items-center justify-center" 
+                 class="classroom-floor shadow-2xl flex flex-col items-center justify-center" 
                  :class="[
                     {'rotate-180': isRotated}, 
-                    isInitialLoad ? 'duration-0' : 'duration-500' 
+                    isInitialLoad ? 'no-transition !duration-0' : 'transition-all duration-500' 
                  ]">
                 <div class="flex justify-center mb-12">
                     <div class="content-reverse"><span class="bg-slate-800 text-white px-28 py-4 rounded-full text-2xl font-black inline-block shadow-xl">교 탁</span></div>
@@ -3167,7 +3292,14 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </button>
 
     <div class="flex-1"></div>
-    
+    <button @click="undo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" 
+            title="되돌리기 (Ctrl+Z)" :disabled="historyIndex <= 0">
+        <i class="fa-solid fa-rotate-left text-2xl"></i>
+    </button>
+    <button @click="redo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" 
+            title="다시 실행 (Ctrl+Y)" :disabled="historyIndex >= history.length - 1">
+        <i class="fa-solid fa-rotate-right text-2xl"></i>
+    </button>
     <button @click="createNewBoard" class="toolbar-btn text-slate-600 hover:text-blue-600" title="새로 만들기">
         <i class="fa-solid fa-file-circle-plus text-2xl"></i>
     </button>
@@ -3206,10 +3338,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="w-full h-full absolute inset-0 z-0 p-4" :class="{'disable-text-events': isDrawMode}" @mousedown="closePalettes">
                 
                 <div v-show="!isCornellMode" ref="boardEditor" id="board-editor" contenteditable="true" 
-                     class="w-full h-full outline-none" @input="updateBoardContent" 
-                     @blur="saveSelection" @mouseup="saveSelection" @keyup="saveSelection">
+                     class="w-full h-full outline-none p-10" 
+                     @input="handleBoardInput" 
+                     @compositionstart="isComposing = true"
+                     @compositionend="handleCompositionEnd"
+                     @paste="handlePaste"
+                     @mouseup="saveSelection">
                 </div>
-
                             </div>
         </div>
     </div>
@@ -3225,9 +3360,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div v-if="savedBoards.length === 0" class="text-center text-slate-400 mt-4 text-xs">저장된 내용 없음</div>
             <div v-for="(board, idx) in savedBoards" :key="board.id" @click="loadBoard(board)" class="bg-white p-2 rounded mb-2 border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 group relative">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-slate-700 text-sm truncate max-w-[140px]">{{ board.title }}</span>
-                    <span class="text-[10px] text-slate-400">{{ board.time }}</span>
-                </div>
+                    <span class="font-bold text-slate-700 text-sm truncate w-full">{{ board.title }}</span>
+                    </div>
                 <div class="text-slate-800 text-xs truncate">{{ board.preview }}</div>
                 <button @click.stop="deleteBoard(idx)" class="absolute top-1 right-1 text-slate-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash-can"></i></button>
             </div>
@@ -3549,7 +3683,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         </div>
                         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
                             <div class="grid grid-cols-6 gap-2">
-                                <div v-for="s in allStudents" :key="s.name" @click="toggleLadderStudent(s.name)" 
+                                <div v-for="s in sortedStudentsByName" :key="s.name" @click="toggleLadderStudent(s.name)" 
                                      class="cursor-pointer rounded-lg border-2 flex items-center justify-center transition-all select-none font-bold active:scale-95 shadow-sm" 
                                      :class="ladderSelectionList.includes(s.name) ? 'bg-[#8b4513] border-[#5e3008] text-[#fffbeb] ring-2 ring-[#d4a373]' : 'bg-[#fdf6e3] border-[#d4a373] text-[#8b4513] hover:bg-[#faebd7]'"
                                      style="padding: 10px 0; font-size: 1.1rem;">
@@ -4192,7 +4326,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 </div>
  <script type="module">   
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
     const firebaseConfig = {
@@ -4214,6 +4348,16 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     createApp({
         data() {
             return {
+timeBankSeconds: 0,
+        timeBankHistory: [],
+        showTimeBankModal: false,
+        showTimeBankHistoryModal: false,
+        timeBankInputType: 'save',
+        timeBankInputMin: '',
+        timeBankInputSec: '',
+        timeBankInputMemo: '',
+        timeBankEffect: '',
+        lastAddedTime: '',
 paths: [],          // 모든 그림 획 데이터를 저장
         currentPath: null,   // 현재 그리고 있는 획
         selectedPath: null,
@@ -4326,7 +4470,7 @@ displayedDb: 0,
 lastDbUpdate: 0,
 currentAudio: null,    
 currentAudioSrc: null,
-clockMessage: "...",
+clockMessage: "",
 isEditingMessage: false,
 alarmTime: "", 
 alarmHour: "08",   // 기본 시 (24시간제)
@@ -4341,6 +4485,15 @@ resumeState: {
             isStopwatch: false,  // 스톱워치 모드였는지
             activeGame: null,    // 게임 중이었는지 ('rock', 'animal')
         },
+timeBankSeconds: 0,
+        timeBankHistory: [],
+        showTimeBankModal: false,
+        timeBankInputType: 'save',
+        timeBankInputMin: '',
+        timeBankInputSec: '',
+        timeBankInputMemo: '',
+        timeBankEffect: '',
+        lastAddedTime: '',
 
 // [사운드]
                 sounds: {
@@ -4436,8 +4589,7 @@ notificationMsg: '', // 알림 텍스트
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
 
-                isRotated: false, showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,
-                isRolling: false, 
+isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,                isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
                 
@@ -4461,12 +4613,13 @@ userSelectedMode: null,
                 showAnimalRaceCountdown: false, 
                 countdownText: '', 
                 animalRaceResults: [],          
-                animalRaceFinished: false,      
+                animalRaceFinished: false, animalTimeScale: 1.0,     
                 animalRunners: Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 })), 
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
                 
-                showBlackboard: false, blackboardContent: '', boardX: 100, boardY: 100, boardW: 600, boardH: 400, showBoardList: false, savedBoards: [], showSymbolPalette: false,
+                showBlackboard: false, blackboardContent: '', boardX: 100, boardY: 100, boardW: 600, boardH: 400, showBoardList: false, savedBoards: [], showSymbolPalette: false, history: [], historyIndex: -1,
+                historyTimeout: null, isRestoringHistory: false, isComposing: false, isSyncing: false,
 specialSymbols: ['★', '♥', '□', '■', '●', '▶', '→', '←', '↑', '↓', '①', '②', '③', '④', '⑤'],
 paletteColors: ['#ffffff', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#d946ef', '#000000'],                showForeColorPalette: false, showHiliteColorPalette: false,
 
@@ -4699,7 +4852,37 @@ currentLotteryPool() {
   allStudents() { return [...this.seats.filter(s => s), ...this.waitingRoom]; },
             sortedAllStudents() { return [...this.allStudents].sort((a,b) => b.activityScore - a.activityScore); },
             sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.localeCompare(b.name)); },
-            topStudents() { return this.sortedAllStudents.slice(0, 5); },
+            topStudents() { 
+                const sorted = [...this.allStudents].sort((a, b) => {
+                    if (b.activityScore !== a.activityScore) return b.activityScore - a.activityScore;
+                    const numA = (a.number) ? parseInt(a.number) : 9999;
+                    const numB = (b.number) ? parseInt(b.number) : 9999;
+                    return numA - numB;
+                });
+
+                let ranked = [];
+                let currentRank = 1;
+                let currentScore = -1;
+                let count = 0;
+
+                for (let i = 0; i < sorted.length; i++) {
+                    let s = sorted[i];
+                    if (!s || s.activityScore <= 0) break; // 0점 이하는 탈락!
+
+                    count++;
+                    if (s.activityScore !== currentScore) {
+                        currentRank = count;
+                        currentScore = s.activityScore;
+                    }
+                    
+                    if (currentRank > 3 && ranked.length >= 3) break;
+                    ranked.push({ ...s, displayRank: currentRank });
+                }
+
+                let top3 = ranked.slice(0, 3);
+                while (top3.length < 3) top3.push({ name: '?', activityScore: '?', displayRank: null });
+                return top3;
+            },
             sortedOrderedStudents() { return this.allStudents.filter(s => s.order).sort((a,b) => a.order - b.order); },
             sortedRankStudents() {
                 return [...this.allStudents].sort((a, b) => {
@@ -4747,6 +4930,10 @@ currentLotteryPool() {
         },
 
         watch: {
+            seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+
             'soundSettings.game'(val) {
                 if (!val) {
                     this.stopSound('bgm_race');
@@ -4806,6 +4993,163 @@ currentLotteryPool() {
 
 
            methods: {
+// [★수정] 글자 조합 중(isComposing)일 때는 절대 저장하지 않으며, 1초 뒤에 조용히 저장합니다.
+            handleBoardInput() {
+                if (this.isRestoringHistory || this.isComposing) return;
+                this.scheduleBoardSave();
+            },
+            onCompositionEnd() {
+                this.isComposing = false;
+                if (this.isRestoringHistory) return;
+                this.scheduleBoardSave();
+            },
+            scheduleBoardSave() {
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) {
+                        this.blackboardContent = editor.innerHTML;
+                        this.saveHistory();
+                        this.saveToLocal();
+                    }
+                }, 1000); 
+            },
+formatTimeBank(secs) {
+                const isNegative = secs < 0;
+                const absSecs = Math.abs(secs);
+                const m = Math.floor(absSecs / 60).toString().padStart(2, '0');
+                const s = (absSecs % 60).toString().padStart(2, '0');
+                return `${isNegative ? '-' : ''}${m}:${s}`;
+            },
+            openTimeBankModal(type) {
+                this.timeBankInputType = type;
+                this.timeBankInputMin = ''; this.timeBankInputSec = ''; this.timeBankInputMemo = '';
+                this.showTimeBankModal = true;
+            },
+            submitTimeBank() {
+                const min = parseInt(this.timeBankInputMin) || 0;
+                const sec = parseInt(this.timeBankInputSec) || 0;
+                if (min === 0 && sec === 0) return alert("시간을 입력해주세요.");
+                const totalSecs = (min * 60) + sec;
+                const displayTime = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+                const now = new Date();
+                const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+                if (this.timeBankInputType === 'save') {
+                    this.timeBankSeconds += totalSecs; this.playSound('magic');
+                    this.lastAddedTime = displayTime; this.timeBankEffect = 'float';
+                    setTimeout(() => this.timeBankEffect = '', 1500);
+                } else {
+                    this.timeBankSeconds -= totalSecs; this.playSound('warning');
+                    this.timeBankEffect = 'shake'; setTimeout(() => this.timeBankEffect = '', 500);
+                }
+                this.timeBankHistory.unshift({ id: Date.now(), type: this.timeBankInputType, totalSecs: totalSecs, displayTime: displayTime, memo: this.timeBankInputMemo || '기록', date: dateStr });
+                this.showTimeBankModal = false; this.saveToLocal();
+            },
+            deleteTimeBankHistory(idx) {
+                const item = this.timeBankHistory[idx];
+                if(!confirm(`[${item.memo}] 기록을 삭제하고 시간을 복구할까요?`)) return;
+                if (item.type === 'save') this.timeBankSeconds -= item.totalSecs;
+                else this.timeBankSeconds += item.totalSecs;
+                this.timeBankHistory.splice(idx, 1);
+                this.saveToLocal();
+            },
+            // [신규] 일괄 삭제 함수 추가
+            clearAllTimeBankHistory() {
+                if(!confirm("모든 저금 내역을 삭제하고 누적 시간을 00:00으로 초기화할까요?")) return;
+                
+                this.timeBankSeconds = 0;
+                this.timeBankHistory = [];
+                this.playSound('warning');
+                this.saveToLocal();
+            },
+            updateAndScheduleSave(htmlContent) {
+                this.blackboardContent = htmlContent;
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    this.saveHistory();
+                    this.saveToLocal();
+                }, 1000); 
+            },
+
+// 1. 전체 선택(Ctrl+A) 등 키보드 조작 시에도 선택 영역을 캡처합니다!
+            handleBoardKeyup(e) {
+                this.saveSelection(); 
+            },
+            
+            // 2. 글자 증발 완벽 방지: 한글 조합 중일 땐 절대 저장하지 않음!
+            handleBoardInput(e) {
+                this.blackboardContent = e.target.innerHTML; 
+                if (this.isComposing) return; // 글자 조합 중에는 서버 전송만 멈춤
+                
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    this.saveHistory();
+                    this.saveToLocal();
+                }, 300); 
+            },
+            handleCompositionEnd(e) {
+                this.isComposing = false;
+                this.blackboardContent = e.target.innerHTML;
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    this.saveHistory();
+                    this.saveToLocal();
+                }, 300); 
+            },
+            handleBoardBlur(e) {
+                // [★핵심] 다른 창이나 바탕화면을 누를 때 한글 조합(받침 등)이 칠판에 온전히 찍힐 수 있도록 0.2초 기다린 후 텍스트를 저장합니다.
+                setTimeout(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) {
+                        this.isComposing = false;
+                        this.blackboardContent = editor.innerHTML;
+                        if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                        this.saveHistory();
+                        this.saveToLocal(); 
+                    }
+                }, 200);
+            },
+            
+
+saveBoardToList() {
+                // <br>, <div>, <p> 등을 진짜 엔터(\n)로 치환하여 순수 텍스트를 만듭니다.
+                let tempHtml = this.blackboardContent
+                    .replace(/<div[^>]*>/gi, '\n')
+                    .replace(/<\/div>/gi, '')
+                    .replace(/<p[^>]*>/gi, '\n')
+                    .replace(/<\/p>/gi, '')
+                    .replace(/<br\s*[\/]?>/gi, '\n');
+                
+                // HTML 태그 찌꺼기 제거
+                let textOnly = tempHtml.replace(/<[^>]+>/g, '');
+                
+                // 줄바꿈 기준으로 나누고, 비어있지 않은 첫 번째 줄을 찾음
+                const lines = textOnly.split('\n').map(l => l.trim()).filter(l => l !== "");
+                const title = lines.length > 0 ? lines[0].substring(0, 30) : "제목 없음";
+                
+                get(child(ref(db), DB_KEY + '/savedBoards')).then((snapshot) => {
+                    let latestBoards = [];
+                    if (snapshot.exists()) {
+                        latestBoards = snapshot.val();
+                        if (!Array.isArray(latestBoards)) latestBoards = Object.values(latestBoards);
+                    }
+                    
+                    latestBoards.push({ 
+                        id: Date.now(), 
+                        title: title, 
+                        content: this.blackboardContent, 
+                        preview: textOnly.replace(/\n/g, ' ').substring(0, 40) 
+                    });
+                    
+                    this.savedBoards = latestBoards;
+                    this.saveToLocal(); 
+                    alert("판서가 저장 목록에 등록되었습니다! 💾");
+                }).catch((err) => {
+                    console.error("판서 저장 중 오류:", err);
+                    alert("저장 중 오류가 발생했습니다.");
+                });
+            },
+
 getDistToSegment(px, py, x1, y1, x2, y2) {
     const l2 = (x2 - x1)**2 + (y2 - y1)**2;
     if (l2 === 0) return Math.sqrt((px - x1)**2 + (py - y1)**2);
@@ -4815,6 +5159,54 @@ getDistToSegment(px, py, x1, y1, x2, y2) {
     const projY = y1 + t * (y2 - y1);
     return Math.sqrt((px - projX)**2 + (py - projY)**2);
 },
+
+// [신규] 현재 상태 저장 (기록용)
+            saveHistory() {
+                const currentState = {
+                    paths: JSON.parse(JSON.stringify(this.paths)),
+                    content: this.blackboardContent
+                };
+
+                // 새로운 동작이 발생하면 현재 인덱스 이후의 기록(다시 실행 데이터)은 삭제
+                if (this.historyIndex < this.history.length - 1) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                }
+
+                this.history.push(currentState);
+                if (this.history.length > 50) this.history.shift(); // 기록 50개 제한
+                this.historyIndex = this.history.length - 1;
+            },
+
+            // [신규] 되돌리기 (Undo)
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
+
+            // [신규] 다시 실행 (Redo)
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
+
+            // [신규] 히스토리 상태를 화면에 적용
+            // [수정] 복구 중이라는 깃발(Flag)을 세워 복구 데이터가 다시 저장되는 무한루프를 막습니다.
+            applyHistoryState(state) {
+                this.isRestoringHistory = true; 
+                this.paths = JSON.parse(JSON.stringify(state.paths));
+                this.blackboardContent = state.content;
+                this.$nextTick(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) editor.innerHTML = this.blackboardContent;
+                    this.redrawCanvas();
+                    this.saveToLocal();
+                    setTimeout(() => { this.isRestoringHistory = false; }, 100); // 복구 완료 후 깃발 내림
+                });
+            },
 focusInput(event) {
     event.target.select();
 },
@@ -5589,98 +5981,57 @@ resetNoiseGauge() {
     if (!this.isMeasuring) this.displayedDb = 0;
 },
 updateVolume() {
-    if (!this.isMeasuring || !this.noiseAnalyzer) return;
+                if (!this.isMeasuring || !this.noiseAnalyzer) return;
 
-    this.noiseAnalyzer.getByteFrequencyData(this.dataArray);
-    
-    let sum = 0;
-    // 저주파(웅웅거림) 제외
-    for (let i = 5; i < this.dataArray.length; i++) { sum += this.dataArray[i]; }
-    const average = sum / (this.dataArray.length - 5);
-    
-    let safeInput = Math.max(1, average);
+                this.noiseAnalyzer.getByteFrequencyData(this.dataArray);
+                
+                let sum = 0;
+                for (let i = 5; i < this.dataArray.length; i++) { sum += this.dataArray[i]; }
+                const average = sum / (this.dataArray.length - 5);
+                
+                let safeInput = Math.max(1, average);
 
-    // ============================================================
-    // [★ 선생님 전용 조절 매뉴얼 ★]
-    // 공식: (로그값 * 반응속도) - 기본차감
-    // 현재 설정: (Log * 135) - 145
-    // ============================================================
-    
-    // 1. "소리에 얼마나 민감하게 반응할까?" (반응속도/증가율)
-    // 현재값: 140
-    // - 숫자를 키우면(예: 150): 작은 소리 변화에도 숫자가 팍팍 튑니다.
-    // - 숫자를 줄이면(예: 120): 박수를 쳐도 숫자가 찔끔 오릅니다.
-    const sensitivity = 100; 
+                // [★수정] 조용할 때 10, 시끄러울 때 110이 나오도록 급간(Range)을 대폭 넓힘
+                const sensitivity = 160; 
+                const offset = 190; 
 
-    // 2. "전체적인 점수를 깎아내리기" (기본차감/베이스)
-    // 현재값: 145
-    // - 숫자를 키우면(예: 160): 전체적으로 dB가 낮게 나옵니다. (조용할 때 0 만들기 쉬움)
-    // - 숫자를 줄이면(예: 130): 전체적으로 dB가 높게 나옵니다. (기본 소음이 높게 잡힘)
-    const offset = 85; 
+                let rawDb = Math.floor((Math.log10(safeInput) * sensitivity) - offset); 
 
-    // 최종 계산식
-    let rawDb = Math.floor((Math.log10(safeInput) * sensitivity) - offset); 
-    // ============================================================
+                // [★수정] 최소값을 10으로 낮춤 (자연스러운 백색소음 연출을 위해 8~12 사이로 흔들림)
+                if (rawDb < 10) rawDb = Math.floor(Math.random() * 5) + 8; 
 
-    // 노이즈 게이트 (최소값 방어: 너무 낮게 나오면 25로 고정)
-    if (rawDb < 20) rawDb = 20;
+                if (Math.abs(rawDb - this.currentVolume) > 0.5) {
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
+                }
+                
+                let calcVol = Math.floor(this.currentVolume);
+                calcVol = Math.max(0, Math.min(120, calcVol));
 
-    // 수치 부드럽게 이동
-    if (Math.abs(rawDb - this.currentVolume) > 0.5) {
-        this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
-    }
-    
-    let calcVol = Math.floor(this.currentVolume);
-    calcVol = Math.max(0, Math.min(120, calcVol));
+                const now = Date.now();
+                if (now - (this.lastDbUpdate || 0) > 500) { 
+                    this.displayedDb = calcVol;
+                    this.lastDbUpdate = now;
+                }
 
-    // 화면 표시 (0.5초마다 갱신)
-    const now = Date.now();
-    if (now - (this.lastDbUpdate || 0) > 500) { 
-        this.displayedDb = calcVol;
-        this.lastDbUpdate = now;
-    }
+                if (calcVol > this.noiseThreshold) {
+                    const gap = calcVol - this.noiseThreshold;
+                    let increaseSpeed = 0.01 + (gap * 0.05); 
+                    increaseSpeed = Math.min(increaseSpeed, 0.5); 
+                    this.noiseGauge += increaseSpeed;
+                } else {        
+                    this.noiseGauge -= 0.001; 
+                }
 
-  // ============================================================
-    // [★ 핵심 수정: 급발진 방지 (Speed Limit) ★]
-    // ============================================================
-    
-    if (calcVol > this.noiseThreshold) {
-        // 상황: 기준치 초과 (게이지 상승)
-        const gap = calcVol - this.noiseThreshold;
-        
-        // 1. 기본 속도 계산 (차이가 클수록 빨리 오름)
-        let increaseSpeed = 0.01 + (gap * 0.05); 
+                if (this.noiseGauge < 0) this.noiseGauge = 0;
+                if (this.noiseGauge > 100) this.noiseGauge = 100;
 
-        // 2. ★ 속도 제한 장치 (Safety Ceiling)
-        // 계산된 속도가 아무리 빨라도 '0.5'를 넘지 못하게 막습니다.
-        // - 0.5 설정 시: 박수 1번(0.2초)에 약 6~10% 정도만 오름.
-        // - 게이지가 0 -> 100% 되려면 최소 3.3초 동안 계속 시끄러워야 함.
-        increaseSpeed = Math.min(increaseSpeed, 0.5); 
+                if (this.noiseGauge >= 100) {
+                    this.handleNoiseFail(); 
+                    return; 
+                }
 
-        this.noiseGauge += increaseSpeed;
-        
-  } else {        
-        // ▼ [조절 포인트] 내려가는 속도
-        // 원리: 매 프레임마다 게이지를 조금씩 깎습니다.
-        // - 기존값: 0.001
-        // - 더 느리게(천천히 회복): 숫자를 더 작게 (예: 0.001)
-        // - 더 빠르게(금방 회복): 숫자를 더 크게 (예: 0.01)
-        
-        this.noiseGauge -= 0.001; 
-    }
-    // ============================================================
-
-    if (this.noiseGauge < 0) this.noiseGauge = 0;
-    if (this.noiseGauge > 100) this.noiseGauge = 100;
-
-    if (this.noiseGauge >= 100) {
-        this.handleNoiseFail(); 
-        return; 
-    }
-
-    this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
-},
-
+                this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
+            },
 // 2. [필수] 탈락 처리 함수 (이게 없으면 소리가 안 납니다!)
 handleNoiseFail() {
     // 쿨타임 중이면 실행 안 함 (중복 실행 방지)
@@ -6444,7 +6795,8 @@ generateLadder() {
         return alert("참가자가 2명 이상이어야 합니다.");
     }
 
-    this.ladderStudents = [...participants].sort(() => Math.random() - 0.5);
+    // [수정] 오름차순 정렬
+    this.ladderStudents = [...participants].sort((a, b) => a.localeCompare(b));
 
     // 2. 결과 설정 로직
     let results = [];
@@ -6468,7 +6820,7 @@ generateLadder() {
     }
     this.ladderResults = results;
 
-    // 3. [핵심 수정] 사다리 선 생성 로직 (빈 곳 방지)
+    // 3. 사다리 선 생성 로직
     this.activePolyline = '';
     this.ballPos.visible = false;
     this.revealedResults = [];
@@ -6503,7 +6855,7 @@ generateLadder() {
             }
         }
 
-        // [★추가] 만약 이 열에 선이 하나도 없다면 강제로 2개 추가
+        // 만약 이 열에 선이 하나도 없다면 강제로 2개 추가
         if (lineCountInCol === 0) {
             this.ladderLines.push({ col, y: startY + 200, slant: 0 });
             this.ladderLines.push({ col, y: endY - 200, slant: 0 });
@@ -6514,6 +6866,7 @@ generateLadder() {
     this.ladderLines.sort((a, b) => a.y - b.y);
     this.showLadderGame = true;
 },
+
 resizeLadderCanvas() {
             // SVG 방식이라 별도 리사이즈 로직 불필요하나, 호출 에러 방지용으로 빈 함수 유지
         },
@@ -7536,362 +7889,254 @@ this.playSound('finish', false, 0.5);
 },
 
 
-saveToFirebase() {
-    if (typeof db !== 'undefined' && typeof set !== 'undefined' && typeof ref !== 'undefined') {
-        
-        // 1. 동물 달리기 스냅샷
-        const currentAnimalRunners = this.animalRunners ? this.animalRunners.map(r => ({
-            pos: r.pos || 0, state: r.state || 'run', finished: r.finished || false, 
-            speed: r.speed || 0, timer: r.timer || 0, id: r.id || 0, name: r.name || '', 
-            avatar: r.avatar || '', finishRank: r.finishRank || 0, finishTime: r.finishTime || 0, isGold: r.isGold || false
-        })) : [];
-
-        // 2. 저장할 데이터 객체 구성
-        const dataToSave = {
-            // ★ [핵심] 민감도 수치 명시적 저장
-            noiseThreshold: this.noiseThreshold, 
-
-            currentView: this.view,
-            isRotated: this.isRotated,
-            capsules: this.capsules,
-            seats: this.seats, 
-            waitingRoom: this.waitingRoom, 
-            seatConfig: this.seatConfig, 
-            manualLocks: this.manualLocks,
-            groups: this.groups, 
-            separationPairs: this.separationPairs,
-            shuffleHistory: this.shuffleHistory, 
-            savedBoards: this.savedBoards, 
-            savedRoulettes: this.savedRoulettes, 
-            lotteryPools: this.lotteryPools, 
-            lastWinners: this.lastWinners,
-            lotteryMode: this.lotteryMode,
-            savedGroupings: this.savedGroupings, 
-            rouletteInput: this.rouletteInput,
-            blackboardContent: this.blackboardContent, 
-            groupingList: this.groupingList, 
-            animalRunners: currentAnimalRunners,
-            animalRaceResults: this.animalRaceResults,
-            animalRaceFinished: this.animalRaceFinished,
-            noiseLevels: this.noiseLevels,
-            showGenderHint: this.showGenderHint,
-            showStudentNumber: this.showStudentNumber, // [신규] 번호 표시 상태 저장
-            statsWarningCount: this.statsWarningCount,
-            statsPenaltyCount: this.statsPenaltyCount,
-clockMessage: this.clockMessage,
-alarmList: this.alarmList,
-            uiState: {
-                timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
-                // 👇 여기 보드 부분 교체
-                board: { 
-                    x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, 
-                    isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize
-                                    },
-                noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
-                picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
-                raceSetup: { w: this.setupW, h: this.setupH }
+saveToLocal() {
+                if (this.isSyncing) return; // 다른 창에서 온 데이터를 적용 중일 땐 내 저장을 막음
+                localStorage.setItem('noiseThreshold', this.noiseThreshold);
+                localStorage.setItem('isRotated', this.isRotated);
+                
+                if (this.saveTimeout) clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => { 
+                    this.saveToFirebase(); 
+                    this.saveTimeout = null; 
+                }, 50); // 0.05초 딜레이로 즉시 저장
             },
-            tournamentData: {
-                tree: this.visibleBracketTree,       
-                winner: this.finalWinner,            
-                mode: this.selectedBracketMode,      
-                left: this.leftSideBracket,          
-                right: this.rightSideBracket         
-            }
-        };
 
-        // 3. Firebase에 전송
-        set(ref(db, DB_KEY), dataToSave)
-            .then(() => console.log("🔥 저장 완료 (민감도: " + this.noiseThreshold + ")"))
-            .catch((error) => console.error("저장 실패:", error));
-    }
-},
+            saveToFirebase() {
+                if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
+                    this.isSavingNow = true; // [동시저장 방어막] 내가 저장 중임을 알림
+                    
+                    const currentAnimalRunners = this.animalRunners ? this.animalRunners.map(r => ({
+                        pos: r.pos || 0, state: r.state || 'run', finished: r.finished || false, 
+                        speed: r.speed || 0, timer: r.timer || 0, id: r.id || 0, name: r.name || '', 
+                        avatar: r.avatar || '', finishRank: r.finishRank || 0, finishTime: r.finishTime || 0, isGold: r.isGold || false
+                    })) : [];
+
+                    // [★복구] 선생님의 모든 소중한 데이터를 하나도 빠짐없이 포장합니다.
+                    const dataToSave = {
+                        noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
+                        timeBankHistory: this.timeBankHistory, currentView: this.view, isRotated: this.isRotated,
+                        capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
+                        seatConfig: this.seatConfig, manualLocks: this.manualLocks, groups: this.groups, 
+                        separationPairs: this.separationPairs, shuffleHistory: this.shuffleHistory, 
+                        savedBoards: this.savedBoards, savedRoulettes: this.savedRoulettes, 
+                        lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode,
+                        savedGroupings: this.savedGroupings, rouletteInput: this.rouletteInput,
+                        blackboardContent: this.blackboardContent, paths: this.paths, groupingList: this.groupingList, 
+                        animalRunners: currentAnimalRunners, animalRaceResults: this.animalRaceResults,
+                        animalRaceFinished: this.animalRaceFinished, noiseLevels: this.noiseLevels,
+                        showGenderHint: this.showGenderHint, showStudentNumber: this.showStudentNumber, 
+                        statsWarningCount: this.statsWarningCount, statsPenaltyCount: this.statsPenaltyCount,
+                        clockMessage: this.clockMessage, alarmList: this.alarmList,
+                        uiState: {
+                            timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
+                            board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
+                            noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
+                            picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
+                            raceSetup: { w: this.setupW, h: this.setupH }
+                        },
+                        tournamentData: {
+                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket         
+                        }
+                    };
+
+                    // [★동시저장 핵심] 옛날 데이터와 비교해서 바뀐 놈들만 콕 집어서 서버로 보냅니다. (덮어쓰기 금지)
+                    const oldData = this.lastDbSnapshot ? JSON.parse(this.lastDbSnapshot) : {};
+                    const updates = {};
+                    let hasChanges = false;
+
+                    for (let key in dataToSave) {
+                        if (JSON.stringify(dataToSave[key]) !== JSON.stringify(oldData[key])) {
+                            updates[key] = dataToSave[key];
+                            hasChanges = true;
+                        }
+                    }
+
+                    if (!hasChanges) {
+                        this.isSavingNow = false;
+                        return; 
+                    }
+
+                    update(ref(db, DB_KEY), updates)
+                        .then(() => {
+                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates));
+                            setTimeout(() => { this.isSavingNow = false; }, 300);
+                        }).catch((error) => {
+                            console.error("저장 실패:", error);
+                            this.isSavingNow = false;
+                        });
+                }
+            },
+
             saveToLocal() {
-    localStorage.setItem('noiseThreshold', this.noiseThreshold);
-    if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => { 
-        this.saveToFirebase(); 
-    }, 1000); 
-},
+                if (this.isSyncing) return; // 외부 데이터 수신 중에는 내 저장 금지
+                localStorage.setItem('noiseThreshold', this.noiseThreshold);
+                localStorage.setItem('isRotated', this.isRotated);
+                
+                if (this.saveTimeout) clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => { 
+                    this.saveToFirebase(); 
+                    this.saveTimeout = null; 
+                }, 50); // 반응속도 0.05초로 즉각 저장
+            },
 
             loadFromFirebase() {
-    const dbRef = ref(db);
-    get(child(dbRef, DB_KEY)).then((snapshot) => {
-        if (snapshot.exists()) {
-            const parsed = snapshot.val();
-            
-            // 1. [기본 뷰 & 회전 상태 복구]
-            this.view = 'main';
-            this.isRotated = parsed.isRotated || false;
-            this.showStudentNumber = parsed.showStudentNumber || false; // [신규] 번호 표시 상태 불러오기
-this.noiseThreshold = (parsed.noiseThreshold !== undefined) ? Number(parsed.noiseThreshold) : 60;
-this.clockMessage = parsed.clockMessage !== undefined ? parsed.clockMessage : "-";
+                const dbRef = ref(db, DB_KEY);
+                // [★동시저장 핵심] get 대신 onValue를 써서 카톡처럼 실시간으로 계속 데이터를 받습니다.
+                if (typeof onValue !== 'undefined') {
+                    onValue(dbRef, (snapshot) => {
+                        if (snapshot.exists()) {
+                            if (this.isSavingNow) return; // 내가 전송한 데이터가 메아리쳐 돌아오는 건 무시
+                            
+                            this.isSyncing = true;
+                            const parsed = snapshot.val();
+                            this.lastDbSnapshot = JSON.stringify(parsed); // 최신 스냅샷 저장
+                            
+                            // [배열 복구 도우미 함수] Firebase가 비어있는 배열을 씹어먹는 현상 방지
+                            const toArray = (obj) => {
+                                if (!obj) return [];
+                                return Array.isArray(obj) ? obj : Object.values(obj);
+                            };
 
-setTimeout(() => {
-    const ww = window.innerWidth;
-    const wh = window.innerHeight;
-    const boxW = this.timerSize || 400;
-    const boxH = boxW * 0.633;
+                            // [1. 일반 데이터 및 상태 복구]
+                            if (parsed.currentView) this.view = parsed.currentView;
+                            if (parsed.isRotated !== undefined) this.isRotated = parsed.isRotated;
+                            if (parsed.showStudentNumber !== undefined) this.showStudentNumber = parsed.showStudentNumber;
+                            // 시계 메시지가 옛날 찌꺼기(..., -)면 싹 비웁니다.
+                            this.clockMessage = (parsed.clockMessage && parsed.clockMessage !== "..." && parsed.clockMessage !== "-") ? parsed.clockMessage : "";
+                            if (parsed.noiseThreshold !== undefined) this.noiseThreshold = Number(parsed.noiseThreshold);
+                            if (parsed.timeBankSeconds !== undefined) this.timeBankSeconds = Number(parsed.timeBankSeconds);
+                            if (parsed.showGenderHint !== undefined) this.showGenderHint = parsed.showGenderHint;
+                            this.statsWarningCount = parsed.statsWarningCount || 0;
+                            this.statsPenaltyCount = parsed.statsPenaltyCount || 0;
+                            this.noiseLevels = parsed.noiseLevels || { safe: 50, caution: 70, warning: 90 };
 
-    // 1. 저장된 위치가 아예 없으면 중앙
-    if (this.timerX === null || isNaN(this.timerX) || this.timerY === null || isNaN(this.timerY)) {
-        this.timerX = (ww / 2) - (boxW / 2);
-        this.timerY = (wh / 2) - (boxH / 2);
-    } 
-    // 2. 저장된 위치가 있지만 화면 밖으로 '완전히' 사라진 경우 구조
-    else {
-        let needsRescue = false;
+                            // [2. 각종 리스트/히스토리 완벽 복구]
+                            this.timeBankHistory = toArray(parsed.timeBankHistory);
+                            this.alarmList = toArray(parsed.alarmList);
+                            this.waitingRoom = toArray(parsed.waitingRoom);
+                            this.manualLocks = toArray(parsed.manualLocks);
+                            this.separationPairs = toArray(parsed.separationPairs);
+                            this.savedBoards = toArray(parsed.savedBoards);
+                            this.savedRoulettes = toArray(parsed.savedRoulettes);
+                            this.savedGroupings = toArray(parsed.savedGroupings);
+                            this.groupingList = toArray(parsed.groupingList);
+                            this.animalRaceResults = toArray(parsed.animalRaceResults);
+                            this.capsules = toArray(parsed.capsules);
+                            
+                            // 자리바꾸기 기록 복구 (30개 좌석 배열 유지)
+                            if (parsed.shuffleHistory) {
+                                this.shuffleHistory = toArray(parsed.shuffleHistory).map(rec => {
+                                    if (rec.seats && !Array.isArray(rec.seats)) {
+                                        rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
+                                    }
+                                    return rec;
+                                });
+                            } else {
+                                this.shuffleHistory = [];
+                            }
 
-        if (this.timerX > ww) needsRescue = true;          // 오른쪽 가출
-        if (this.timerX + boxW < 0) needsRescue = true;    // 왼쪽 가출
-        if (this.timerY > wh) needsRescue = true;          // 아래 가출
-        if (this.timerY + boxH < 0) needsRescue = true;    // 위로 가출
+                            // 모둠 및 좌석 복구
+                            const rawSeats = parsed.seats || {};
+                            this.seats = Array.from({length: 30}, (_, i) => {
+                                const s = rawSeats[i] || null; 
+                                if (s && s.name) return { ...s, activityScore: s.activityScore || 0, checked: s.checked || false, memo: s.memo || "", starred: s.starred || false, order: s.order || null };
+                                return null;
+                            });
+                            this.seatConfig = parsed.seatConfig || Array(30).fill(null);
 
-        if (needsRescue) {
-            this.timerX = (ww / 2) - (boxW / 2);
-            this.timerY = (wh / 2) - (boxH / 2);
-        }
-        
-        // [하단 방어] 하단은 절대 넘지 못하게 한번 더 Clamp (드래그 로직과 동일)
-        // 화면 바닥(wh) - 타이머 높이(boxH) 보다 아래에 있으면 끌어올림
-        if (this.timerY + boxH > wh) {
-            this.timerY = wh - boxH;
-        }
-    }
+                            const rawGroups = parsed.groups || [];
+                            this.groups = Array(6).fill().map((_, i) => {
+                                const savedG = rawGroups[i] || {};
+                                return { score: savedG.score || 0, checked: savedG.checked || false, memo: savedG.memo || "", starred: savedG.starred || false, members: savedG.members || [], showMembers: savedG.showMembers || false };
+                            });
 
-    // (소음 측정기도 동일하게 적용 가능)
-    if (this.noiseX === null) this.noiseX = 100;
-    if (this.noiseY === null) this.noiseY = 100;
-    
-}, 1000);
+                            // [3. 도구(모달) 상태 복구]
+                            const rawRunners = parsed.animalRunners || [];
+                            if (rawRunners && (Array.isArray(rawRunners) || Object.keys(rawRunners).length > 0)) {
+                                this.animalRunners = Array.isArray(rawRunners) ? rawRunners : Object.values(rawRunners);
+                            } else {
+                                this.animalRunners = Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 }));
+                            }
+                            this.animalRaceFinished = parsed.animalRaceFinished || false;
 
+                            this.lotteryPools = parsed.lotteryPools || { all: [], M: [], F: [] };
+                            this.lastWinners = parsed.lastWinners || { all: null, M: null, F: null };
+                            this.lotteryMode = parsed.lotteryMode || 'all';
+                            this.rouletteInput = parsed.rouletteInput || "1\n2\n3\n4\n5\n6";
 
-if (parsed.alarmList) {
-                // Firebase는 배열을 객체로 저장할 수 있으므로 변환 처리
-                this.alarmList = Array.isArray(parsed.alarmList) ? parsed.alarmList : Object.values(parsed.alarmList);
-            } else {
-                this.alarmList = [];
-            }
+                            if (parsed.tournamentData) {
+                                this.visibleBracketTree = parsed.tournamentData.tree || [];
+                                this.finalWinner = parsed.tournamentData.winner || null;
+                                this.selectedBracketMode = parsed.tournamentData.mode || 'group8';
+                                this.leftSideBracket = parsed.tournamentData.left || [];
+                                this.rightSideBracket = parsed.tournamentData.right || [];
+                                this.bracketKey++; 
+                            }
 
-            // 2. [좌석] 데이터 복구 (Firebase 빈 배열/객체 변환 완벽 대응)
-            const rawSeats = parsed.seats || {};
-            this.seats = Array.from({length: 30}, (_, i) => {
-                // Object.values를 쓰면 앞자리로 다 당겨지므로, 원래 고유 자리(i) 번호로 직접 꺼냅니다.
-                const s = rawSeats[i] || null; 
-                if (s && s.name) {
-                    return {
-                        ...s,
-                        activityScore: s.activityScore || 0,
-                        checked: s.checked || false,
-                        memo: s.memo || "",
-                        starred: s.starred || false,
-                        order: s.order || null
-                    };
+                            // [4. 판서 실시간 동기화] (내가 지금 타이핑 중이 아닐 때만 덮어씀)
+                            const editor = document.getElementById('board-editor');
+                            if (document.activeElement !== editor && !this.isComposing) {
+                                if (this.blackboardContent !== parsed.blackboardContent) {
+                                    this.blackboardContent = parsed.blackboardContent || '';
+                                    if (editor) editor.innerHTML = this.blackboardContent;
+                                }
+                            }
+                            this.paths = parsed.paths || [];
+                            this.$nextTick(() => this.redrawCanvas());
+
+                            // [5. 창 위치 및 크기 복구]
+                            if (parsed.uiState) {
+                                const getNum = (val, def) => { const num = parseInt(val); return isNaN(num) ? def : num; };
+                                const ww = window.innerWidth || 1920;
+                                const wh = window.innerHeight || 1080;
+
+                                if (parsed.uiState.timer) {
+                                    this.timerSize = getNum(parsed.uiState.timer.size, 400);
+                                    this.timerX = getNum(parsed.uiState.timer.x, (ww / 2) - 200);
+                                    this.timerY = getNum(parsed.uiState.timer.y, (wh / 2) - 150);
+                                    this.isTimerMaximized = !!parsed.uiState.timer.isMaximized;
+                                }
+                                if (parsed.uiState.noise) {
+                                    this.noiseW = getNum(parsed.uiState.noise.w, 400);
+                                    this.noiseH = getNum(parsed.uiState.noise.h, 300);
+                                    this.noiseX = Math.max(0, Math.min(getNum(parsed.uiState.noise.x, 100), ww - 100));
+                                    this.noiseY = Math.max(0, Math.min(getNum(parsed.uiState.noise.y, 100), wh - 100));
+                                    this.isNoiseMaximized = !!parsed.uiState.noise.isMaximized;
+                                }
+                                if (parsed.uiState.board) {
+                                    this.boardX = getNum(parsed.uiState.board.x, 100);
+                                    this.boardY = getNum(parsed.uiState.board.y, 100);
+                                    this.boardW = getNum(parsed.uiState.board.w, 600);
+                                    this.boardH = getNum(parsed.uiState.board.h, 400);
+                                    this.isMaximized = !!parsed.uiState.board.isMaximized;
+                                    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0;
+                                    this.eraserSize = getNum(parsed.uiState.board.eraserSize, 64);
+                                }
+                                if (parsed.uiState.picker) {
+                                    this.pickerX = getNum(parsed.uiState.picker.x, 100);
+                                    this.pickerY = getNum(parsed.uiState.picker.y, 100);
+                                    this.pickerW = getNum(parsed.uiState.picker.w, 900);
+                                    this.pickerH = getNum(parsed.uiState.picker.h, 700);
+                                    this.isPickerMaximized = !!parsed.uiState.picker.isMaximized;
+                                }
+                                if (parsed.uiState.raceSetup) {
+                                    this.setupW = getNum(parsed.uiState.raceSetup.w, 1600);
+                                    this.setupH = getNum(parsed.uiState.raceSetup.h, 950);
+                                }
+                            }
+
+                            this.displayWinner = this.lastWinners[this.lotteryMode] || '?';
+
+                            this.$nextTick(() => { 
+                                this.isSyncing = false; 
+                                this.isInitialLoad = false; 
+                            });
+                        }
+                    });
                 }
-                return null;
-            });
-            // 3. [대기실] 데이터 복구
-            const rawWaiting = parsed.waitingRoom || [];
-            const waitingList = Array.isArray(rawWaiting) ? rawWaiting : Object.values(rawWaiting);
-            this.waitingRoom = waitingList.map(s => ({ 
-                ...s, 
-                activityScore: s.activityScore || 0, 
-                checked: s.checked || false, 
-                memo: s.memo || "", 
-                starred: s.starred || false, 
-                order: s.order || null 
-            }));
-            
-            // 4. [설정값] 복구
-            this.seatConfig = parsed.seatConfig || Array(30).fill(null);
-            this.manualLocks = parsed.manualLocks || [];
-            this.separationPairs = parsed.separationPairs || [];
-            this.blackboardContent = parsed.blackboardContent || '';
+            },
 
-            // 5. [모둠] 데이터 복구
-            const rawGroups = parsed.groups || [];
-            this.groups = Array(6).fill().map((_, i) => {
-                const savedG = rawGroups[i] || {};
-                return { 
-                    score: savedG.score || 0, 
-                    checked: savedG.checked || false, 
-                    memo: savedG.memo || "", 
-                    starred: savedG.starred || false, 
-                    members: savedG.members || [], 
-                    showMembers: savedG.showMembers || false 
-                };
-            });
-            
-            // 모둠 편성 이력 복구
-            this.savedGroupings = parsed.savedGroupings || [];
-            this.groupingList = parsed.groupingList || [];
-            if (this.groupingList.length > 0) {
-                this.tempGroupCount = this.groupingList.length;
-                // 현재 그룹에 멤버 동기화
-                this.groupingList.forEach((members, idx) => { 
-                    if (this.groups[idx]) this.groups[idx].members = members; 
-                });
-            }
-
-// 1. 캡슐 상태 복구
-            if (parsed.capsules) {
-                // Firebase 특성상 배열이 객체로 변할 수 있으므로 배열 변환 처리
-                this.capsules = Array.isArray(parsed.capsules) ? parsed.capsules : Object.values(parsed.capsules);
-            }
-
-// 2. 타이머 및 UI 창 위치/크기 복구
-           if (parsed.uiState && parsed.uiState.timer) {
-    const t = parsed.uiState.timer;
-    
-    // [핵심 수정] undefined나 null이 아닐 때만 숫자로 변환
-    // 값이 0이어도 안전하게 가져옵니다.
-    this.timerX = (t.x !== undefined && t.x !== null) ? Number(t.x) : null;
-    this.timerY = (t.y !== undefined && t.y !== null) ? Number(t.y) : null;
-    
-    this.timerSize = Number(t.size) || 400;
-    this.isTimerMaximized = !!t.isMaximized;
-    
-    console.log("📍 서버 저장 위치 로드:", this.timerX, this.timerY);
-}
-
-            // 6. [동물 달리기] 복구
-            const rawRunners = parsed.animalRunners || [];
-            if (rawRunners && (Array.isArray(rawRunners) || Object.keys(rawRunners).length > 0)) {
-                this.animalRunners = Array.isArray(rawRunners) ? rawRunners : Object.values(rawRunners);
-                this.animalRaceResults = parsed.animalRaceResults || [];
-                this.animalRaceFinished = parsed.animalRaceFinished || false;
-            } else {
-                this.animalRunners = Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 }));
-            }
-
-            // 7. [이력 및 저장 목록] 복구
-            let rawHistory = parsed.shuffleHistory || [];
-            
-            // Firebase가 기록 배열을 객체로 압축한 경우 다시 배열로 폅니다.
-            if (!Array.isArray(rawHistory)) {
-                rawHistory = Object.values(rawHistory);
-            }
-            
-            // 기록 안의 좌석 배치도 앞당겨지지 않게 30칸으로 정확히 복구합니다.
-            this.shuffleHistory = rawHistory.map(rec => {
-                if (rec.seats && !Array.isArray(rec.seats)) {
-                    rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
-                }
-                return rec;
-            });
-
-            this.savedBoards = parsed.savedBoards || [];
-            this.savedRoulettes = parsed.savedRoulettes || [];
-
-            // 8. [주인공 추첨 & 룰렛] 데이터 복구
-            this.lotteryPools = parsed.lotteryPools || { all: [], M: [], F: [] };
-            this.lastWinners = parsed.lastWinners || { all: null, M: null, F: null };
-            this.lotteryMode = parsed.lotteryMode || 'all';
-            this.rouletteInput = parsed.rouletteInput || "1\n2\n3\n4\n5\n6";
-            this.capsules = (parsed.capsules && Array.isArray(parsed.capsules)) ? parsed.capsules : [];
-            
-            // 9. [소음 측정기] 통계 및 설정 복구
-            this.statsWarningCount = parsed.statsWarningCount || 0;
-            this.statsPenaltyCount = parsed.statsPenaltyCount || 0;
-            if (parsed.noiseLevels) {
-                this.noiseLevels = {
-                    safe: parsed.noiseLevels.safe ?? 50,
-                    caution: parsed.noiseLevels.caution ?? 70,
-                    warning: parsed.noiseLevels.warning ?? 90
-                };
-            }
-
-            // 10. [토너먼트] 데이터 복구
-            if (parsed.tournamentData) {
-                this.visibleBracketTree = parsed.tournamentData.tree || [];
-                this.finalWinner = parsed.tournamentData.winner || null;
-                this.selectedBracketMode = parsed.tournamentData.mode || 'group8';
-                this.leftSideBracket = parsed.tournamentData.left || [];
-                this.rightSideBracket = parsed.tournamentData.right || [];
-                this.bracketKey++; // 강제 리렌더링
-            }
-            
-            // 11. [★ 중요] UI 창 위치 및 크기 복구 (안전장치 포함)
-            if (parsed.uiState) {
-                const ww = window.innerWidth || 1920;
-                const wh = window.innerHeight || 1080;
-
-                // 숫자로 강제 변환하는 헬퍼 함수
-                const getNum = (val, def) => {
-                    const num = parseInt(val);
-                    return isNaN(num) ? def : num;
-                };
-
-                // [1] 타이머 위치 복구 (안전장치 포함)
-                if (parsed.uiState.timer) {
-                    this.timerSize = getNum(parsed.uiState.timer.size, 400);
-                    const tx = getNum(parsed.uiState.timer.x, (ww / 2) - 200);
-                    const ty = getNum(parsed.uiState.timer.y, (wh / 2) - 150);
-                    
-                   this.isTimerMaximized = parsed.uiState.timer.isMaximized || false;
-                }
-
-                // [2] 소음측정기 위치 복구
-                if (parsed.uiState.noise) {
-                    this.noiseW = getNum(parsed.uiState.noise.w, 400);
-                    this.noiseH = getNum(parsed.uiState.noise.h, 300);
-                    const nx = getNum(parsed.uiState.noise.x, 100);
-                    const ny = getNum(parsed.uiState.noise.y, 100);
-
-                    this.noiseX = Math.max(0, Math.min(nx, ww - 100));
-                    this.noiseY = Math.max(0, Math.min(ny, wh - 100));
-                    this.isNoiseMaximized = parsed.uiState.noise.isMaximized || false;
-                }
-                
-                // [3] 그 외 창들 (판서, 뽑기 등)
-                if (parsed.uiState.board) {
-                    this.boardX = getNum(parsed.uiState.board.x, 100);
-                    this.boardY = getNum(parsed.uiState.board.y, 100);
-                    this.boardW = getNum(parsed.uiState.board.w, 600);
-                    this.boardH = getNum(parsed.uiState.board.h, 400);
-                    this.isMaximized = parsed.uiState.board.isMaximized || false;
-                    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0;
-this.eraserSize = getNum(parsed.uiState.board.eraserSize, 64);
-                    
-                    // 👇 비율 복구 추가
-                    this.cornellColPct = getNum(parsed.uiState.board.cornellColPct, 30);
-                    this.cornellRow1Pct = getNum(parsed.uiState.board.cornellRow1Pct, 15);
-                    this.cornellRow3Pct = getNum(parsed.uiState.board.cornellRow3Pct, 20);
-                }
-                if (parsed.uiState.picker) {
-                    this.pickerX = getNum(parsed.uiState.picker.x, 100);
-                    this.pickerY = getNum(parsed.uiState.picker.y, 100);
-                    this.pickerW = getNum(parsed.uiState.picker.w, 900);
-                    this.pickerH = getNum(parsed.uiState.picker.h, 700);
-                    this.isPickerMaximized = parsed.uiState.picker.isMaximized || false;
-                }
-            }
-
-            // 12. [후처리] 데이터 로드 후 필요한 갱신 작업
-            this.displayWinner = this.lastWinners[this.lotteryMode] || '?';
-
-this.showGenderHint = parsed.showGenderHint !== undefined ? parsed.showGenderHint : true;
-
-            // 추첨 풀이 비어있으면 전체 학생 기준으로 자동 초기화
-            const currentAllStudents = [...this.seats.filter(s => s), ...this.waitingRoom];
-            if (currentAllStudents.length > 0) {
-                if (!this.lotteryPools.all || this.lotteryPools.all.length === 0) this.initializeLotteryPool('all');
-                if (!this.lotteryPools.M || this.lotteryPools.M.length === 0) this.initializeLotteryPool('M');
-                if (!this.lotteryPools.F || this.lotteryPools.F.length === 0) this.initializeLotteryPool('F');
-            }
-
-
-
-            console.log("🔥 Firebase 데이터 로드 및 위치 보정 완료");
-        } else {
-            console.log("신규 사용자입니다 (데이터 없음)");
-        }
-    }).catch((error) => {
-        alert("데이터 로드 오류: " + error.message);
-        console.error(error);
-    });
-},
-            getScoreBg(score) {
+         getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200';
                 if (score < 0) return 'bg-slate-700 border-slate-800 text-white'; 
                 const colors = { 1: 'bg-red-500 border-red-600 text-white', 2: 'bg-orange-500 border-orange-600 text-white', 3: 'bg-yellow-400 border-yellow-500 text-black', 4: 'bg-green-500 border-green-600 text-white', 5: 'bg-blue-500 border-blue-600 text-white', 6: 'bg-purple-500 border-purple-600 text-white' };
@@ -7908,61 +8153,77 @@ openRankModal() {
             },
 // [수정] 단축키 로직 (지우개 크기 조절 기능 강화)
     handleEscKey(e) {
-    if (this.isDrawMode && this.drawTool === 'eraser') {
-        if (e.key === '+' || e.key === '=') {
-            this.eraserSize = Math.min(2000, this.eraserSize + 20);
-            this.saveToLocal(); // 추가: 크기 변경 시 저장
-            e.preventDefault();
-            return;
-        }
-        if (e.key === '-' || e.key === '_') {
-            this.eraserSize = Math.max(10, this.eraserSize - 20);
-            this.saveToLocal(); // 추가: 크기 변경 시 저장
-            e.preventDefault();
-            return;
-        }
-    }
-        
-        // (이후 ESC 닫기 기능 유지)
-        if (e.key === 'Escape') {
-            if (this.currentAudio && !this.currentAudio.paused) {
-                this.currentAudio.pause();
-                this.currentAudio.currentTime = 0;
-                this.currentAudio = null;
-                this.notificationMsg = '';
-                return;
-            }
-            if (this.notificationMsg) { this.notificationMsg = ''; return; }
-            if (this.showAlarmModal) { this.showAlarmModal = false; return; }
-            if (this.showSettings) { this.showSettings = false; return; }
-            if (this.showBoardList) { this.showBoardList = false; return; }
-            if (this.showHistoryPreview) { this.showHistoryPreview = false; return; }
-            if (this.showShuffleHistory) { this.showShuffleHistory = false; return; }
-            if (this.showShuffleModal) { this.showShuffleModal = false; return; }
-            if (this.showGroupingHistory) { this.showGroupingHistory = false; return; }
-            if (this.showGroupingResultModal) { this.showGroupingResultModal = false; return; }
-            if (this.showGroupMakerModal) { this.showGroupMakerModal = false; return; }
-            if (this.showRaceResult) { this.showRaceResult = false; this.showRaceSetup = true; return; }
-            if (this.showRockRace) { this.closeRace(); return; }
-            if (this.showAnimalRace) { this.showAnimalRace = false; return; }
-            if (this.showRankModal) { this.showRankModal = false; return; }
-            if (this.showPickerMaster) { this.showPickerMaster = false; return; }
-            if (this.showBlackboard) { this.showBlackboard = false; return; }
-            if (this.showTimer) { this.showTimer = false; return; }
-            if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
-            if (this.isClockMaximized) { this.isClockMaximized = false; return; }
-        }
-        if (e.key === 'Enter') {
-            if (this.isAlarmRinging) { this.stopAlarm(); return; }
-            if (this.showGroupingResultModal && !this.showGroupingHistory) { e.preventDefault(); this.saveCurrentGrouping(); return; }
-            if (this.showHistoryPreview) { e.preventDefault(); this.restoreHistory(); return; }
-            if (this.showRoulette && !this.showRouletteList && !this.isSpinningRoulette) {
-                if(document.activeElement.tagName !== 'TEXTAREA') { this.saveCurrentRoulette(); }
-            }
-            if (this.showAlarmModal && this.alarmTime) { this.addAlarm(); }
-        }
-    },
-          // 🐇 [1] 동물 레이스 시작
+                // 1. [신규] 판서 단축키 연동 (되돌리기 / 다시 실행)
+                if (this.showBlackboard) {
+                    // Ctrl + Z : 되돌리기
+                    if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+                        e.preventDefault(); // 브라우저 기본 동작 방지
+                        if (typeof this.undo === 'function') this.undo();
+                        return;
+                    }
+                    // Ctrl + Y 또는 Ctrl + Shift + Z : 다시 실행
+                    if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+                        e.preventDefault();
+                        if (typeof this.redo === 'function') this.redo();
+                        return;
+                    }
+                }
+
+                // 2. 기존 지우개 크기 조절 단축키 (+, -)
+                if (this.isDrawMode && this.drawTool === 'eraser') {
+                    if (e.key === '+' || e.key === '=') {
+                        this.eraserSize = Math.min(2000, this.eraserSize + 20);
+                        this.saveToLocal();
+                        e.preventDefault();
+                        return;
+                    }
+                    if (e.key === '-' || e.key === '_') {
+                        this.eraserSize = Math.max(10, this.eraserSize - 20);
+                        this.saveToLocal();
+                        e.preventDefault();
+                        return;
+                    }
+                }
+                
+                // 3. 기존 ESC 닫기 로직
+                if (e.key === 'Escape') {
+                    if (this.currentAudio && !this.currentAudio.paused) {
+                        this.currentAudio.pause();
+                        this.currentAudio.currentTime = 0;
+                        this.currentAudio = null;
+                        this.notificationMsg = '';
+                        return;
+                    }
+                    if (this.notificationMsg) { this.notificationMsg = ''; return; }
+                    if (this.showAlarmModal) { this.showAlarmModal = false; return; }
+                    if (this.showSettings) { this.showSettings = false; return; }
+                    if (this.showBoardList) { this.showBoardList = false; return; }
+                    if (this.showHistoryPreview) { this.showHistoryPreview = false; return; }
+                    if (this.showShuffleHistory) { this.showShuffleHistory = false; return; }
+                    if (this.showShuffleModal) { this.showShuffleModal = false; return; }
+                    if (this.showGroupingHistory) { this.showGroupingHistory = false; return; }
+                    if (this.showGroupingResultModal) { this.showGroupingResultModal = false; return; }
+                    if (this.showGroupMakerModal) { this.showGroupMakerModal = false; return; }
+                    if (this.showRaceResult) { this.showRaceResult = false; this.showRaceSetup = true; return; }
+                    if (this.showRockRace) { this.closeRace(); return; }
+                    if (this.showAnimalRace) { this.showAnimalRace = false; return; }
+                    if (this.showRankModal) { this.showRankModal = false; return; }
+                    if (this.showPickerMaster) { this.showPickerMaster = false; return; }
+                    if (this.showBlackboard) { this.showBlackboard = false; return; }
+                    if (this.showTimer) { this.showTimer = false; return; }
+                    if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
+                    if (this.isClockMaximized) { this.isClockMaximized = false; return; }
+                }
+
+                // 4. 기존 엔터 처리
+                if (e.key === 'Enter') {
+                    if (this.isAlarmRinging) { this.stopAlarm(); return; }
+                    if (this.showGroupingResultModal && !this.showGroupingHistory) { e.preventDefault(); this.saveCurrentGrouping(); return; }
+                    if (this.showHistoryPreview) { e.preventDefault(); this.restoreHistory(); return; }
+                }
+            },
+
+ // 🐇 [1] 동물 레이스 시작
           async startAnimalRace() { 
     // 1. 충돌 방지 및 초기화
     this.isGameRunning = false; 
@@ -8009,6 +8270,12 @@ openRankModal() {
     this.playSound('bgm_animal', true, 0.3); // 배경음악 시작
     this.runAnimalLoop(); 
 },
+toggleAnimalSpeed() {
+                if (this.animalTimeScale === 1.0) this.animalTimeScale = 1.5;
+                else if (this.animalTimeScale === 1.5) this.animalTimeScale = 2.0;
+                else if (this.animalTimeScale === 2.0) this.animalTimeScale = 3.0;
+                else this.animalTimeScale = 1.0;
+            },
 openAnimalRaceModal() {
                 // 1. 이미 경기가 끝난 기록이 있다면 (재시작 아님)
                 if (this.animalRaceFinished === true) {
@@ -8047,68 +8314,126 @@ openAnimalRaceModal() {
                 this.showAnimalRace = true;
             },
 
-    runAnimalLoop() { 
+   runAnimalLoop() { 
+
                 if (!this.isAnimalRacing) return;
+
                 
+
                 this.animalRunners.forEach((r, idx) => { 
+
                     if (r.pos < 90) { 
+
                         // (1) 상태 및 타이머 관리
+
                         if (r.timer > 0) {
-                            r.timer--;
+                            // [★수정] 1.5배속 고정 (스킬 주기가 1.5배 빨리 돌아옴)
+                            r.timer -= 1.5;
                         } else {
+
                             // (2) 상태 변화 로직
+
                             // A. 질주 후 휴식
+
                             if (r.state === 'sprint') {
+
                                 if (Math.random() < 0.9) { r.state = 'tired'; r.timer = 60 + Math.random() * 60; } 
+
                                 else { r.state = 'run'; r.timer = 20; }
+
                             }
+
                             // B. 휴식 후 달리기
+
                             else if (r.state === 'tired') {
+
                                 r.state = 'run'; r.timer = 20 + Math.random() * 20;
+
                             }
+
                             // C. 달리기 중 결정
+
                             else {
+
                                 let sprintChance = 0.10; 
+
                                 let tiredChance = 0.05;
+
                                 const rand = Math.random();
+
                                 if (rand < sprintChance) { r.state = 'sprint'; r.timer = 30 + Math.random() * 20; } 
+
                                 else if (rand < sprintChance + tiredChance) { r.state = 'tired'; r.timer = 60 + Math.random() * 60; } 
+
                                 else { r.state = 'run'; r.timer = 20 + Math.random() * 20; }
+
                             }
+
                         }
 
+
+
                         // (3) 속도 계산
+
                         let targetSpeed = 0;
+
                         const speedFactor = 1.5; 
+
                         switch (r.state) {
+
                             case 'sprint': targetSpeed = (0.8 + Math.random() * 0.5) * speedFactor; break;
+
                             case 'tired': targetSpeed = 0.02 * speedFactor; break;
+
                             case 'run': default: targetSpeed = (0.15 + Math.random() * 0.2) * speedFactor; break;
+
                         }
+
                         r.speed += (targetSpeed - r.speed) * 0.2;
+
                         
+
                         // (4) 위치 이동
-                        r.pos += r.speed * 0.3; 
+r.pos += r.speed * 0.45; 
                         
-                        if (r.pos >= 90) { 
+                        if (r.pos >= 90) {
+
                             r.pos = 90; r.finished = true; r.state = 'run'; 
+
                             if (!this.animalRaceResults.includes(idx)) this.animalRaceResults.push(idx); 
+
                         } 
+
                     } 
+
                 }); 
+
                 
+
                 if (this.animalRaceResults.length < this.animalRunners.length) { 
+
                     requestAnimationFrame(() => this.runAnimalLoop()); 
+
                 } else { 
+
                     // [경기 종료 상황]
+
                     this.isAnimalRacing = false; 
+
                     this.animalRaceFinished = true; // 1. 끝났다고 표시
+
                     
+
 this.stopSound('bgm_animal'); 
+
 this.playSound('whistle', false, 0.8);
+
                     this.saveToLocal(); 
+
                 } 
+
             },
+
             toggleCheck(student) { student.checked = !student.checked; this.saveToLocal(); },
             isFirstOrder(s) { return this.sortedOrderedStudents[0] === s; },
             onDragStart(e, idx, type) { this.dragInfo = { idx, type }; e.target.classList.add('dragging'); },
@@ -8393,32 +8718,47 @@ getIndex(b, r, p) {
 },
 
 openBlackboard() { 
-    this.showBlackboard = true; 
-    this.focusWindow('board'); 
-    this.closePalettes(); 
-    this.$nextTick(() => { 
-        const editor = this.$refs.boardEditor || document.getElementById('board-editor');
-        if(editor) {
-            editor.innerHTML = this.blackboardContent || ''; 
-        }
-    });
-},
+                this.showBlackboard = true; 
+                this.focusWindow('board'); 
+                this.closePalettes(); 
+                this.$nextTick(() => { 
+                    const editor = this.$refs.boardEditor || document.getElementById('board-editor');
+                    if(editor) {
+                        editor.innerHTML = this.blackboardContent || ''; 
+                        
+                        // 빈 칠판일 경우 포커스를 주고 기본 '크게', '굵게' 세팅
+                        if (!this.blackboardContent) {
+                            editor.focus();
+                            document.execCommand('fontSize', false, '7');
+                            if (!document.queryCommandState('bold')) {
+                                document.execCommand('bold', false, null);
+                            }
+                        }
+                    }
+                });
+            },
+
             applyStyle(cmd, val = null) { 
                 this.restoreSelection();
-
-                if (this.isCornellMode) {
-                    if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
-                        const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
-                        if(box) box.focus();
-                    }
+                
+                // [★핵심] 이전 코드의 찌꺼기(span 변환 로직)를 완전히 삭제했습니다!
+                // 브라우저의 기본 기능을 방해하지 않아야 부분 선택 시 앞뒤 글자가 예쁘게 쪼개집니다.
+                if (cmd === 'fontSize') {
+                    document.execCommand('styleWithCSS', false, false);
+                } else {
+                    document.execCommand('styleWithCSS', false, true);
                 }
-
-                if (cmd === 'fontSize') document.execCommand('styleWithCSS', false, false);
-                else document.execCommand('styleWithCSS', false, true);
-
+                
                 document.execCommand(cmd, false, val);
+                
                 this.closePalettes(); 
-                this.saveToLocal();
+                this.$nextTick(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) {
+                        this.blackboardContent = editor.innerHTML;
+                    }
+                    this.saveToLocal();
+                });
             },
 
 saveSelection() {
@@ -8468,6 +8808,7 @@ saveSelection() {
      // 기존 clearBoard 덮어쓰기 (텍스트와 그림 동시 삭제)
             clearBoard() {
                 if (confirm("칠판(글씨와 그림 모두)을 완전히 지울까요?")) {
+                    this.saveHistory(); // 지우기 바로 직전 상태를 역사에 기록!
                     this.blackboardContent = '';
                     this.cornellData = { title: '', cue: '', note: '', summary: '' };
                     
@@ -8482,6 +8823,12 @@ saveSelection() {
                     if (editor && !this.isCornellMode) {
                         editor.innerHTML = '';
                         editor.focus();
+                        
+                        // [★추가] 지우기 완료 후 자동으로 '크게', '굵게'를 적용해줍니다!
+                        document.execCommand('fontSize', false, '7');
+                        if (!document.queryCommandState('bold')) {
+                            document.execCommand('bold', false, null);
+                        }
                     }
                     this.saveToLocal();
                 }
@@ -8762,20 +9109,21 @@ stopDrawing() {
         this.isDrawing = false;
         this.currentPath = null;
         this.selectedPath = null;
+        this.saveHistory(); // [추가]
         this.saveToLocal();
     }
 },
-
 // [수정] 그림만 지우기 시 배열도 비우기
 clearOnlyDrawings() {
-    if(confirm("그린 그림만 모두 지울까요?")) {
-        this.paths = [];
-        const canvas = this.$refs.drawCanvas;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        this.saveToLocal();
-    }
-},
+                if(confirm("그린 그림만 모두 지울까요?")) {
+                    this.saveHistory(); // [★추가] 지우기 바로 직전 상태를 역사에 기록!
+                    this.paths = [];
+                    const canvas = this.$refs.drawCanvas;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    this.saveToLocal();
+                }
+            },
 toggleForeColorPalette() {
                 this.showForeColorPalette = !this.showForeColorPalette;
                 this.showHiliteColorPalette = false;
@@ -8791,6 +9139,7 @@ toggleForeColorPalette() {
                 this.showForeColorPalette = false;
                 this.showHiliteColorPalette = false;
             },
+            // [수정] 기호를 넣을 때 색상이 지정되어 있으면 그 색상(HTML 태그)을 강제로 입혀서 넣습니다.
             insertSymbol(sym) {
                 this.restoreSelection();
                 if (this.isCornellMode) {
@@ -8799,91 +9148,66 @@ toggleForeColorPalette() {
                         if(box) box.focus();
                     }
                 }
-                document.execCommand('insertText', false, sym);
+                
+                if (this.drawColor && this.drawColor !== '#ffffff') {
+                    // 글자색이 있으면 폰트 태그로 감싸서 삽입
+                    document.execCommand('insertHTML', false, `<font color="${this.drawColor}">${sym}</font>`);
+                } else {
+                    document.execCommand('insertText', false, sym);
+                }
+                
                 this.showSymbolPalette = false;
-                this.saveToLocal();
+                this.$nextTick(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) this.blackboardContent = editor.innerHTML;
+                    this.saveHistory(); // 기호 삽입 후 Ctrl+Z 지점 생성
+                    this.saveToLocal();
+                });
             },
+
             createNewBoard() {
-                // 내용이 있을 때만 경고창 띄움
                 if (this.blackboardContent && this.blackboardContent.trim() !== '') {
                     if (!confirm("작성 중인 내용이 지워집니다. 새로 만드시겠습니까?")) return;
                 }
-                
-                // 칠판 완전 초기화
+                this.saveHistory(); 
                 this.blackboardContent = '';
-                const editor = this.$refs.boardEditor || document.getElementById('board-editor');
+                const editor = document.getElementById('board-editor');
                 if (editor) {
                     editor.innerHTML = '';
-                    editor.focus(); // 바로 글을 쓸 수 있게 커서 활성화
-                }
-                this.saveToLocal();
-            },
-            saveBoardToList() { 
-                let title = "판서 기록";
-                let preview = "(내용 없음)";
-                let htmlContent = '';
-
-                if (this.isCornellMode) {
-                    htmlContent = JSON.stringify(this.cornellData);
-                    title = this.cornellData.title.replace(/<[^>]*>?/gm, '').substring(0, 15) || "코넬 공책";
-                    preview = this.cornellData.note.replace(/<[^>]*>?/gm, ' ').substring(0, 30);
-                } else {
-                    const editor = document.getElementById('board-editor');
-                    htmlContent = editor.innerHTML;
-                    const textContent = editor.innerText.trim();
-                    if (!textContent && !htmlContent.includes('<img') && !this.canvasStateUrl) return alert("내용이 없습니다.");
+                    editor.focus(); 
                     
-                    const lines = textContent.split('\n').filter(line => line.trim() !== '');
-                    title = lines.length > 0 ? lines[0].substring(0, 15) : "일반 칠판";
-                    preview = textContent.replace(/\n/g, ' ').substring(0, 30);
+                    // [★수정] CSS 강제 고정이 아닌, 에디터 기능으로 '크게', '굵게'를 눌러둔 상태로 만듭니다.
+                    document.execCommand('fontSize', false, '7');
+                    if (!document.queryCommandState('bold')) {
+                        document.execCommand('bold', false, null);
+                    }
                 }
-
-                const now = new Date();
-                const timeString = `${now.getHours() < 12 ? '오전' : '오후'} ${now.getHours() > 12 ? now.getHours()-12 : now.getHours()}시 ${now.getMinutes()}분`;
-
-                this.savedBoards.unshift({
-                    id: Date.now(),
-                    content: htmlContent,
-                    cornell: this.isCornellMode,
-                    canvas: this.canvasStateUrl,
-                    title: title,
-                    time: timeString,
-                    preview: preview
-                });
-
+                this.paths = []; 
+                this.redrawCanvas();
                 this.saveToLocal();
-                alert("목록에 저장되었습니다!");
             },
 
            toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
-            loadBoard(board) { 
-                if(confirm("이 판서를 불러오시겠습니까?")) { 
-                    this.isCornellMode = board.cornell || false;
-                    
-                    if (this.isCornellMode) {
-                        try { 
-                            this.cornellData = JSON.parse(board.content); 
-                            this.populateCornell(); // 데이터 불러올 때 글씨 뿌려주기
-                        } catch(e) {}
-                    } else {
-                        this.blackboardContent = board.content; 
-                        this.$nextTick(() => { document.getElementById('board-editor').innerHTML = board.content; });
-                    }
-
-                    this.canvasStateUrl = board.canvas || null;
-                    this.$nextTick(() => {
-                        const canvas = this.$refs.drawCanvas;
-                        const ctx = canvas.getContext('2d');
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        if (this.canvasStateUrl) {
-                            const img = new Image();
-                            img.onload = () => { ctx.drawImage(img, 0, 0); };
-                            img.src = this.canvasStateUrl;
-                        }
-                    });
-
-                    this.showBoardList = false; 
-                } 
+            loadBoard(board) {
+                if (!confirm('이 판서를 불러오시겠습니까? 현재 작성 중인 내용은 지워집니다.')) return;
+                
+                this.blackboardContent = board.content;
+                this.paths = board.paths ? JSON.parse(JSON.stringify(board.paths)) : [];
+                
+                // 화면에 불러온 글씨 억지로 띄우기
+                const editor = document.getElementById('board-editor');
+                if (editor) {
+                    editor.innerHTML = this.blackboardContent;
+                }
+                
+                this.redrawCanvas();
+                this.showBoardList = false;
+                
+                // 불러오자마자 현재 상태를 서버/로컬에 쾅! 저장해버리기
+                this.$nextTick(() => {
+                    this.saveHistory();
+                    this.saveToLocal();
+                });
             },
             deleteBoard(idx) { if(confirm("정말 삭제할까요?")) { this.savedBoards.splice(idx, 1); this.saveToLocal(); } },
             deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this.savedBoards = []; this.saveToLocal(); } },
@@ -9993,9 +10317,7 @@ this.stopSound('bgm_rock');
     this.playSound('bgm_rock', true, 0.3); // [소리 추가] BGM 시작
     this.startGameLoop();
 },
-
-            initGameData(participants) {
-                // 1. 변수 및 배열 초기화
+initGameData(participants) {
                 this.rockRunners = []; 
                 this.obstacles = []; 
                 this.mysteryBoxes = []; 
@@ -10016,213 +10338,124 @@ this.stopSound('bgm_rock');
                 let obsId = 0; 
                 let boxIdCounter = 0;
 
-                // [A] 선수 생성 (이 부분이 없으면 경기가 시작되어도 아무도 없습니다!)
                 participants.forEach(p => {
                     for(let i=0; i<p.count; i++) {
                         const randomAvatar = ROCK_AVATARS[Math.floor(Math.random() * ROCK_AVATARS.length)];
-                        const myLaneY = lanes[Math.floor(Math.random() * laneCount)];
+                        
+                        const startX = (Math.random() * 150) - 100; 
+                        const myLaneY = lanes[Math.floor(Math.random() * laneCount)] + (Math.random() * 40 - 20);
+                        
                         this.rockRunners.push({
-    id: idCounter++,
-    name: p.name,
-    x: 0,
-    y: myLaneY,
-    speed: 0,
-    baseSpeed: (3 + Math.random() * 2) * 0.75,
-    state: 'run',
-    stateTimer: 0,
-    finished: false,
-    finishTime: 0,
-    finishRank: 0,
-    rotation: 0,
-    cooldown: 0,
-    avatar: randomAvatar,
-    isGold: false,
-    hitObstacles: [],
-    hitBoxIds: [],
-    isBurning: false,
-    burnTimer: 0,
-    hasUsedBoost: false,
-    hitCount: 0,
-    itemIcon: null,
-    isInvincible: false,
-    hasShield: false,
-    localTimeScale: 1.0,
-    slowMoTimer: 0,
-    carryingShell: false,
-    currentRank: 1  
-});
+                            id: idCounter++,
+                            name: p.name,
+                            x: startX,  
+                            y: myLaneY, 
+                            speed: 0,
+                            // [★해결 1] 돌레이스 기본 속도를 3배 이상 높여 시원하게 달립니다!
+                            baseSpeed: 7 + Math.random() * 1.5, 
+                            state: 'run',
+                            stateTimer: 0,
+                            finished: false,
+                            finishTime: 0,
+                            finishRank: 0,
+                            rotation: 0,
+                            cooldown: 0,
+                            avatar: randomAvatar,
+                            isGold: false,
+                            hitObstacles: [],
+                            hitBoxIds: [],
+                            isBurning: false,
+                            burnTimer: 0,
+                            hasUsedBoost: false,
+                            hitCount: 0,
+                            itemIcon: null,
+                            isInvincible: false,
+                            hasShield: false,
+                            localTimeScale: 1.0,
+                            slowMoTimer: 0,
+                            carryingShell: false,
+                            currentRank: 1  
+                        });
                     }
                 });
 
-                // [B] 장애물 및 박스 배치
                 lanes.forEach(laneY => {
-                    // 1. 미스터리 박스 (수량 1/2로 감소: 레인당 1개)
-                    // 50% 확률로 초반(30% 지점) 또는 후반(65% 지점) 배치
-                    const isEarly = Math.random() < 0.5;
-                    const posFactor = isEarly ? (0.3 + Math.random() * 0.15) : (0.65 + Math.random() * 0.15);
-                    const boxX = this.finishLineX * posFactor;
+                    // 1번 상자: 30% ~ 40% 구간
+                    const box1X = this.finishLineX * (0.3 + Math.random() * 0.1);
+                    this.mysteryBoxes.push({ id: `box-${boxIdCounter++}`, x: box1X, y: laneY, active: true, jumpTimer: 0, respawnTimer: 0 });
 
-                    this.mysteryBoxes.push({ 
-                        id: `box-${boxIdCounter++}`, 
-                        x: boxX, 
-                        y: laneY, 
-                        active: true,      
-                        jumpTimer: 0,      
-                        respawnTimer: 0    
-                    });
+                    // 2번 상자: 70% ~ 80% 구간
+                    const box2X = this.finishLineX * (0.7 + Math.random() * 0.1);
+                    this.mysteryBoxes.push({ id: `box-${boxIdCounter++}`, x: box2X, y: laneY, active: true, jumpTimer: 0, respawnTimer: 0 });
 
-                    // 2. 일반 장애물 배치
-                    // 2. 일반 장애물 배치
-                    let currentX = 500;
-                    
+                    // 일반 장애물 배치
+                    let currentX = 250;
                     while(currentX < this.finishLineX - 100) {
-                        const nearBox = Math.abs(currentX - boxX) < 150;
+                        // 2개의 상자 주변에는 장애물이 생기지 않도록 공간 확보
+                        const nearBox1 = Math.abs(currentX - box1X) < 150;
+                        const nearBox2 = Math.abs(currentX - box2X) < 150;
                         
-                        if (!nearBox) {
+                        if (!nearBox1 && !nearBox2) {
                             const progress = currentX / this.finishLineX;
-                            let spawnChance = 0.2 + (progress * 0.5); 
-                            
+                            let spawnChance = 0.15 + (progress * 0.3); 
                             if (Math.random() < spawnChance) {
                                 const type = ['hurdle', 'ice', 'banana'][Math.floor(Math.random() * 3)];
-                                
-                                // [수정 1] 장애물이 좌우(X축)로 더 넓게 흩어지도록 범위 증가
-                                // (기존: -50~50 -> 변경: -120~120)
                                 const driftX = (Math.random() * 240) - 120;
                                 const driftY = (Math.random() * 40) - 20;
-                                
                                 this.obstacles.push({ id: obsId++, x: currentX + driftX, y: laneY + driftY, type });
                             }
                         }
-                        
-                        // [수정 2] 장애물 생성 간격 넓힘 (전체 개수 감소 = 렉 감소!)
-                        // 기존: 100 / 200 -> 변경: 180 / 350
-                        // 결승선 근처(80%)도 너무 빽빽하지 않게 조정했습니다.
-                        if (currentX / this.finishLineX > 0.8) {
-                            currentX += 180; // 후반부 간격
-                        } else {
-                            currentX += 350; // 초중반 간격
-                        }
+                        // 장애물 생성 간격
+                        if (currentX / this.finishLineX > 0.7) { currentX += 150; } else { currentX += 200; }
                     }
-
-                }); // lanes.forEach 닫기 (이 괄호 필수!)
-            }, // initGameData 닫기 (이 괄호 필수!)
-            startGameLoop() { this.isGameRunning = true; this.$nextTick(() => { this.canvas = document.getElementById('raceCanvas'); if (this.canvas) { this.ctx = this.canvas.getContext('2d'); this.startTime = Date.now(); this.resizeCanvas(); window.addEventListener('resize', this.resizeCanvas); this.loop(); } }); },
-            resizeCanvas() { if(this.canvas && this.$refs.canvasContainer) { this.canvas.width = this.$refs.canvasContainer.clientWidth; this.canvas.height = this.$refs.canvasContainer.clientHeight; } },
-// [NEW] 아이템 발동 로직 (확률 조절)
-            triggerItem(runner, rank, totalRunners) {
-                const rand = Math.random();
-                const ratio = rank / totalRunners;
-                let itemType = '';
-                let icon = '';
-
-              // 🥇 상위권 (상위 30%): 방어막 위주 + 자석
-                if (ratio <= 0.3) { 
-                    if (rand < 0.8) { itemType = 'shield'; icon = '🛡️'; } // 80% 방어막 (1등 수성)
-                    else { itemType = 'magnet'; icon = '🧲'; }            // 20% 자석
-                } 
-                // 🥈 중위권 (30% ~ 70%): 자석 위주 + 거북이 + 로켓
-                else if (ratio <= 0.7) { 
-                    if (rand < 0.5) { itemType = 'magnet'; icon = '🧲'; } // 50% 자석 (추격)
-                    else if (rand < 0.75) { itemType = 'turtle'; icon = '🐢'; } // 25% 거북이 (견제)
-                    else { itemType = 'rocket'; icon = '🔥'; }            // 25% 로켓 (역전)
-                } 
-                // 🥉 하위권 (하위 30%): 번개 위주 + 거북이 + 로켓
-                else { 
-                    if (rand < 0.5) { itemType = 'lightning'; icon = '⚡'; } // 50% 번개 (판 뒤집기)
-                    else if (rand < 0.75) { itemType = 'turtle'; icon = '🐢'; } // 25% 거북이
-                    else { itemType = 'rocket'; icon = '🔥'; }            // 25% 로켓
-                }
-
-                // [매너 모드] 현재 1등이 공격 아이템을 뽑으면 방어막으로 자동 변경
-                if (rank === 1 && (itemType === 'turtle' || itemType === 'lightning' || itemType === 'magnet')) {
-                    itemType = 'shield'; icon = '🛡️';
-                }
-
-                runner.itemIcon = icon;
-                setTimeout(() => { runner.itemIcon = null; }, 2000);
-
-                // 2. 아이템별 효과 실행
-               if (itemType === 'rocket') {
-                    runner.isBurning = true;     
-                    runner.burnTimer = 150; // 2.5초 (60프레임 * 2.5)
-                    runner.isInvincible = false; 
-                    runner.state = 'run';
-                }
-                else if (itemType === 'shield') {
-                    runner.hasShield = true; 
-                }
-                else if (itemType === 'lightning') {
-                    this.flashTimer = 20;
-                    const topFive = this.rockRunners
-                        .filter(r => !r.finished)
-                        .sort((a, b) => b.x - a.x)
-                        .slice(0, 5);
-                    topFive.forEach(r => {
-                        if (r.id !== runner.id && !r.isInvincible) {
-                            if (r.hasShield) { r.hasShield = false; } 
-                            else { r.state = 'stunned'; r.stateTimer = 150; }
-                        }
-                    });
-                }
-                else if (itemType === 'turtle') {
-                    const target = this.rockRunners
-                        .filter(r => !r.finished && r.x > runner.x && !r.isInvincible)
-                        .sort((a, b) => b.x - a.x)[0];
-                    if (target) {
-                        if (target.hasShield) { target.hasShield = false; } 
-                        else {
-                            target.state = 'isTurtle';
-                            target.stateTimer = 120;
-                            target.speed = target.baseSpeed * 0.1; // 거북이 속도 조절
-                        }
-                    }
-                }
-                else if (itemType === 'magnet') {
-                    const leader = this.rockRunners
-                        .filter(r => !r.finished && r.id !== runner.id)
-                        .sort((a, b) => b.x - a.x)[0];
-                    if (leader) {
-                        leader.speed *= 0.5;
-                        leader.itemIcon = '🧲';
-                        leader.iconType = 'pulled'; // 당겨지는 사람 (←)
-                        
-                        runner.speed *= 2;
-                        runner.itemIcon = '🧲';
-                        runner.iconType = 'pulling'; // 당기는 사람 (→)
-
-                        setTimeout(() => {
-                            leader.itemIcon = null; leader.iconType = null;
-                            runner.itemIcon = null; runner.iconType = null;
-                        }, 3000);
-                    }
-                }
+                });
+            },
+                  startGameLoop() { 
+                this.isGameRunning = true; 
+                this.$nextTick(() => { 
+                    this.canvas = document.getElementById('raceCanvas'); 
+                    if (this.canvas) { 
+                        this.ctx = this.canvas.getContext('2d'); 
+                        this.startTime = Date.now();
+                        // [수정] 델타타임(시간 기반 이동)을 위한 기준 시간 세팅
+                        this.lastFrameTime = performance.now(); 
+                        this.rankingTimer = 0;
+                        this.cleanupTimer = 0;
+                        this.resizeCanvas(); 
+                        window.addEventListener('resize', this.resizeCanvas); 
+                        this.animationId = requestAnimationFrame(this.loop); 
+                    } 
+                }); 
             },
 
-          loop() {
+loop(timestamp) {
                 if(!this.isGameRunning) return;
 
-                if (!this.frameCounter) this.frameCounter = 0;
-                this.frameCounter++;
+                if (!timestamp) timestamp = performance.now();
+                let deltaTime = timestamp - (this.lastFrameTime || timestamp);
+                if (deltaTime > 100) deltaTime = 16.666; 
+                this.lastFrameTime = timestamp;
+                const dt = deltaTime / 16.666;
 
-                // [최적화] 랭킹 갱신 (0.5초마다)
-                if (this.frameCounter % 30 === 0) { 
+                const GLOBAL_SPEED = 1.5 * (this.timeScale || 1.0); 
+                this.slowMoTimer = 0;
+
+                this.rankingTimer = (this.rankingTimer || 0) + dt;
+                if (this.rankingTimer >= 30) { 
                     const activeRunners = this.rockRunners.filter(r => !r.finished);
                     activeRunners.sort((a, b) => b.x - a.x);
                     activeRunners.forEach((r, index) => { r.currentRank = index + 1; });
+                    this.rankingTimer = 0;
                 }
 
-                // [최적화] 지나간 장애물 삭제 (1초마다)
-                if (this.frameCounter % 60 === 0) {
+                this.cleanupTimer = (this.cleanupTimer || 0) + dt;
+                if (this.cleanupTimer >= 60) {
                     this.obstacles = this.obstacles.filter(obs => obs.x > this.cameraX - 600);
                     this.mysteryBoxes = this.mysteryBoxes.filter(box => box.x > this.cameraX - 600);
+                    this.cleanupTimer = 0;
                 }
 
-                // ★ [핵심 수정] 이 변수가 없어서 게임이 멈췄었습니다. 추가 완료!
                 const currentTotalRunners = this.rockRunners.length; 
-
-                // 슬로우 모션 로직 삭제 (정속 주행)
-                this.timeScale = 1.0; 
-                this.slowMoTimer = 0;
 
                 const ctx = this.ctx; 
                 const width = this.canvas.width; 
@@ -10231,55 +10464,58 @@ this.stopSound('bgm_rock');
                 ctx.fillStyle = "#a7f3d0"; 
                 ctx.fillRect(0, 0, width, height); 
                 
-                if (this.flashTimer > 0) this.flashTimer--;
+                if (this.flashTimer > 0) this.flashTimer -= dt;
                 ctx.strokeStyle = "rgba(255,255,255,0.4)"; 
                 ctx.lineWidth = 2;
 
-                // [투사체 그리기]
                 for (let i = this.projectiles.length - 1; i >= 0; i--) {
                     const p = this.projectiles[i];
                     const target = this.rockRunners.find(r => r.id === p.targetId);
                     if (!target || target.finished) { this.projectiles.splice(i, 1); continue; }
-                    p.y += p.speed * this.timeScale * 5; 
+                    
+                    p.y += p.speed * 5 * GLOBAL_SPEED * dt; 
                     const drawX = p.x - this.cameraX;
                     if (drawX > -100 && drawX < width + 100) {
                         ctx.save(); ctx.translate(drawX, p.y); ctx.rotate(Date.now() / 50);
                         ctx.font = "100px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🐢", 0, 0); ctx.restore();
                     }
                     if (p.y >= target.y) {
-                        if (target.hasShield) target.hasShield = false;
-                        else if (!target.isInvincible) { target.state = 'isTurtle'; target.stateTimer = 90; target.speed = target.baseSpeed * 0.1; }
+                        if (target.hasShield) {
+                            target.hasShield = false; target.shieldTimer = 0;
+                            if (target.itemIcon === '🛡️') target.itemIcon = null;
+                        } else if (!target.isInvincible) { 
+                            target.state = 'isTurtle'; target.stateTimer = 90; target.speed = target.baseSpeed * 0.1; 
+                        }
                         this.projectiles.splice(i, 1);
                     }
                 }
 
-                // [라인 그리기]
                 const paddingTop = 160; const lineCount = 12; const lineGap = (height - paddingTop) / lineCount;
                 for(let i=0; i<=lineCount; i++) { const y = paddingTop + i * lineGap; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
                 const relativeFinishX = this.finishLineX - this.cameraX;
                 if(relativeFinishX > -200 && relativeFinishX < width + 200) this.drawFinishLine(ctx, relativeFinishX, height);
 
-                // [박스 그리기]
                 this.mysteryBoxes.forEach(box => {
-                    if (!box.active) { box.respawnTimer--; if (box.respawnTimer <= 0) box.active = true; }
+                    if (!box.id) box.id = 'box_' + Math.random().toString(36).substr(2, 9);
+                    if (!box.active) { box.respawnTimer -= dt; if (box.respawnTimer <= 0) box.active = true; }
                     if (box.active || box.jumpTimer > 0) {
                         const drawX = box.x - this.cameraX;
                         if (drawX > -100 && drawX < width + 100) {
                             ctx.save();
                             let boxYOffset = 0;
-                            if (box.jumpTimer > 0) { boxYOffset = -Math.sin((box.jumpTimer / 20) * Math.PI) * 40; box.jumpTimer--; }
-                            ctx.translate(drawX, box.y + boxYOffset); ctx.globalAlpha = box.active ? 1.0 : box.jumpTimer / 20; 
+                            if (box.jumpTimer > 0) { boxYOffset = -Math.sin((box.jumpTimer / 20) * Math.PI) * 40; box.jumpTimer -= dt; }
+                            ctx.translate(drawX, box.y + boxYOffset); ctx.globalAlpha = box.active ? 1.0 : Math.max(0, box.jumpTimer / 20); 
                             const boxFloatY = Math.sin(Date.now() / 200) * 8; 
                             ctx.font = "70px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("🎁", 0, boxFloatY); ctx.restore();
                         }
                     }
                 });
                 
-                // [장애물 그리기]
                 this.obstacles.forEach(obs => { 
+                    if (!obs.id) obs.id = 'obs_' + Math.random().toString(36).substr(2, 9);
                     const dx = obs.x - this.cameraX; 
                     if(dx > -100 && dx < width + 100) { 
-                        ctx.save(); ctx.translate(dx, obs.y + 25); ctx.scale(1.5, 1.5); 
+                        ctx.save(); ctx.translate(dx, obs.y + 25); ctx.scale(2.0, 2.0); 
                         ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.beginPath(); ctx.ellipse(0, 0, 25, 8, 0, 0, Math.PI*2); ctx.fill(); 
                         ctx.textAlign = "center"; ctx.fillStyle = "#000"; ctx.globalAlpha = 1.0; ctx.font = "50px Arial";
                         let icon = obs.type==='hurdle'?'🚧':(obs.type==='ice'?'🧊':'🍌');
@@ -10287,163 +10523,319 @@ this.stopSound('bgm_rock');
                     }
                 });
 
-                // [선수 이동 및 그리기]
                 let leaderX = 0; 
                 let finishedCount = 0;
                 
                 this.rockRunners.forEach(r => {
-                    // ... (선수 상태 관리 및 이동 로직) ...
                     if (typeof r.localTimeScale === 'undefined') r.localTimeScale = 1.0;
                     if (typeof r.slowMoTimer === 'undefined') r.slowMoTimer = 0;
                     if (typeof r.isBurning === 'undefined') r.isBurning = false;
                     if (typeof r.burnTimer === 'undefined') r.burnTimer = 0;
+                    if (typeof r.maxJumpTimer === 'undefined') r.maxJumpTimer = 40;
 
                     if(!r.finished) {
-                        if (r.slowMoTimer > 0) { r.localTimeScale = 0.2; r.slowMoTimer--; } else { r.localTimeScale = 1.0; }
-                        if (r.isBurning) { r.burnTimer -= (this.timeScale * r.localTimeScale); if (r.burnTimer <= 0) { r.isBurning = false; r.isInvincible = false; r.state = 'run'; } } 
+                        // 1. 쿨타임 및 타이머 관리
+                        if (r.slowMoTimer > 0) { r.localTimeScale = 0.2; r.slowMoTimer -= dt; } else { r.localTimeScale = 1.0; }
+                        if (r.isBurning) { 
+                            r.burnTimer -= r.localTimeScale * dt; 
+                            if (r.burnTimer <= 0) { r.isBurning = false; r.state = 'run'; r.speed = r.baseSpeed; } 
+                        } 
                         
-                        if (['stunned', 'jump', 'spin', 'slip', 'tired', 'isTurtle'].includes(r.state)) {
-                            r.stateTimer -= (this.timeScale * r.localTimeScale);
-                            if (r.stateTimer <= 0) {
-                                if (r.state === 'stunned') r.speed = r.baseSpeed; 
-                                if (r.state === 'isTurtle') { r.speed = r.baseSpeed; }
-                                r.state = 'run'; if (r.speed < 0) r.speed = 0;
+                        if (r.stateTimer > 0) {
+                            r.stateTimer -= r.localTimeScale * dt;
+                            if (r.stateTimer <= 0) { 
+                                r.state = 'run'; 
+                                if (r.speed < 0) r.speed = 0; // 뒤로 미끄러짐 종료 시 속도 복구
                             }
                         }
+                        
+                        // 2. 상태별 물리엔진 및 속도 계산
                         if (r.state === 'stunned' || r.state === 'spin') { 
-                            r.speed = 0; if (r.state === 'spin') r.rotation += 0.4; 
+                            r.speed = 0; 
+                            if (r.state === 'spin') r.rotation += 0.4 * dt; 
+                        } else if (r.state === 'slip') {
+                            r.speed += 0.1 * dt; // 바나나 미끄러짐 복구력
+                            if (r.speed > 0) r.speed = 0;
+                            r.rotation -= 0.2 * dt; // 뒤로 구르기
+                        } else if (r.state === 'jump') {
+                            // 점프 중에는 기존 속도(r.speed)를 그대로 유지하며 전진합니다.
                         } else {
-                            if(r.cooldown > 0) r.cooldown -= (this.timeScale * r.localTimeScale);
-                            if (r.speed < r.baseSpeed) { if (r.state !== 'isTurtle') r.speed += 0.0285; }
-                            let moveSpeed = r.speed * this.timeScale * r.localTimeScale;
-                            if (r.isBurning) moveSpeed *= 3.0; 
+                            if(r.cooldown > 0) r.cooldown -= r.localTimeScale * dt; 
+                            
+                            if (r.state === 'magnetBuff') {
+                                let dist = Infinity; let target = null;
+                                if (r.magnetTargetId != null) {
+                                    target = this.rockRunners.find(x => x.id === r.magnetTargetId);
+                                    if (target) dist = Math.abs(target.x - r.x);
+                                }
+                                if (dist < 50 && target) { r.speed = target.speed; } 
+                                else { if (r.speed < r.baseSpeed * 2.0) r.speed += 0.1 * dt; }
+                            } 
+                            else if (r.state === 'magnetDebuff') {
+                                if (r.speed > r.baseSpeed * 0.2) r.speed -= 0.1 * dt; 
+                            } 
+                            else {
+                                if (r.speed < r.baseSpeed) { 
+                                    if (r.state !== 'isTurtle') r.speed += 0.1 * dt; 
+                                } else if (r.speed > r.baseSpeed && !r.isBurning) {
+                                    r.speed -= 0.05 * dt; 
+                                    if (r.speed < r.baseSpeed) r.speed = r.baseSpeed;
+                                }
+                            }
+                        }
 
-                            // 충돌 1: 박스
-                            let approachesBox = false;
+                        // 3. 충돌 체크 (로켓 상태이거나, 이미 공중에 떠있거나, 자빠져 있을 때는 장애물 통과!)
+                        if (r.state !== 'jump' && r.state !== 'slip' && r.state !== 'spin' && r.state !== 'stunned' && !r.isBurning) {
+
+                            // 미스터리 상자 체크
                             for (let box of this.mysteryBoxes) {
                                 if (!box.active) continue;
                                 if (box.x < r.x - 100 || box.x > r.x + 300) continue;
                                 const distY = Math.abs(r.y - box.y); const distX = box.x - r.x; 
-                                if (distY < 30 && distX > -20 && distX < 180) { approachesBox = true; if (r.speed > 2.0) r.speed *= 0.95; if (r.state === 'run' && distX < 150) { r.state = 'jump'; r.stateTimer = 60; } }
                                 if (distY < 30 && Math.abs(distX) < 60) {
                                     if (!r.hitBoxIds.includes(box.id)) {
                                         r.hitBoxIds.push(box.id); box.active = false; box.respawnTimer = 60; box.jumpTimer = 20; 
-                                        // ★ 수정: 이제 currentTotalRunners가 존재하므로 에러가 나지 않습니다.
+                                        
                                         this.triggerItem(r, r.currentRank || 1, currentTotalRunners); 
+                                        
+                                        // 로켓이 안 나왔을 때만 점프 모션
+                                        if (!r.isBurning) {
+                                            r.state = 'jump';
+                                            r.stateTimer = 40;
+                                            r.maxJumpTimer = 40;
+                                            r.speed = r.baseSpeed * 0.6;
+                                        }
                                     }
                                     break; 
                                 }
                             }
                             
-                            // 충돌 2: 장애물
-                            if (!approachesBox && r.cooldown <= 0 && r.state !== 'jump') {
-                                for (let obs of this.obstacles) {
-                                    if (obs.x < r.x - 50 || obs.x > r.x + 100) continue;
-                                    if (Math.abs(r.y - obs.y) < 20 && Math.abs(r.x - obs.x) < 50) {
-                                        if (r.hitObstacles.includes(obs.id)) continue;
-                                        if (r.isBurning) { r.isBurning = false; r.burnTimer = 0; r.speed = 0; }
-                                        if (r.state === 'isTurtle') { r.state = 'run'; r.stateTimer = 0; r.speed = r.baseSpeed; }
-                                        if (r.hasShield) {
-                                            r.hasShield = false; r.cooldown = 60; r.hitObstacles.push(obs.id);
-                                            r.itemIcon = '🛡️'; setTimeout(() => { if (r.itemIcon === '🛡️') r.itemIcon = null; }, 1000);
-                                            break; 
-                                        }
-                                        r.cooldown = 30; r.hitObstacles.push(obs.id); r.hitCount++;
-                                        if (obs.type === 'hurdle') { r.state = 'jump'; r.stateTimer = 50; } 
-                                        else if (obs.type === 'ice') { r.state = 'spin'; r.stateTimer = 90; } 
-                                        else { r.state = 'slip'; r.stateTimer = 90; r.speed = -4; }
+                            // 장애물 체크
+                            for (let obs of this.obstacles) {
+                                if (obs.x < r.x - 100 || obs.x > r.x + 100) continue; 
+                                if (Math.abs(r.y - obs.y) < 60 && Math.abs(r.x - obs.x) < 80) {
+                                    if (r.hitObstacles.includes(obs.id)) continue;
+                                    
+                                    if (['isTurtle', 'magnetDebuff', 'magnetBuff'].includes(r.state)) { 
+                                        r.state = 'run'; r.stateTimer = 0; r.speed = r.baseSpeed; 
+                                    }
+                                    
+                                    if (r.hasShield) {
+                                        r.hasShield = false; r.hitObstacles.push(obs.id);
+                                        r.itemIcon = '🛡️'; setTimeout(() => { if (r.itemIcon === '🛡️') r.itemIcon = null; }, 1000);
                                         break; 
                                     }
+                                    
+                                    r.hitObstacles.push(obs.id); 
+                                    r.hitCount++;
+                                    
+                                    // [★완벽 복구] 장애물 종류별 효과 적용!
+                                    if (obs.type === 'hurdle') { 
+                                        r.state = 'jump'; // 폴짝 뜀
+                                        r.stateTimer = 40; 
+                                        r.maxJumpTimer = 40; 
+                                        r.speed = r.baseSpeed * 0.8; // 앞으로 전진 유지
+                                    } 
+                                    else if (obs.type === 'ice') { 
+                                        r.state = 'spin'; // 제자리 빙글
+                                        r.stateTimer = 60; 
+                                        r.speed = 0; 
+                                    } 
+                                    else { 
+                                        r.state = 'slip'; // 바나나 뒤로 미끄러짐
+                                        r.stateTimer = 60; 
+                                        r.speed = -3; 
+                                    } 
+                                    break; 
                                 }
                             }
-                            
-                            // 속도 저항
-                            let finalMoveSpeed = (r.state === 'slip' ? r.speed : moveSpeed);
-                            if (r.state === 'jump') finalMoveSpeed *= 0.5;
-                            r.x += finalMoveSpeed;
+                        }
 
-                            if (r.state === 'slip') { r.speed += 0.1; if (r.speed > 0) r.speed = 0; }
-                            if (r.state !== 'sleep') r.rotation += finalMoveSpeed * 0.05;
+                        // 4. 최종 이동 처리
+                        let finalMoveSpeed = r.speed * r.localTimeScale;
+                        if (r.state === 'spin' || r.state === 'stunned') finalMoveSpeed = 0; 
+                        
+                        r.x += finalMoveSpeed * GLOBAL_SPEED * dt;
 
-                            if (r.x >= this.finishLineX && !r.finished) {
-                                r.finished = true; r.finishTime = Date.now() - this.startTime; r.finishRank = this.finalRanking.length + 1; 
-                                this.finalRanking.push(r); r.speed = 0;
-                                if (r.finishRank === 1) { this.firstWinner = r; } 
-                                if (r.finishRank <= 3) r.isGold = true; 
-                                if (this.finalRanking.length === this.rockRunners.length) { r.state = 'sleep'; r.speed = 0; }
-                            }
+                        if (r.state !== 'sleep' && r.state !== 'spin' && r.state !== 'slip') {
+                            r.rotation += finalMoveSpeed * 0.05 * dt;
+                        }
+
+                        if (r.x >= this.finishLineX && !r.finished) {
+                            r.finished = true; r.finishTime = Date.now() - this.startTime; r.finishRank = this.finalRanking.length + 1; 
+                            this.finalRanking.push(r); r.speed = 0;
+                            if (r.finishRank === 1) { this.firstWinner = r; } 
+                            if (r.finishRank <= 3) r.isGold = true; 
+                            if (this.finalRanking.length === this.rockRunners.length) { r.state = 'sleep'; r.speed = 0; }
                         }
                     } else {
-                        if (r.state !== 'sleep') { if (r.x < this.finishLineX + 250) r.x += 2 * this.timeScale; }
+                        if (r.state !== 'sleep') { if (r.x < this.finishLineX + 250) r.x += 2 * GLOBAL_SPEED * dt; }
                         finishedCount++;
                     }
                     if(r.x > leaderX && !r.finished) leaderX = r.x;
                     
-                    // [최적화] 화면 밖 그리기 제외
                     const drawX = r.x - this.cameraX; 
                     if (drawX > -150 && drawX < width + 150) {
-                        let yOffset = 0; if(r.state === 'jump') { yOffset = -Math.sin((r.stateTimer/50) * Math.PI) * 60; } 
+                        let yOffset = 0; 
+                        if(r.state === 'jump') { 
+                            let maxT = r.maxJumpTimer || 40; 
+                            let progress = 1 - (r.stateTimer / maxT);
+                            if (progress < 0) progress = 0; if (progress > 1) progress = 1;
+                            yOffset = -Math.sin(progress * Math.PI) * 80; 
+                        } 
                         this.drawRock(ctx, drawX, r.y + yOffset, r);
                     }
                 });
 
                 let targetCamX = leaderX - width * 0.5;
-                const maxCamX = this.finishLineX - width * 0.6; targetCamX = Math.max(this.cameraX, Math.min(targetCamX, maxCamX)); this.cameraX += (targetCamX - this.cameraX) * 0.0475;
+                const maxCamX = this.finishLineX - width * 0.6; targetCamX = Math.max(this.cameraX, Math.min(targetCamX, maxCamX)); 
                 
-               if (finishedCount === this.rockRunners.length) {
-    if (!this.showRaceResult) {
-        this.isGameRunning = false; 
-        
-        // [★수정] 경기 종료 시 fail 소리 추가
-        this.stopSound('bgm_rock');
-this.playSound('whistle', false, 0.8);
-
-        setTimeout(() => { 
-            this.applyWinnerDeduction(); 
-            this.showRaceResult = true; 
-            this.startConfetti(); 
-        }, 1000);
+                this.cameraX += (targetCamX - this.cameraX) * 0.15 * dt;
+                
+                if (finishedCount === this.rockRunners.length) {
+                    if (!this.showRaceResult) {
+                        this.isGameRunning = false; 
+                        this.stopSound('bgm_rock');
+                        this.playSound('whistle', false, 0.8);
+                        setTimeout(() => { 
+                            this.applyWinnerDeduction(); 
+                            this.showRaceResult = true; 
+                            this.startConfetti(); 
+                        }, 1000);
                     }
                 } else {
-                    this.animationId = requestAnimationFrame(this.loop);
+                    this.animationId = requestAnimationFrame((ts) => this.loop(ts));
                 }
             },
-            drawSpotlight(ctx, w, h) { if (!this.firstWinner) return; const wx = this.firstWinner.x - this.cameraX; const wy = this.firstWinner.y; ctx.save(); const grd = ctx.createRadialGradient(wx, wy, 50, wx, wy, 400); grd.addColorStop(0, "rgba(0,0,0,0)"); grd.addColorStop(1, "rgba(0,0,0,0.6)"); ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h); ctx.restore(); },
+resizeCanvas() { if(this.canvas && this.$refs.canvasContainer) { this.canvas.width = this.$refs.canvasContainer.clientWidth; this.canvas.height = this.$refs.canvasContainer.clientHeight; } },
+            triggerItem(runner, rank, totalRunners) {
+                const rand = Math.random();
+                const ratio = rank / totalRunners;
+                let itemType = '';
+                let icon = '';
+
+                if (ratio <= 0.3) { 
+                    if (rand < 0.7) { itemType = 'shield'; icon = '🛡️'; } 
+                    else { itemType = 'magnet'; icon = '🧲'; }            
+                } 
+                else if (ratio <= 0.7) { 
+                    if (rand < 0.3) { itemType = 'magnet'; icon = '🧲'; } 
+                    else if (rand < 0.6) { itemType = 'turtle'; icon = '🐢'; } 
+                    else { itemType = 'rocket'; icon = '🔥'; }            
+                } 
+                else { 
+                    if (rand < 0.3) { itemType = 'turtle'; icon = '🐢'; } 
+                    else if (rand < 0.5) { itemType = 'rocket'; icon = '🔥'; } 
+                    else { itemType = 'lightning'; icon = '⚡'; }            
+                }
+
+                if (rank === 1 && (itemType === 'turtle' || itemType === 'lightning')) {
+                    itemType = 'shield'; icon = '🛡️';
+                }
+
+                runner.itemIcon = (itemType === 'turtle') ? null : icon;
+                
+                if (itemType !== 'shield' && itemType !== 'turtle' && itemType !== 'magnet') {
+                    setTimeout(() => { if (runner.itemIcon === icon) runner.itemIcon = null; }, 1000); 
+                }
+
+                // 🚀 로켓: 전체 속도가 느려진 만큼 화력을 8배로 뻥튀기!
+                if (itemType === 'rocket') {
+                    runner.isBurning = true;     
+                    runner.burnTimer = 30; 
+                    runner.speed = runner.baseSpeed * 2; 
+                }
+                else if (itemType === 'shield') {
+                    runner.hasShield = true; 
+                    runner.shieldTimer = 60; 
+                }
+                else if (itemType === 'lightning') {
+                    this.flashTimer = 20;
+                    const topFive = this.rockRunners.filter(r => !r.finished).sort((a, b) => b.x - a.x).slice(0, 5);
+                    topFive.forEach(r => {
+                        if (r.id !== runner.id && !r.isInvincible) {
+                            if (r.hasShield) { r.hasShield = false; r.shieldTimer = 0; if (r.itemIcon === '🛡️') r.itemIcon = null; } 
+                            else { r.state = 'stunned'; r.stateTimer = 120; }
+                        }
+                    });
+                }
+                else if (itemType === 'turtle') {
+                    const target = this.rockRunners.filter(r => !r.finished && r.x > runner.x && !r.isInvincible).sort((a, b) => b.x - a.x)[0];
+                    if (target) {
+                        if (target.hasShield) { target.hasShield = false; target.shieldTimer = 0; if (target.itemIcon === '🛡️') target.itemIcon = null; } 
+                        else { target.state = 'isTurtle'; target.stateTimer = 150; target.speed = target.baseSpeed * 0.1; }
+                    }
+                }
+                else if (itemType === 'magnet') {
+                    if (rank <= 5) {
+                        const runnerBehind = this.rockRunners.filter(r => !r.finished && r.x < runner.x).sort((a, b) => b.x - a.x)[0]; 
+                        if (runnerBehind) {
+                            runner.state = 'magnetDebuff'; runner.stateTimer = 120; runner.itemIcon = '🧲'; runner.iconType = 'pulled'; runner.magnetTargetId = runnerBehind.id;
+                            runnerBehind.state = 'magnetBuff'; runnerBehind.stateTimer = 120; runnerBehind.itemIcon = '🧲'; runnerBehind.iconType = 'pulling'; runnerBehind.magnetTargetId = runner.id;
+                            setTimeout(() => { if (runner.itemIcon === '🧲') { runner.itemIcon = null; runner.iconType = null; } if (runnerBehind.itemIcon === '🧲') { runnerBehind.itemIcon = null; runnerBehind.iconType = null; } }, 2000);
+                        } else {
+                            runner.state = 'magnetBuff'; runner.stateTimer = 120; runner.itemIcon = '🧲'; runner.iconType = 'pulling'; runner.magnetTargetId = null;
+                            setTimeout(() => { if (runner.itemIcon === '🧲') runner.itemIcon = null; }, 2000);
+                        }
+                    } else {
+                        const leader = this.rockRunners.filter(r => !r.finished && r.x > runner.x).sort((a, b) => b.x - a.x)[0]; 
+                        if (leader) {
+                            leader.state = 'magnetDebuff'; leader.stateTimer = 120; leader.itemIcon = '🧲'; leader.iconType = 'pulled'; leader.magnetTargetId = runner.id;
+                            runner.state = 'magnetBuff'; runner.stateTimer = 120; runner.itemIcon = '🧲'; runner.iconType = 'pulling'; runner.magnetTargetId = leader.id;
+                            setTimeout(() => { if (leader.itemIcon === '🧲') { leader.itemIcon = null; leader.iconType = null; } if (runner.itemIcon === '🧲') { runner.itemIcon = null; runner.iconType = null; } }, 2000); 
+                        } else {
+                            runner.state = 'magnetBuff'; runner.stateTimer = 120; runner.itemIcon = '🧲'; runner.iconType = 'pulling'; runner.magnetTargetId = null;
+                            setTimeout(() => { if (runner.itemIcon === '🧲') runner.itemIcon = null; }, 2000);
+                        }
+                    }
+                }
+            },
+                       drawSpotlight(ctx, w, h) { if (!this.firstWinner) return; const wx = this.firstWinner.x - this.cameraX; const wy = this.firstWinner.y; ctx.save(); const grd = ctx.createRadialGradient(wx, wy, 50, wx, wy, 400); grd.addColorStop(0, "rgba(0,0,0,0)"); grd.addColorStop(1, "rgba(0,0,0,0.6)"); ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h); ctx.restore(); },
             drawRock(ctx, x, y, r) {
                 ctx.save(); ctx.translate(x, y); ctx.scale(1.5, 1.5); ctx.font = "24px 'Jua'";
                 
-                // [최적화] 아이템 아이콘: 그림자 제거, 그리기 단순화
-               if (r.itemIcon) {
-    ctx.save();
-    let iconX = 0; 
-    let iconY = -70 + Math.sin(Date.now() / 100) * 10;
+                // [최적화] 아이템 아이콘
+                if (r.itemIcon) {
+                    ctx.save();
+                    let iconX = 0; 
+                    let iconY = -70 + Math.sin(Date.now() / 100) * 10;
 
-    // 자석 아이콘 특수 회전 로직
-    if (r.itemIcon === '🧲' && r.iconType) {
-        if (r.iconType === 'pulled') { 
-            iconX = -60; iconY = 0; 
-            ctx.translate(iconX, iconY); 
-            // 기존 -90도에서 -90도 더 회전 = -180도 (Math.PI)
-            ctx.rotate(-Math.PI); 
-        } 
-        else if (r.iconType === 'pulling') { 
-            iconX = 60; iconY = 0; 
-            ctx.translate(iconX, iconY); 
-            // 기존 90도에서 -90도 더 회전 = 0도
-            ctx.rotate(0); 
-        }
-    } else { 
-        // 일반 아이템은 위쪽(iconY)에 표시
-        ctx.translate(iconX, iconY); 
-    }
+                    // [수정] 자석 아이콘 위치 및 방향 완벽 조정 (폰트어썸 강제 적용)
+                    if (r.itemIcon === '🧲') {
+                        ctx.font = '900 60px "Font Awesome 6 Free"'; // 모든 PC 동일
+                        let faMagnet = '\uf076'; // 자석 기호 (기본: 위 ⬆️)
 
-    // 공통 그리기 설정
-    ctx.font = "bold 60px 'Noto Color Emoji', Arial"; // 이모지 폰트 추가 권장
-    ctx.textAlign = "center"; 
-    ctx.textBaseline = "middle";
-    ctx.fillText(r.itemIcon, 0, 0); 
-    ctx.restore();
-}
+                        if (r.iconType === 'pulled') { 
+                            // [1등 돌멩이] 자석을 돌의 완전 뒤쪽(왼쪽)으로 이동
+                            iconX = -90; // 숫자를 키울수록 더 왼쪽으로 멀어집니다.
+                            iconY = -15; // 살짝 위로 띄움
+                            ctx.translate(iconX, iconY); 
+                            ctx.rotate(Math.PI / 2); // 자석 입구가 오른쪽(돌멩이)을 향함 ➡️
+                        } 
+                        else if (r.iconType === 'pulling') { 
+                            // [뒤에 있는 돌] 자석을 돌의 앞쪽(오른쪽)으로 이동
+                            iconX = 90; // 숫자를 키울수록 더 오른쪽으로 멀어집니다.
+                            iconY = -15; 
+                            ctx.translate(iconX, iconY); 
+                            ctx.rotate(-Math.PI / 2); // 자석 입구가 왼쪽(1등)을 향함 ⬅️
+                        } else {
+                            ctx.translate(iconX, iconY);
+                        }
+                        
+                        ctx.textAlign = "center"; 
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#ef4444"; // 빨간색 자석
+                        ctx.fillText(faMagnet, 0, 0); 
+                    } else { 
+                        // 일반 아이템 (거북이, 방패, 번개 등)
+                        ctx.translate(iconX, iconY); 
+                        ctx.font = "bold 60px 'Noto Color Emoji', Arial"; 
+                        ctx.textAlign = "center"; 
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(r.itemIcon, 0, 0); 
+                    }
+                    ctx.restore();
+                }
 
                 // 돌멩이 그리기
                 if (r.state === 'isTurtle') {
@@ -10459,7 +10851,7 @@ this.playSound('whistle', false, 0.8);
                     }
                     ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -30); ctx.quadraticCurveTo(27, -22, 30, 0); ctx.quadraticCurveTo(22, 30, 0, 33); ctx.quadraticCurveTo(-27, 27, -30, 0); ctx.quadraticCurveTo(-22, -30, 0, -30); ctx.fill(); ctx.stroke();
                     
-                    // 표정 (기존 코드와 동일)
+                    // 표정
                     if (r.state === 'flattened') {
                         ctx.strokeStyle = "#000"; ctx.lineWidth = 4;
                         ctx.beginPath(); ctx.moveTo(-12, -5); ctx.lineTo(-4, 0); ctx.lineTo(-12, 5); ctx.stroke();
@@ -10500,15 +10892,14 @@ this.playSound('whistle', false, 0.8);
                 }
                 ctx.restore();
 
-                // [최적화] 이름표 그리기 (measureText 제거 및 단순화)
+                // 이름표 그리기
                 ctx.save(); ctx.translate(x, y); ctx.scale(1.5, 1.5); 
-ctx.font = "24px 'Jua', sans-serif";
-                // const tw = ctx.measureText(r.name).width; <--- [제거됨] 매 프레임 계산하는 무거운 작업
-                const estimatedWidth = r.name.length * 15 + 20; // [대체] 글자수로 대충 계산 (훨씬 빠름)
+                ctx.font = "24px 'Jua', sans-serif";
+                const estimatedWidth = r.name.length * 15 + 20; 
                 
                 ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; ctx.strokeStyle = "#10b981"; ctx.lineWidth = 2;
-ctx.lineJoin = "round";                ctx.beginPath(); 
-ctx.roundRect(-estimatedWidth/2, 32, estimatedWidth, 30, 8); ctx.fill(); ctx.stroke();
+                ctx.lineJoin = "round";                ctx.beginPath(); 
+                ctx.roundRect(-estimatedWidth/2, 32, estimatedWidth, 30, 8); ctx.fill(); ctx.stroke();
                 ctx.fillStyle = "#064e3b"; ctx.textAlign = "center"; ctx.fillText(r.name, 0, 55); ctx.restore();
             },
 
@@ -10603,85 +10994,87 @@ startReverseLadderGame(endColIdx) {
     this.runSVGAnimation(pathPoints, null, currentCol); 
 }
 },
-        mounted() { 
-    // 1. 서버 데이터 로드
-    this.loadFromFirebase(); 
 
-// ★ [추가] 저장된 민감도 수치 불러오기
-    const savedThreshold = localStorage.getItem('noiseThreshold');
-    if (savedThreshold) {
-        this.noiseThreshold = parseInt(savedThreshold);
-    } else {
-        // 저장된 값이 없으면 기본값 50 (독서 모드)
-        this.noiseThreshold = 50;
-    }
+       mounted() { 
+    
+            // 1. 서버 데이터 로드
+            this.loadFromFirebase();
 
-if (typeof db !== 'undefined' && typeof onValue !== 'undefined' && typeof ref !== 'undefined') {
-        const settingsRef = ref(db, 'settings/noiseThreshold');
-        
-        onValue(settingsRef, (snapshot) => {
-            const val = snapshot.val();
-            if (val !== null) {
-                // Firebase에 저장된 값이 있으면 적용
-                this.noiseThreshold = Number(val);
-                console.log("Firebase 설정 로드 완료:", this.noiseThreshold);
+            // 저장된 민감도 수치 불러오기
+            const savedThreshold = localStorage.getItem('noiseThreshold');
+            if (savedThreshold) {
+                this.noiseThreshold = parseInt(savedThreshold);
             } else {
-                // 없으면 로컬스토리지 확인
+                this.noiseThreshold = 50;
+            }
+
+            if (typeof db !== 'undefined' && typeof onValue !== 'undefined' && typeof ref !== 'undefined') {
+                const settingsRef = ref(db, 'settings/noiseThreshold');
+                onValue(settingsRef, (snapshot) => {
+                    const val = snapshot.val();
+                    if (val !== null) {
+                        this.noiseThreshold = Number(val);
+                    } else {
+                        const localVal = localStorage.getItem('noiseThreshold');
+                        if (localVal) this.noiseThreshold = Number(localVal);
+                    }
+                });
+            } else {
                 const localVal = localStorage.getItem('noiseThreshold');
                 if (localVal) this.noiseThreshold = Number(localVal);
             }
-        });
-    } else {
-        // Firebase가 연결 안 된 경우 로컬만 사용
-        const localVal = localStorage.getItem('noiseThreshold');
-        if (localVal) this.noiseThreshold = Number(localVal);
-    }
 
-    // 2. 이벤트 리스너
-    window.addEventListener('keydown', this.handleEscKey);
-    window.addEventListener('resize', () => { 
-        this.resizeLadderCanvas(); 
-        this.winW = window.innerWidth; 
-        this.winH = window.innerHeight; 
-    });
-    this.updateClock(); 
-    this.clockInterval = setInterval(() => this.updateClock(), 1000);
-this.timerAudio = new Audio('./timer.mp3');
-    this.timerAudio.load();
+            // 2. 이벤트 리스너
+            window.addEventListener('keydown', this.handleEscKey);
+            window.addEventListener('resize', () => { 
+                this.resizeLadderCanvas(); 
+                this.winW = window.innerWidth; 
+                this.winH = window.innerHeight; 
+            });
+            this.updateClock(); 
+            this.clockInterval = setInterval(() => this.updateClock(), 1000);
+            this.timerAudio = new Audio('./timer.mp3');
+            this.timerAudio.load();
 
-    // [버튼 효과음 통일] 모든 버튼 클릭 시 '딸깍' 소리 재생
-    document.addEventListener('mouseover', (e) => {
-        if (e.target.closest('button') || e.target.closest('.clickable')) {
-            this.playSound('hover', false, 0.2); 
-        }
-    });
+            // 모든 버튼 클릭 시 효과음
+            document.addEventListener('mouseover', (e) => {
+                if (e.target.closest('button') || e.target.closest('.clickable')) {
+                    this.playSound('hover', false, 0.2); 
+                }
+            });
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('button') || e.target.closest('.clickable');
+                if (btn) {
+                    this.playSound('click', false, 0.3);
+                }
+            });
 
-    document.addEventListener('click', (e) => {
-        // (-) 버튼 여부와 상관없이 모든 버튼은 '클릭음'으로 통일
-        const btn = e.target.closest('button') || e.target.closest('.clickable');
-        if (btn) {
-            this.playSound('click', false, 0.3);
-        }
-    });
+            // 3. 타이머 초기 위치 및 [★판서 초기 상태 저장]
+            setTimeout(() => {
+                const ww = window.innerWidth;
+                const wh = window.innerHeight;
+                const boxW = this.timerSize || 400;
+                const boxH = boxW * 0.633;
 
-    // 3. 타이머 초기 위치 안전장치
-    setTimeout(() => {
-        const ww = window.innerWidth;
-        const wh = window.innerHeight;
-        const boxW = this.timerSize || 400;
-        const boxH = boxW * 0.633;
+                if (this.timerX === null || isNaN(this.timerX) || this.timerY === null || isNaN(this.timerY)) {
+                    this.timerX = (ww / 2) - (boxW / 2);
+                    this.timerY = (wh / 2) - (boxH / 2);
+                } 
+                
+                if (this.noiseX === null) this.noiseX = 100;
+                if (this.noiseY === null) this.noiseY = 100;
 
-        if (this.timerX === null || isNaN(this.timerX) || this.timerY === null || isNaN(this.timerY)) {
-            this.timerX = (ww / 2) - (boxW / 2);
-            this.timerY = (wh / 2) - (boxH / 2);
-        } 
-        
-        if (this.noiseX === null) this.noiseX = 100;
-        if (this.noiseY === null) this.noiseY = 100;
-        
-    }, 1000);
-}
-    }).mount('#app')
+                // [★Step 4] 서버 데이터를 모두 불러온 후, 첫 번째 되돌리기 지점 저장
+                if (typeof this.saveHistory === 'function') {
+                    this.saveHistory();
+                }
+                
+                // [신규] 화면 로딩이 끝나면 애니메이션 기능을 다시 켭니다 (회전 렉 완벽 방지)
+                this.isInitialLoad = false;
+                
+            }, 1500);
+        }// mounted 끝
+    }).mount('#app') // Vue 인스턴스 끝
 </script>
 </body>
 </html>

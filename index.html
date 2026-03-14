@@ -1139,8 +1139,8 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
 
                 .result-overlay-race { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fade-in 0.5s; }
         
-        /* [돌멩이 선발 미니창] */
-       .race-setup-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+     /* [돌멩이 선발 미니창] */
+.race-setup-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 .race-setup-window { background: white; border-radius: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; border: 8px solid #34d399; overflow: hidden; position: relative; animation: pop-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 500px; min-height: 400px; }
 .card-grid-10 { 
     display: grid; 
@@ -1151,17 +1151,27 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     align-content: start; 
     background-color: #f0fdf4; 
 }
-.student-rock-wrapper { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 195px; cursor: pointer; transition: transform 0.2s; background: transparent !important; border: none !important; user-select: none; }
-        .student-rock-wrapper:hover { transform: scale(1.1); }
-        .student-rock-wrapper.inactive { opacity: 0.3; filter: grayscale(100%); transform: scale(0.9); }
-        .rock-avatar-text { font-size: 8.0rem; line-height: 1; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3)); position: relative; z-index: 1; }
-        .rock-overlay-info {
+
+/* 1. 학생 래퍼 영역 (높이 0.85배 축소) */
+.student-rock-wrapper { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 165px; cursor: pointer; transition: transform 0.2s; background: transparent !important; border: none !important; user-select: none; }
+.student-rock-wrapper:hover { transform: scale(1.1); }
+.student-rock-wrapper.inactive { opacity: 0.3; filter: grayscale(100%); transform: scale(0.9); }
+
+/* 2. 실제 돌멩이 이미지 크기 (0.85배 축소: 170px -> 145px) */
+.rock-avatar-img {
+    width: 145px !important;  
+    height: 145px !important;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2));
+    transition: transform 0.2s;
+}
+
+/* 3. 오버레이(이름+화살표+숫자) 배치 비율 유지 */
+.rock-overlay-info {
     position: absolute;
-    /* 돌멩이 이미지의 정중앙에 오도록 설정 */
-    top: 50%;
+    top: 58%; 
     left: 50%;
     transform: translate(-50%, -50%); 
-    
     z-index: 10;
     text-align: center;
     width: 100%;
@@ -1169,71 +1179,78 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    
-    /* 마우스 클릭 시 이미지가 선택되도록 클릭 이벤트 무시 (필요시) */
     pointer-events: none; 
 }
-        .rock-name {
+
+/* 4. 학생 이름 (0.85배 축소: 2.8rem -> 2.4rem) */
+.rock-name {
     font-family: 'Dongle', sans-serif !important;
-    font-size: 1.8rem;
-    color: white;
-    /* 중앙에서 글자가 잘 보이도록 테두리 효과(Shadow) 추가 */
+    font-weight: 700 !important;
+    font-size: 2.4rem !important; 
+    color: white !important;
     text-shadow: 
-        2px 2px 0 #000, 
-        -2px -2px 0 #000, 
-        2px -2px 0 #000, 
-        -2px 2px 0 #000,
-        0 0 8px rgba(0,0,0,0.5);
-    line-height: 1.2;
+        2px 2px 0 #334155, 
+        -2px -2px 0 #334155, 
+        2px -2px 0 #334155, 
+        -2px 2px 0 #334155,
+        0 4px 6px rgba(0,0,0,0.5) !important;
+    line-height: 0.8 !important;
     white-space: nowrap;
-    margin-bottom: 2px;
+    margin-bottom: -2px !important; 
 }
 
-        .rock-count-num {
-    font-family: 'Jua', sans-serif !important; /* 귀여운 폰트 적용 */
-    font-size: 2rem; /* 숫자가 잘 보이도록 크기 조정 */
+/* 5. 숫자(×1) 스타일 (0.85배 축소: 2.2rem -> 1.9rem) */
+.rock-count-num {
+    font-family: 'Jua', sans-serif !important; 
+    font-size: 1.9rem !important; 
     font-weight: normal;
-color: #374151 !important; 
+    color: #374151 !important; 
     text-shadow: 
         -2px -2px 0 #fff,  
          2px -2px 0 #fff,
         -2px  2px 0 #fff,
          2px  2px 0 #fff,
-         0px  3px 5px rgba(0,0,0,0.2); /* 은은한 그림자로 입체감 추가 */
-    margin: 0 5px;
-    min-width: 35px;
+         0px  3px 5px rgba(0,0,0,0.2); 
+    margin: 0 2px;
+    min-width: 30px; /* 공간 약간 축소 */
     text-align: center;
     display: inline-block;
 }
+
+/* 6. 화살표와 숫자가 들어가는 행 (간격 축소: 12px -> 10px) */
 .rock-count-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background: transparent !important; /* 배경을 없애서 돌멩이 위에 바로 떠있는 느낌 유도 */
-    margin-top: 5px;
+    gap: 10px; 
+    background: transparent !important; 
+    margin-top: 0px;
     pointer-events: auto; 
-}     
-   .arrow-btn {
-    width: 28px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.7) !important; /* 반투명 흰색 */
-    border-radius: 8px;
-    border: 1px solid #d1d5db !important;
+}      
+
+/* 7. 화살표 조절 버튼 (0.85배 축소: 32px -> 27px) */
+.arrow-btn {
+    width: 27px !important;
+    height: 27px !important;
+    background: rgba(255, 255, 255, 0.85) !important; 
+    border-radius: 50% !important; 
+    border: 2px solid #cbd5e1 !important;
     color: #4b5563 !important;
-    font-size: 12px;
+    font-size: 12px; /* 아이콘(글자) 크기도 축소 */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important; 
 }
 
 .arrow-btn:hover {
     background: #fff !important;
-    transform: scale(1.1);
+    transform: scale(1.15); 
+    border-color: #94a3b8 !important;
 }
-  
+
         /* [모둠 달리기 - 역전 & 필살기 효과 강화] */
         .race-track-container { background: #1e293b; border: 8px solid #334155; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
         .track-lane { border-bottom: 1px dashed rgba(255,255,255,0.1); height: 75px; position: relative; }
@@ -1308,18 +1325,26 @@ color: #374151 !important;
 /* 판서 창 전체 컨테이너 */
 body .blackboard-window { 
     position: fixed; z-index: 7000; box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-    display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: white;
+    display: flex; flex-direction: column; overflow: hidden; 
+    border-radius: 3rem; /* ★ 12px에서 3rem으로 더 둥글게 변경 */
+    background: white;
 }
 
+/* 전체 화면(최대화) 모드 스타일 */
+.blackboard-window.maximized {
+    top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;
+    border-radius: 0 !important; 
+    /* ★ z-index: 9999 !important; <- 창 우선순위 꼬임의 원인이므로 삭제합니다! */
+}
 /* 헤더 드래그 영역 */
 .blackboard-header { 
-    height: 64px; /* 툴바와 동일하게 설정 */
+    height: 64px; 
     background-color: #f1f5f9; 
     border-bottom: 1px solid #e2e8f0; 
     display: flex; 
     align-items: center; 
     padding: 0 20px; 
-    cursor: move; 
+    cursor: default !important; /* ★ move에서 default로 변경하여 드래그 안 됨을 표시 */
     user-select: none; 
     flex-shrink: 0; 
 }
@@ -1335,11 +1360,6 @@ body .blackboard-window {
     font-weight: 800;
 }
 
-/* 전체 화면(최대화) 모드 스타일 */
-.blackboard-window.maximized {
-    top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;
-    border-radius: 0 !important; z-index: 9999 !important;
-}
 
 /* 버튼 아이콘 스타일 조정 */
 .toolbar-btn { 
@@ -2241,7 +2261,65 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     border-color: #ef4444 !important;
     background-color: #fef2f2 !important;
 }
+.student-list-input {
+  height: 250px; /* 기존 값이 400px 등이었다면 200~250px 정도로 줄여주세요 */
+  min-height: 200px;
+  /* 기존의 border-radius, background-color 등은 그대로 유지 */
+}
+/* 취소, 저장 및 반영 버튼을 감싸는 영역 */
+.button-group {
+  margin-bottom: 24px; /* 버튼 아래에 충분한 여백 추가 */
+}
 
+/* 데이터 안전 관리(백업) 영역 */
+.backup-section {
+  margin-top: 20px; /* 백업 칸 위쪽 여백 추가로 밀어내기 */
+  clear: both; /* 위쪽 요소들의 영향을 받지 않도록 처리 (필요시) */
+  /* 혹시 position: absolute; 가 적용되어 있다면 제거하거나 position: relative; 로 변경하세요. */
+}
+@keyframes gold-shine {
+    0% { filter: drop-shadow(0 0 5px rgba(251,191,36,0.3)); }
+    50% { filter: drop-shadow(0 0 15px rgba(251,191,36,0.9)); }
+    100% { filter: drop-shadow(0 0 5px rgba(251,191,36,0.3)); }
+}
+.timer-golden-widget {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 2px solid #fbbf24;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 0 10px rgba(251, 191, 36, 0.15);
+}
+.timer-golden-icon {
+    color: #fbbf24;
+    animation: gold-shine 2s infinite ease-in-out;
+}
+
+/* 최대화 모드(전체화면)일 때 크기 자동 보정 */
+.bomb-window.fixed.inset-0 .alarm-1min-btn {
+    border-width: 0.2vw;
+    padding: 0.5vw 1vw;
+    border-radius: 1vw;
+    gap: 0.5vw;
+}
+.bomb-window.fixed.inset-0 .alarm-1min-btn.on { box-shadow: 0 0 2vw rgba(239, 68, 68, 0.5), inset 0 0 1vw rgba(239, 68, 68, 0.3); }
+.bomb-window.fixed.inset-0 .alarm-1min-icon { font-size: 2.2vw; filter: drop-shadow(0 0 0.5vw #ef4444); }
+.bomb-window.fixed.inset-0 .alarm-1min-text { font-size: 1.8vw; text-shadow: 0 0 0.5vw rgba(252, 165, 165, 0.8); }
+
+/* 1분 알림 토글용 콜론 스타일 */
+.timer-colon:active {
+    transform: scale(0.8); /* 클릭할 때 살짝 눌리는 효과 */
+}
+
+/* 알림 ON: 기존 타이머 색상 유지 + 강한 빛 */
+.colon-on {
+    opacity: 1;
+    filter: brightness(1.2);
+}
+
+/* 알림 OFF: 불이 꺼진 느낌의 회색 */
+.colon-off {
+    color: #4b5563 !important; /* 진한 회색 */
+    text-shadow: none !important; /* 빛나는 효과 끄기 */
+    opacity: 0.6;
+}
 </style>  
 </head>
 <body>
@@ -2703,48 +2781,68 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
             <div v-if="showRaceSetup" class="race-setup-overlay">
                 <div class="race-setup-window" :style="{width: setupW + 'px', height: setupH + 'px'}">
-                    <div class="bg-emerald-50 p-6 border-b-2 border-emerald-100 flex justify-between items-center shrink-0">
-                        <div class="flex items-center gap-4">
-                            <h2 class="text-3xl font-game text-emerald-600 flex items-center gap-2">
-                                <span class="text-4xl">🏁</span> 선수 선발
-                            </h2>
-                            <label class="flex items-center gap-2 cursor-pointer select-none bg-white px-3 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-colors">
-                                <input type="checkbox" v-model="isSelectAll" @change="toggleSelectAll" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
-                                <span class="font-bold text-emerald-700">전체 선택</span>
-                            </label>
-                            <div v-if="selectedCount > 0" class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                <span class="font-bold text-sm text-slate-600">{{ selectedCount }}명</span>
-                                <div class="h-3 w-px bg-slate-300 mx-1"></div>
-                                <button @click="bulkAdjust(-1)" class="w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 font-bold text-sm">-</button>
-                                <button @click="bulkAdjust(1)" class="w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 font-bold text-sm">+</button>
-                                <button @click="resetParticipants" class="w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 text-red-500 font-bold text-xs flex items-center justify-center ml-1" title="전체 0개로 초기화"><i class="fa-solid fa-rotate-left"></i></button>
-  
-                          </div>
-                        </div>
-                        <button @click="closeRace" class="text-slate-400 hover:text-red-500 text-2xl"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div class="flex-1 card-grid-10">
-                        <div v-for="(item, idx) in participantList" :key="idx" 
-                             class="student-rock-wrapper"
-                             :class="{'selected': item.selected, 'inactive': item.count === 0}" 
-                             @click="toggleSelection(item)">
-                             <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" 
-     class="rock-avatar-img" 
-     alt="Rock">
-                             <div class="rock-overlay-info">
-                                 <div class="rock-name">{{ item.name }}</div>
-                                 <div class="rock-count-row">
-    <div class="arrow-btn" @click.stop="item.count = Math.max(0, item.count-1)">▼</div>
-    <span class="rock-count-num">×{{ item.count }}</span>
-    <div class="arrow-btn" @click.stop="item.count++">▲</div>
+                   <div class="bg-emerald-50 p-6 border-b-2 border-emerald-100 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-5">
+        <h2 class="text-3xl font-game text-emerald-600 flex items-center gap-2">
+            <span class="text-4xl">🏁</span> 선수 선발
+        </h2>
+        
+        <div class="flex items-center gap-3">
+            <button @click="rememberParticipants = !rememberParticipants; saveToLocal();" 
+                    class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95"
+                    :class="rememberParticipants ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100'"
+                    title="체크 시 이전 경기의 남은 출전 횟수와 선택 상태를 그대로 기억합니다.">
+                <span class="text-xl">🪨</span>
+                <span class="text-xl font-game tracking-tight pt-0.5">선수 기억</span> 
+            </button>
+
+            <button @click="deductWinnerCount = !deductWinnerCount; saveToLocal();" 
+                    class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95"
+                    :class="deductWinnerCount ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100'"
+                    title="다음 경기부터 우승자의 남은 참가 횟수가 자동으로 1 감소합니다.">
+                <span class="text-xl">🏆</span>
+                <span class="text-xl font-game tracking-tight pt-0.5">우승자 -1</span> 
+            </button>
+
+            <div class="w-px h-8 bg-emerald-200 mx-1"></div>
+
+            <div class="flex items-center gap-2">
+                <button @click="bulkAdjust(-1)" 
+                        class="w-10 h-10 rounded-full bg-emerald-400 text-white shadow-sm hover:bg-emerald-500 hover:scale-110 active:scale-95 transition-all flex items-center justify-center text-xl" title="1명씩 빼기">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button @click="bulkAdjust(1)" 
+                        class="w-10 h-10 rounded-full bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 hover:scale-110 active:scale-95 transition-all flex items-center justify-center text-xl" title="1명씩 더하기">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button @click="resetParticipants" 
+                        class="w-10 h-10 rounded-full bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center text-base" title="전체 0개로 초기화">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <button @click="closeRace" class="text-emerald-300 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
 </div>
-                             </div>
-                        </div>
-                        <div @click="addParticipant" class="student-rock-wrapper border-2 border-dashed border-slate-300 rounded-2xl justify-center opacity-50 hover:opacity-100 hover:border-slate-500" style="background:white!important;">
-                            <i class="fa-solid fa-plus text-3xl text-slate-400 mb-2"></i>
-                            <span class="font-bold text-slate-400">추가</span>
-                        </div>
-                    </div>
+                    <div class="flex-1 card-grid-10">
+    <div v-for="(item, idx) in participantList" :key="idx" 
+         class="student-rock-wrapper"
+         :class="{'selected': item.selected, 'inactive': item.count === 0}" 
+         @click="toggleSelection(item)">
+         <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" 
+         class="rock-avatar-img" 
+         alt="Rock">
+         <div class="rock-overlay-info">
+             <div class="rock-name">{{ item.name }}</div>
+             <div class="rock-count-row">
+                 <div class="arrow-btn" @click.stop="item.count = Math.max(0, item.count-1)">▼</div>
+                 <span class="rock-count-num">×{{ item.count }}</span>
+                 <div class="arrow-btn" @click.stop="item.count++">▲</div>
+             </div>
+         </div>
+    </div>
+                            
+                                          </div>
                     <div class="p-6 bg-slate-50 border-t border-slate-200 flex justify-center shrink-0">
                         <button @click="startRaceSequence" class="w-2/3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-4 rounded-full font-game text-4xl shadow-xl hover:scale-105 transition-all active:scale-95 border-b-4 border-emerald-700">
                             돌 굴러가유~ 출발!
@@ -3138,46 +3236,66 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 
                 
-<div v-if="showSettings" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center" @click.self="showSettings = false">
-    <div class="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
+<div v-if="showSettings" class="fixed inset-0 bg-stone-900/60 z-[5000] flex items-center justify-center backdrop-blur-sm" @click.self="showSettings = false">
+    <div class="bg-[#fffdf0] w-full max-w-2xl rounded-[3.5rem] p-10 shadow-[0_20px_50px_rgba(120,66,18,0.2)] relative overflow-hidden border-[6px] border-[#e7d5b1]">
         
-        <div class="flex justify-between items-start mb-6">
+        <div class="flex justify-between items-start mb-8">
             <div>
-                <h2 class="text-3xl font-black mb-2 text-slate-800">📝 명단 관리</h2>
-                <p class="text-slate-500 text-sm">번호, 이름, 성별 순서로 입력 (텍스트를 지우면 삭제됩니다)<br>예: 1 홍길동 남</p>
+                <h2 class="text-3xl font-black mb-2 text-[#5d4037] flex items-center gap-2" style="font-family: 'Jua', sans-serif;">
+                    <span>🍪</span> 명단 관리
+                </h2>
+                <p class="text-[#8d6e63] text-sm font-bold leading-relaxed">
+                    번호, 이름, 성별 순서로 입력해 주세요.<br>
+                    <span class="opacity-70">(예: 1 홍길동 남)</span>
+                </p>
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex gap-4">
                 <button @click="soundSettings.ui = !soundSettings.ui" 
-                        class="w-16 h-16 rounded-2xl font-black border-2 flex flex-col items-center justify-center shadow-md active:scale-95 transition-all"
-                        :class="soundSettings.ui ? 'bg-slate-700 text-white border-slate-800' : 'bg-slate-100 text-slate-400 border-slate-200'"
-                        title="효과음 (버튼/알림)">
+                        class="w-16 h-16 rounded-[1.5rem] transition-all active:translate-y-1 border-b-[6px] flex flex-col items-center justify-center"
+                        :class="soundSettings.ui ? 'bg-[#7dd3fc] border-[#38bdf8] text-white' : 'bg-stone-200 border-stone-300 text-stone-400 shadow-inner'">
                     <i :class="soundSettings.ui ? 'fa-solid fa-volume-high text-2xl' : 'fa-solid fa-volume-xmark text-2xl'"></i>
-                    <span class="text-[10px] mt-1 font-bold">효과음</span>
+                    <span class="text-[10px] mt-1 font-black">효과음</span>
                 </button>
 
                 <button @click="soundSettings.game = !soundSettings.game" 
-                        class="w-16 h-16 rounded-2xl font-black border-2 flex flex-col items-center justify-center shadow-md active:scale-95 transition-all"
-                        :class="soundSettings.game ? 'bg-slate-700 text-white border-slate-800' : 'bg-slate-100 text-slate-400 border-slate-200'"
-                        title="배경음 (BGM/게임)">
+                        class="w-16 h-16 rounded-[1.5rem] transition-all active:translate-y-1 border-b-[6px] flex flex-col items-center justify-center"
+                        :class="soundSettings.game ? 'bg-[#c084fc] border-[#a855f7] text-white' : 'bg-stone-200 border-stone-300 text-stone-400 shadow-inner'">
                     <i :class="soundSettings.game ? 'fa-solid fa-music text-2xl' : 'fa-solid fa-bell-slash text-2xl'"></i>
-                    <span class="text-[10px] mt-1 font-bold">배경음</span>
+                    <span class="text-[10px] mt-1 font-black">배경음</span>
                 </button>
             </div>
         </div>
 
-        <textarea v-model="tempNameList" 
-                  class="w-full h-64 border-4 border-slate-200 rounded-3xl p-6 mb-6 outline-none text-lg font-bold text-slate-700 resize-none focus:border-blue-500 transition-colors custom-scrollbar" 
-                  placeholder="1 홍길동 남"></textarea>
+        <div class="w-full h-44 rounded-[2rem] border-[4px] border-dashed border-[#a1887f] mb-8 overflow-hidden bg-white shadow-inner p-1">
+            <textarea v-model="tempNameList" 
+                      class="w-full h-full p-5 outline-none text-lg font-bold text-[#5d4037] resize-none custom-scrollbar bg-transparent leading-relaxed" 
+                      placeholder="1 홍길동 남"></textarea>
+        </div>
         
-        <div class="flex gap-4">
-             <button @click="showSettings = false" class="flex-1 bg-slate-200 text-slate-600 py-5 rounded-2xl font-black text-xl hover:bg-slate-300 transition-all">취소</button>
-             <button @click="saveNameList" class="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-blue-700 shadow-xl transition-all">저장 및 반영</button>
+        <div class="p-6 bg-[#fff9db] rounded-[2.5rem] border-4 border-[#ffec99] relative mb-8">
+            <h4 class="text-sm font-black text-[#856404] mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-box-archive"></i> 데이터 금고
+            </h4>
+            <div class="flex gap-3">
+                <button @click="exportData" class="flex-1 bg-[#fcc419] border-b-4 border-[#fab005] text-[#744210] py-4 rounded-2xl font-black text-sm hover:brightness-105 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-export"></i> 내보내기
+                </button>
+                <button @click="$refs.fileInput.click()" class="flex-1 bg-[#69db7c] border-b-4 border-[#40c057] text-[#1a4721] py-4 rounded-2xl font-black text-sm hover:brightness-105 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-import"></i> 불러오기
+                </button>
+                <input type="file" ref="fileInput" class="hidden" accept=".json" @change="importData">
+            </div>
+        </div>
+
+        <div class="flex justify-center">
+             <button @click="saveNameList" 
+                     class="w-2/3 py-5 rounded-[2rem] font-black text-xl transition-all active:translate-y-1 bg-[#fb923c] border-b-[8px] border-[#f97316] text-white hover:brightness-105 shadow-orange-200">
+                 저장
+             </button>
         </div>
     </div>
-</div>
-        
-        <div v-if="showStudentSelectModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showStudentSelectModal = false">
+</div>  <div v-if="showStudentSelectModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showStudentSelectModal = false">
             <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-xl max-h-[80vh] flex flex-col">
                 <h3 class="text-lg font-bold text-center mb-4">누구를 앉힐까요?</h3>
                 <div class="flex-1 overflow-y-auto grid grid-cols-2 gap-2">
@@ -3196,124 +3314,92 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
   
-   <div v-show="showBlackboard" 
-     @mousedown="focusWindow('board')"  :class="['blackboard-window border border-slate-300', { 'maximized': isMaximized }]"
+  <div v-show="showBlackboard" 
+     @mousedown.capture="focusWindow('board')"  
+     :class="['blackboard-window border border-slate-300', { 'maximized': isMaximized }]"
      :style="{
-         top: !isMaximized ? boardY + 'px' : '0', 
-         left: !isMaximized ? boardX + 'px' : '0', 
-         width: !isMaximized ? boardW + 'px' : '100%', 
-         height: !isMaximized ? boardH + 'px' : '100%',
-         zIndex: boardZ  /* z-index 연결 추가 */
+         top: !isMaximized ? '20px' : '0', 
+         left: !isMaximized ? '340px' : '0', 
+         width: !isMaximized ? 'calc(100vw - 360px)' : '100%', 
+         height: !isMaximized ? 'calc(100vh - 40px)' : '100%',
+         zIndex: boardZ
      }">
 
-   <div class="blackboard-header justify-between" @mousedown="startBoardDrag">
-        <span class="text-slate-700 flex items-center gap-3 pointer-events-none">
-            <i class="fa-solid fa-chalkboard text-3xl"></i> 
-            <span class="font-bold">판서 {{ isMaximized ? '(전체 화면)' : '' }}</span>
-        </span>
+   <div class="blackboard-header justify-between cursor-default">
+       <span class="text-slate-700 flex items-center gap-3 pointer-events-none">
+           <i class="fa-solid fa-chalkboard text-3xl"></i> 
+           <span class="font-bold">판서 {{ isMaximized ? '(전체 화면)' : '' }}</span>
+       </span>
+       <div class="flex items-center gap-1">
+           <div class="flex items-center gap-2 px-3 bg-white rounded-xl border border-slate-200 shadow-sm mr-3" @mousedown.stop style="height: 44px;">
+               <span contenteditable="true" @blur="updateZoomDirect" @keydown.enter.prevent="$event.target.blur()" class="zoom-text-input">
+                   {{ Math.round(boardZoom * 100) }}%
+               </span>
+               <div class="flex items-center border-l border-slate-200 pl-2">
+                   <button @mousedown.prevent="startZoom(-0.1)" @mouseup.prevent="stopZoom()" @mouseleave="stopZoom()" class="px-2 hover:bg-slate-100 rounded text-slate-500 font-bold text-xl">-</button>
+                   <button @mousedown.prevent="startZoom(0.1)" @mouseup.prevent="stopZoom()" @mouseleave="stopZoom()" class="px-2 hover:bg-slate-100 rounded text-slate-500 font-bold text-xl">+</button>
+               </div>
+           </div>
+           <button v-if="isMaximized" @mousedown.prevent="isMaximized = false" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="창 모드로 복원"><i class="fa-solid fa-window-restore"></i></button>
+           <button v-else @mousedown.prevent="isMaximized = true" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="전체 화면"><i class="fa-solid fa-expand"></i></button>
+           <button @mousedown.prevent="showBlackboard = false" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기"><i class="fa-solid fa-xmark"></i></button>
+       </div>
+   </div>
+   
+   <div class="blackboard-toolbar" style="overflow: visible !important;" @mousedown.prevent>
+       <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
+           <option value="" disabled selected hidden>크기</option>
+           <option value="3">작게</option><option value="5">보통</option><option value="7">크게</option>
+       </select>
+       <button @mousedown.stop.prevent="applyStyle('bold')" class="toolbar-btn font-black text-3xl">B</button>
+       <button @mousedown.stop.prevent="applyStyle('italic')" class="toolbar-btn italic font-serif text-3xl">I</button>
+       <button @mousedown.stop.prevent="applyStyle('underline')" class="toolbar-btn underline text-3xl">U</button>
+       <div class="relative">
+           <button @mousedown.stop.prevent="toggleSymbolPalette" class="toolbar-btn text-slate-600 hover:text-slate-900" title="특수기호"><i class="fa-solid fa-star text-2xl"></i></button>
+           <div v-show="showSymbolPalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-2 rounded-lg shadow-xl z-[9999] grid grid-cols-5 gap-1 w-max" @mousedown.stop.prevent>
+               <button v-for="sym in specialSymbols" :key="sym" @mousedown.stop.prevent="insertSymbol(sym)" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded text-xl font-bold text-slate-700 cursor-pointer">{{ sym }}</button>
+           </div>
+       </div>
+       <div class="w-px h-10 bg-slate-200 mx-1"></div>
+       <div class="relative">
+           <button @mousedown.stop.prevent="toggleForeColorPalette" class="toolbar-btn"><i class="fa-solid fa-font"></i></button>
+           <div v-show="showForeColorPalette" class="color-palette" @mousedown.stop.prevent>
+               <div v-for="color in paletteColors" :key="'fg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('foreColor', color)"></div>
+           </div>
+       </div>
+       <div class="relative">
+           <button @mousedown.stop.prevent="toggleHiliteColorPalette" class="toolbar-btn"><i class="fa-solid fa-fill-drip"></i></button>
+           <div v-show="showHiliteColorPalette" class="color-palette" @mousedown.stop.prevent>
+               <div v-for="color in paletteColors" :key="'bg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('hiliteColor', color)"></div>
+               <div class="color-dot bg-transparent border-slate-300 flex items-center justify-center" @mousedown.stop.prevent="applyColor('hiliteColor', 'transparent')">/</div>
+           </div>
+       </div>
+       <div class="w-px h-10 bg-slate-200 mx-1"></div>
+       <button @mousedown.stop.prevent="setDrawTool('pen')" class="toolbar-btn" :class="{'bg-slate-200 text-blue-600': isDrawMode && drawTool === 'pen'}" title="펜 그리기"><i class="fa-solid fa-pen"></i></button>
+       <button @mousedown.stop.prevent="setDrawTool('eraser')" class="toolbar-btn" :class="{'bg-slate-200 text-pink-600': isDrawMode && drawTool === 'eraser'}" title="부분 지우개"><i class="fa-solid fa-eraser"></i></button>
+       <button @mousedown.stop.prevent="clearOnlyDrawings" class="toolbar-btn text-slate-600 hover:text-red-500" title="그림만 지우기"><i class="fa-solid fa-broom"></i></button>
+       <button @mousedown.stop.prevent="setDrawTool('move')" class="toolbar-btn" :class="{'bg-slate-200 text-emerald-600': isDrawMode && drawTool === 'move'}" title="그림 이동"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
+       <div class="flex-1"></div>
 
-        <div class="flex items-center gap-1">
-            
-
-            <div class="flex items-center gap-2 px-3 bg-white rounded-xl border border-slate-200 shadow-sm mr-3" @mousedown.stop style="height: 44px;">
-                <span contenteditable="true" @blur="updateZoomDirect" @keydown.enter.prevent="$event.target.blur()" class="zoom-text-input">
-                    {{ Math.round(boardZoom * 100) }}%
-                </span>
-                <div class="flex items-center border-l border-slate-200 pl-2">
-                    <button @mousedown="startZoom(-0.1)" @mouseup="stopZoom()" @mouseleave="stopZoom()" class="px-2 hover:bg-slate-100 rounded text-slate-500 font-bold text-xl">-</button>
-                    <button @mousedown="startZoom(0.1)" @mouseup="stopZoom()" @mouseleave="stopZoom()" class="px-2 hover:bg-slate-100 rounded text-slate-500 font-bold text-xl">+</button>
-                </div>
-            </div>
-
-            <button v-if="isMaximized" @click="isMaximized = false" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="창 모드로 복원">
-                <i class="fa-solid fa-window-restore"></i>
-            </button>
-            <button v-else @click="isMaximized = true" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="전체 화면">
-                <i class="fa-solid fa-expand"></i>
-            </button>
-            <button @click="showBlackboard = false" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-    </div>
-    
-    <div class="blackboard-toolbar" style="overflow: visible !important;" @mousedown="saveSelection">
-    <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
-        <option value="" disabled selected hidden>크기</option>
-        <option value="3">작게</option>
-        <option value="5">보통</option>
-        <option value="7">크게</option>
-    </select>
-
-    <button @mousedown.stop.prevent="applyStyle('bold')" class="toolbar-btn font-black text-3xl">B</button>
-    <button @mousedown.stop.prevent="applyStyle('italic')" class="toolbar-btn italic font-serif text-3xl">I</button>
-    <button @mousedown.stop.prevent="applyStyle('underline')" class="toolbar-btn underline text-3xl">U</button>
-    
-    <div class="relative">
-        <button @mousedown.stop.prevent="toggleSymbolPalette" class="toolbar-btn text-slate-600 hover:text-slate-900" title="특수기호">
-            <i class="fa-solid fa-star text-2xl"></i>
-        </button>
-        <div v-show="showSymbolPalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-2 rounded-lg shadow-xl z-[9999] grid grid-cols-5 gap-1 w-max" @mousedown.stop.prevent>
-            <button v-for="sym in specialSymbols" :key="sym" @mousedown.stop.prevent="insertSymbol(sym)" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded text-xl font-bold text-slate-700 cursor-pointer">
-                {{ sym }}
-            </button>
-        </div>
-    </div>
-
-    <div class="w-px h-10 bg-slate-200 mx-1"></div>
-
-    <div class="relative">
-        <button @mousedown.stop.prevent="toggleForeColorPalette" class="toolbar-btn"><i class="fa-solid fa-font"></i></button>
-        <div v-show="showForeColorPalette" class="color-palette" @mousedown.stop.prevent>
-            <div v-for="color in paletteColors" :key="'fg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('foreColor', color)"></div>
-        </div>
-    </div>
-    <div class="relative">
-        <button @mousedown.stop.prevent="toggleHiliteColorPalette" class="toolbar-btn"><i class="fa-solid fa-fill-drip"></i></button>
-        <div v-show="showHiliteColorPalette" class="color-palette" @mousedown.stop.prevent>
-            <div v-for="color in paletteColors" :key="'bg-' + color" :style="{background: color}" class="color-dot" @mousedown.stop.prevent="applyColor('hiliteColor', color)"></div>
-            <div class="color-dot bg-transparent border-slate-300 flex items-center justify-center" @mousedown.stop.prevent="applyColor('hiliteColor', 'transparent')">/</div>
-        </div>
-    </div>
-
-    <div class="w-px h-10 bg-slate-200 mx-1"></div>
-
-    <button @mousedown.stop.prevent="setDrawTool('pen')" class="toolbar-btn" :class="{'bg-slate-200 text-blue-600': isDrawMode && drawTool === 'pen'}" title="펜 그리기">
-        <i class="fa-solid fa-pen"></i>
-    </button>
-    <button @mousedown.stop.prevent="setDrawTool('eraser')" class="toolbar-btn" :class="{'bg-slate-200 text-pink-600': isDrawMode && drawTool === 'eraser'}" title="부분 지우개">
-        <i class="fa-solid fa-eraser"></i>
-    </button>
-    <button @mousedown.stop.prevent="clearOnlyDrawings" class="toolbar-btn text-slate-600 hover:text-red-500" title="그림만 지우기">
-        <i class="fa-solid fa-broom"></i>
-    </button>
-    <button @mousedown.stop.prevent="setDrawTool('move')" class="toolbar-btn" :class="{'bg-slate-200 text-emerald-600': isDrawMode && drawTool === 'move'}" title="그림 이동">
-        <i class="fa-solid fa-arrows-up-down-left-right"></i>
-    </button>
-
-    <div class="flex-1"></div>
-    <button @click="undo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" 
-            title="되돌리기 (Ctrl+Z)" :disabled="historyIndex <= 0">
-        <i class="fa-solid fa-rotate-left text-2xl"></i>
-    </button>
-    <button @click="redo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" 
-            title="다시 실행 (Ctrl+Y)" :disabled="historyIndex >= history.length - 1">
-        <i class="fa-solid fa-rotate-right text-2xl"></i>
-    </button>
-    <button @click="createNewBoard" class="toolbar-btn text-slate-600 hover:text-blue-600" title="새로 만들기">
-        <i class="fa-solid fa-file-circle-plus text-2xl"></i>
-    </button>
-    <button @click="clearBoard" class="toolbar-btn text-slate-600 hover:text-red-600" title="모두 지우기">
-        <i class="fa-solid fa-trash-can text-2xl"></i>
-    </button>
-    <button @click="saveBoardToList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="목록에 저장">
-        <i class="fa-solid fa-floppy-disk text-2xl"></i>
-    </button>
-    <button @click="toggleBoardList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="저장 목록">
-        <i class="fa-solid fa-list-ul text-2xl"></i>
-    </button>
-</div>
-
+       <button @mousedown.prevent="undo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" title="되돌리기 (Ctrl+Z)" :disabled="historyIndex <= 0">
+           <i class="fa-solid fa-rotate-left text-2xl"></i>
+       </button>
+       <button @mousedown.prevent="redo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" title="다시 실행 (Ctrl+Y)" :disabled="historyIndex >= history.length - 1">
+           <i class="fa-solid fa-rotate-right text-2xl"></i>
+       </button>
+       <button @mousedown.prevent="createNewBoard" class="toolbar-btn text-slate-600 hover:text-blue-600" title="새로 만들기">
+           <i class="fa-solid fa-file-circle-plus text-2xl"></i>
+       </button>
+       <button @mousedown.prevent="clearBoard" class="toolbar-btn text-slate-600 hover:text-red-600" title="모두 지우기">
+           <i class="fa-solid fa-trash-can text-2xl"></i>
+       </button>
+       <button @mousedown.prevent="saveBoardToList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="목록에 저장">
+           <i class="fa-solid fa-floppy-disk text-2xl"></i>
+       </button>
+       <button @mousedown.prevent="toggleBoardList" class="toolbar-btn text-slate-600 hover:text-slate-900" title="저장 목록">
+           <i class="fa-solid fa-list-ul text-2xl"></i>
+       </button>
+   </div>
     <div v-show="isDrawMode && drawTool === 'eraser' && isMouseOverCanvas" 
      class="custom-eraser-cursor"
      :style="{ 
@@ -3338,14 +3424,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="w-full h-full absolute inset-0 z-0 p-4" :class="{'disable-text-events': isDrawMode}" @mousedown="closePalettes">
                 
                 <div v-show="!isCornellMode" ref="boardEditor" id="board-editor" contenteditable="true" 
-                     class="w-full h-full outline-none px-4 py-2" 
-                     @input="handleBoardInput" 
-                     @compositionstart="isComposing = true"
-                     @compositionend="handleCompositionEnd"
-                     @blur="handleBoardBlur"
-                     @paste="handlePaste"
-                     @mouseup="saveSelection">
-                </div>
+     class="w-full h-full outline-none px-4 py-2" 
+     @input="handleBoardInput" 
+     @compositionstart="isComposing = true"
+     @compositionend="handleCompositionEnd"
+     @blur="handleBoardBlur"
+     @paste="handlePaste"
+     @mouseup="saveSelection"
+     @keyup="handleBoardKeyup">
+</div>
                             </div>
         </div>
     </div>
@@ -3381,30 +3468,27 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         isInteracting ? 'duration-0' : 'transition-all duration-300' 
      ]"
      :style="[
-        !isPickerMaximized ? {
-           top: pickerY + 'px',
-           left: pickerX + 'px',
-           width: pickerW + 'px',
-           height: pickerH + 'px'
+        !isPickerMaximized ? { 
+            top: '20px', 
+            left: '340px', 
+            width: 'calc(100vw - 360px)', 
+            height: 'calc(100vh - 40px)' 
         } : {},
-        { zIndex: isPickerMaximized ? 9999 : pickerZ } 
+        { zIndex: pickerZ }
      ]"
-     @mousedown="focusWindow('picker')">
-    <div class="h-20 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-between px-8 shrink-0 select-none cursor-move"
-         @mousedown="startPickerDrag">
+     @mousedown.capture="focusWindow('picker')">
+    
+    <div class="h-20 bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-between px-8 shrink-0 select-none cursor-default">
         <h2 class="text-white font-black text-3xl">🎁 뽑기 도구</h2>
         <div class="flex items-center gap-3">
-            <button @click="isPickerMaximized = !isPickerMaximized"
-                    class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl">
+            <button @mousedown.prevent="isPickerMaximized = !isPickerMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl">
                 <i :class="isPickerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i>
             </button>
-            <button @click="showPickerMaster = false"
-                    class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl">
+            <button @mousedown.prevent="showPickerMaster = false" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
     </div>
-
     <div class="flex bg-slate-100 border-b-2 border-slate-300">
         <button @click="setPickerTab('lottery')"
                 class="flex-1 py-4 font-bold text-lg transition-all"
@@ -3445,45 +3529,34 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 <div class="flex-1 overflow-y-auto bg-slate-50 p-8 h-[calc(100%-160px)]">
 
 <div v-if="pickerTab === 'lottery'" class="h-full flex flex-col overflow-hidden relative bg-slate-50">
-    
     <div class="flex-1 flex items-center justify-center p-4 pt-8 overflow-hidden">
-        <div class="fixed-layout-box !w-[380px] !h-[380px] !p-0 transition-transform duration-300" 
-             :style="{ transform: `scale(${ getScale(380, 380) })` }">
-            
-            <div class="lottery-circle !w-[360px] !h-[360px] border-[18px] bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300" 
+        <div class="fixed-layout-box !w-[570px] !h-[570px] !p-0 transition-transform duration-300" 
+             :style="{ transform: `scale(${ getScale(438, 438) })` }">
+            <div class="lottery-circle !w-[540px] !h-[540px] border-[27px] bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-300" 
                  :class="[
                     (isRolling || displayWinner === '?') 
-                    ? 'border-purple-500 shadow-[0_0_50px_rgba(168,85,247,0.3)]' 
+                    ? 'border-purple-500 shadow-[0_0_75px_rgba(168,85,247,0.3)]' 
                     : 'border-[#fbbf24] winner-aura'
                  ]">
-                <span class="lottery-name !text-[80px] font-black text-slate-800 tabular-nums">
+                <span class="lottery-name !text-[120px] font-black text-slate-800 tabular-nums">
                     {{ displayWinner || '?' }}
                 </span>
             </div>
         </div>
-    </div>
-
-   <div class="w-full h-28 bg-gradient-to-r from-indigo-500 to-purple-600 flex justify-center items-center gap-8 px-10 shrink-0 z-50 shadow-[0_-10px_40px_rgba(79,70,229,0.3)] border-t-2 border-white/20 mt-auto">
-    
+    </div>   <div class="w-full h-28 bg-gradient-to-r from-indigo-500 to-purple-600 flex justify-center items-center gap-8 px-10 shrink-0 z-50 shadow-[0_-10px_40px_rgba(79,70,229,0.3)] border-t-2 border-white/20 mt-auto">
     <div class="relative min-w-[140px]">
         <button @click.stop="showLotteryFilter = !showLotteryFilter" 
                 class="h-16 w-full px-6 bg-white/10 text-white rounded-2xl font-black text-xl hover:bg-white/20 transition-all flex items-center justify-between gap-3 border-2 border-white/30 cursor-pointer backdrop-blur-sm">
             <span>{{ lotteryMode === 'all' ? '전체' : (lotteryMode === 'M' ? '남학생' : '여학생') }}</span>
             <i class="fa-solid fa-chevron-up text-sm transition-transform" :class="{'rotate-180': showLotteryFilter}"></i>
         </button>
-        
-        <div v-if="showLotteryFilter" 
-     class="absolute bottom-[115%] left-0 w-full bg-white rounded-2xl shadow-2xl border-2 border-indigo-100 overflow-hidden z-[100] animate-fade-in">
-    
-    <button @click="changeLotteryMode('all')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 border-b-2 border-slate-50 transition-colors text-indigo-900">전체</button>
-    <button @click="changeLotteryMode('M')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 border-b-2 border-slate-50 transition-colors text-indigo-900">남학생</button>
-    <button @click="changeLotteryMode('F')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 transition-colors text-indigo-900">여학생</button>
-
-</div>
+        <div v-if="showLotteryFilter" class="absolute bottom-[115%] left-0 w-full bg-white rounded-2xl shadow-2xl border-2 border-indigo-100 overflow-hidden z-[100] animate-fade-in">
+            <button @click="changeLotteryMode('all')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 border-b-2 border-slate-50 transition-colors text-indigo-900">전체</button>
+            <button @click="changeLotteryMode('M')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 border-b-2 border-slate-50 transition-colors text-indigo-900">남학생</button>
+            <button @click="changeLotteryMode('F')" class="w-full py-5 px-6 text-center text-xl font-black hover:bg-indigo-50 transition-colors text-indigo-900">여학생</button>
+        </div>
     </div>
-
     <button @click="rollLottery" class="h-20 px-16 bg-white text-indigo-600 rounded-[2rem] border-x-4 border-t-4 border-indigo-100 font-black text-4xl shadow-xl hover:bg-slate-50 transition-all active:translate-y-2 active:border-b-0 border-b-[10px] border-indigo-200 cursor-pointer">START</button>
-
     <div class="h-20 px-8 bg-indigo-900/30 text-white rounded-2xl border-2 border-white/30 flex flex-col items-center justify-center shadow-inner backdrop-blur-sm min-w-[140px]">
         <span class="text-[10px] font-bold opacity-60 uppercase tracking-widest leading-none mb-1">Remaining</span>
         <div class="flex items-baseline gap-1">
@@ -3491,12 +3564,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <span class="text-lg font-bold opacity-90 leading-none">명</span>
         </div>
     </div>
-
     <button @click.stop="resetLottery" class="w-16 h-16 bg-white/10 text-white rounded-2xl hover:bg-red-500 hover:border-red-400 transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm" title="현재 모드 초기화">
         <i class="fa-solid fa-rotate-right text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
     </button>
+   </div>
 </div>
-</div>
+
+
    <div v-else-if="pickerTab === 'capsule'" class="h-full flex flex-col bg-slate-50 relative overflow-hidden">
     <div class="flex-1 overflow-y-auto p-6 custom-scrollbar pb-[18vh]">
         
@@ -3861,7 +3935,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </button>
                 </div>
                 
-                <div class="resize-handle" @mousedown.stop.prevent="startLadderResultResize"></div>
+                
             </div>
 </div>
 </div>
@@ -3869,57 +3943,51 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     
 <div v-else-if="pickerTab === 'dice'" class="scaling-container h-full w-full bg-slate-50">
+    <div class="fixed-layout-box flex flex-col items-center justify-center gap-20"
+         style="width: 1700px; height: 1800px;"
+         :style="{ transform: `scale(${ getScale(1700, 1800) * 1.3 })` }">
 
-    <div class="fixed-layout-box flex flex-col items-center justify-between py-16 gap-24 mb-[15vh]"
-         style="width: 1700px; height: 1600px;"
-         :style="{ transform: `scale(${ getScale(1650, 1550, 0.95) })` }">
-
-        <div class="flex items-center justify-between bg-white w-[900px] px-16 py-10 rounded-[5rem] shadow-xl border-[12px] border-slate-200 z-10 relative">
+        <div class="flex items-center justify-between bg-white w-[1400px] px-20 py-12 rounded-[6rem] shadow-xl border-[16px] border-slate-200 z-10 relative">
             <button @click="diceCount = Math.max(1, diceCount - 1)"
-                    class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
+                    class="w-64 h-64 bg-orange-100 text-orange-600 rounded-full font-black text-[12rem] hover:bg-orange-200 transition-colors shadow-md pb-8 flex items-center justify-center shrink-0">
                 -
             </button>
-
-            <span class="text-[10rem] font-black text-center text-slate-700 font-game leading-none pt-4">{{ diceCount }}</span>
-
+            <span class="text-[16rem] font-black text-center text-slate-700 font-game leading-none pt-6">{{ diceCount }}</span>
             <button @click="diceCount = Math.min(6, diceCount + 1)"
-                    class="w-40 h-40 bg-orange-100 text-orange-600 rounded-full font-black text-[7rem] hover:bg-orange-200 transition-colors shadow-md pb-4 flex items-center justify-center shrink-0">
+                    class="w-64 h-64 bg-orange-100 text-orange-600 rounded-full font-black text-[12rem] hover:bg-orange-200 transition-colors shadow-md pb-8 flex items-center justify-center shrink-0">
                 +
             </button>
         </div>
 
-        <div class="flex-1 w-full flex items-center justify-center pb-20"> 
-            
-            <div class="dice-wrapper flex flex-wrap gap-10 justify-center items-center w-full relative z-50">
-
+        <div class="w-full flex items-center justify-center"> 
+            <div class="dice-wrapper flex flex-wrap gap-16 justify-center items-center w-full relative z-50"
+                 style="min-height: auto !important; padding: 40px !important;">
                 <div v-for="(value, idx) in displayDiceValues" :key="idx"
-                     class="bg-white rounded-[9rem] flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-[30px] border-orange-300 select-none text-slate-800 transition-transform"
+                     class="bg-white rounded-[12rem] flex items-center justify-center shadow-[0_30px_60px_rgba(0,0,0,0.3)] border-[50px] border-orange-300 select-none text-slate-800 transition-transform"
                      style="
-                         width: 900px;
-                         height: 900px;
-                         font-size: 700px;
+                         width: 1400px;
+                         height: 1400px;
+                         font-size: 1100px;
                          flex-shrink: 0;
                          display: flex;
                          align-items: center;
                          justify-content: center;
                          line-height: 0.7;
-                         padding-bottom: 120px;
+                         padding-bottom: 180px;
                      ">
                     {{ getDiceFace(value) }}
                 </div>
-
             </div>
         </div>
 
-        <div class="w-full flex justify-center z-10 relative" style="transform: translateY(-80px);">
+        <div class="w-full flex justify-center z-10 relative">
             <button @click="rollDice" :disabled="isRollingDice"
-                    class="w-[900px] py-16 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[8rem] rounded-[6rem] shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 active:scale-95 border-b-[24px] border-orange-700 leading-tight">
+                    class="w-[1400px] py-24 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[12rem] rounded-[8rem] shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100 active:scale-95 border-b-[36px] border-orange-700 leading-tight">
                 {{ isRollingDice ? '...' : '던지기' }}
             </button>
         </div>
     </div>
 </div>
-
 
 <div v-else-if="pickerTab === 'tournament'" class="picker-tab-content-tournament">
     
@@ -4021,8 +4089,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     <div v-if="!isPickerMaximized" class="resize-handle" @mousedown.stop="startPickerResize"></div>
 </div></div>
 <div v-if="showTimer && isTimerMaximized" 
-     class="fixed inset-0 bg-black z-[9999]">
-</div>
+     class="fixed inset-0 bg-black"
+     :style="{ zIndex: timerZ - 1 }"> </div>
 
 <div v-if="showTimer" 
      class="bomb-window"
@@ -4031,18 +4099,22 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
        {'stopwatch-running-beat': isStopwatchMode && timerInterval},
        {'bomb-active-glow': !isStopwatchMode && timerInterval && timerSeconds > 10},
        {'bomb-warning': !isStopwatchMode && timerInterval && timerSeconds <= 10 && timerSeconds > 0},
-       {'fixed inset-0 z-[10000]': isTimerMaximized} 
+       {'fixed inset-0': isTimerMaximized} 
      ]"
      :style="{ 
          top: !isTimerMaximized ? (timerY || 200) + 'px' : '0', 
          left: !isTimerMaximized ? (timerX || 200) + 'px' : '0', 
          width: !isTimerMaximized ? (timerSize || 400) + 'px' : '100%', 
          height: !isTimerMaximized ? ((timerSize || 400) * 0.633) + 'px' : '100%',
-         zIndex: isTimerMaximized ? 10000 : (timerZ || 5002)
+         zIndex: timerZ /* ★ 조건부 삭제하고 무조건 최상단 허용 */
      }" 
-     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)">     
+     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)">
+    
     <div class="display-unit" @mousedown.stop>
-        <div class="time-group" :style="isStopwatchMode ? { width: '25% !important' } : {}">
+    
+  
+
+    <div class="time-group" :style="isStopwatchMode ? { width: '25% !important' } : {}">
             <button v-if="!isStopwatchMode" class="time-adj-btn" @click="adjustTimer(60)"><i class="fa-solid fa-caret-up"></i></button>
 <input type="text" v-model="inputMin" 
        @click="$event.target.select()" 
@@ -4053,8 +4125,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button v-if="!isStopwatchMode" class="time-adj-btn" @click="adjustTimer(-60)"><i class="fa-solid fa-caret-down"></i></button>
         </div>
 
-        <span class="timer-colon" :class="{'animate-pulse': timerInterval && !isStopwatchMode}">:</span>
-
+        <span class="timer-colon cursor-pointer transition-all duration-300" 
+              :class="[
+                  {'animate-pulse': timerInterval && !isStopwatchMode},
+                  isOneMinAlarmOn ? 'colon-on' : 'colon-off'
+              ]"
+              @click.stop="toggleOneMinAlarm"
+              title="클릭하여 1분 정각 알림 켜기/끄기">
+            :
+        </span>
         <div class="time-group" :style="isStopwatchMode ? { width: '55% !important' } : {}">
             <button v-if="!isStopwatchMode" class="time-adj-btn" @click="adjustTimer(30)"><i class="fa-solid fa-caret-up"></i></button>
            <input type="text" v-model="inputSec" 
@@ -4078,30 +4157,27 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 <div class="full-screen-explosion" :class="{'explode-active': isExploding}">BOOM!</div>
 
 <div v-if="showNoiseMeter"
+     @mousedown.capture="focusWindow('noise')"
      class="fixed bg-white shadow-2xl overflow-hidden flex flex-col"
-     :class="{ 'inset-0 rounded-none': isNoiseMaximized, 'rounded-[3rem] border-4 border-slate-200': !isNoiseMaximized }"
-     :style="[
-        !isNoiseMaximized ? { 
-            top: (noiseY || 100) + 'px', 
-            left: (noiseX || 100) + 'px', 
-            width: (noiseW || 400) + 'px', 
-            height: (noiseH || 400) + 'px' 
-        } : {},
-        { 'container-type': 'size' },
-        { zIndex: isNoiseMaximized ? 9999 : (noiseZ || 5004) } 
-     ]"
-     @mousedown="focusWindow('noise')">
-    
-    <div class="h-20 bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-between px-8 cursor-move select-none shrink-0"
-     @mousedown="startNoiseDrag">
-    <h2 class="text-white font-black text-3xl flex items-center gap-2">
-        <i class="fa-solid fa-bell"></i> 주의집중
-    </h2>
-    <div class="flex items-center gap-3">
-        <button @click.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-        <button @click.stop="showNoiseMeter = false; stopNoiseMeasurement();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
+     :class="['transition-all duration-300', { 'inset-0 rounded-none': isNoiseMaximized, 'rounded-[3rem] border-4 border-slate-200': !isNoiseMaximized }]"
+     :style="{
+         top: !isNoiseMaximized ? '20px' : '0',
+         left: !isNoiseMaximized ? '340px' : '0',
+         width: !isNoiseMaximized ? 'calc(100vw - 360px)' : '100%',
+         height: !isNoiseMaximized ? 'calc(100vh - 40px)' : '100%',
+         zIndex: noiseZ,
+         'container-type': 'size'
+     }">
+
+    <div class="h-20 bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-between px-8 select-none shrink-0 cursor-default">
+        <h2 class="text-white font-black text-3xl flex items-center gap-2 pointer-events-none">
+            <i class="fa-solid fa-bell"></i> 주의집중
+        </h2>
+        <div class="flex items-center gap-3">
+            <button @mousedown.prevent.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
+            <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
+        </div>
     </div>
-</div>
 
     <div class="flex bg-slate-100 border-b-2 border-slate-200 shrink-0">
         <button @click="setNoiseMode('sound')" 
@@ -4118,79 +4194,87 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
         
-        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full bg-slate-50 flex flex-col p-6" style="container-type: size;">
+<div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full bg-slate-50 flex flex-col p-6 relative" style="container-type: size;">
     
-    <div class="w-full flex justify-end mb-4 shrink-0">
-    <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+   <div class="absolute top-6 left-6 bg-white/90 backdrop-blur-md border-2 border-slate-200 px-5 py-2 rounded-2xl shadow-sm flex items-center gap-4 z-20 transition-all duration-300"
+         :class="{'scale-105 border-[#fbbf24] shadow-[0_4px_15px_rgba(251,191,36,0.3)]': isMeasuring && noiseGauge < 100}">
         
-        <div @click.stop.prevent="setSensitivity('high')" 
-             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-2 py-1 rounded-lg"
-             :class="noiseThreshold === 50 ? 'bg-rose-50 border border-rose-200' : ''">
-             <span class="text-lg font-black transition-colors"
-                   :class="noiseThreshold === 50 ? 'text-rose-500' : 'text-slate-400 group-hover:text-rose-400'">📖 독서</span>
+        <div class="relative flex items-center justify-center w-8 h-8 bg-yellow-50 rounded-full border border-yellow-100 shrink-0">
+            <div v-if="isMeasuring && noiseGauge < 100" class="absolute w-full h-full bg-yellow-400 rounded-full animate-ping opacity-20"></div>
+            <i class="fa-solid fa-hourglass-half text-yellow-500 text-lg relative z-10" :class="{'fa-spin': isMeasuring && noiseGauge < 100}"></i>
         </div>
-
-        <div class="relative w-48 flex items-center">
-            <input type="range" v-model.number="noiseThreshold" @change="saveToLocal" min="30" max="100" 
-                   class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all border border-slate-200">
+        
+        <div class="flex flex-col items-center justify-center pt-1">
+            <span class="text-[11px] font-black text-slate-400 leading-none uppercase tracking-[0.15em] mb-0.5 ml-1">Peace Time</span>
+            <span class="font-black text-slate-700 text-4xl leading-none tabular-nums drop-shadow-sm" style="font-family: 'Quantico', sans-serif !important; letter-spacing: -0.02em;">
+                {{ formatNoiseTime(noiseRecordSeconds) }}
+            </span>
         </div>
-
-        <div @click.stop.prevent="setSensitivity('low')" 
-             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-2 py-1 rounded-lg"
-             :class="noiseThreshold === 80 ? 'bg-blue-50 border border-blue-200' : ''">
-             <span class="text-lg font-black transition-colors"
-                   :class="noiseThreshold === 80 ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-400'">🗣️ 토론</span>
-        </div>
-
-        <div class="w-px h-8 bg-slate-200 mx-1"></div>
-        <span class="font-mono font-black text-teal-600 text-3xl w-14 text-center">{{ noiseThreshold }}</span>
-
-        <div class="ml-2 flex gap-2">
-    
-    <button v-if="!isMeasuring" @click="startNoiseMeasurement" 
-            class="w-12 h-12 bg-teal-500 text-white rounded-xl shadow-md hover:bg-teal-600 transition-all flex items-center justify-center active:scale-95"
-            title="측정 시작 (재생)">
-        <i class="fa-solid fa-play text-xl pl-1"></i>
-    </button>
-    
-    <button v-else @click="pauseNoiseMeasurement"
-            class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95"
-            title="일시 정지">
-        <i class="fa-solid fa-pause text-xl"></i>
-    </button>
-
-    <button @click="stopAndReset" 
-            class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300"
-            title="중지 및 초기화 (0으로 리셋)">
-        <i class="fa-solid fa-stop text-xl"></i>
-    </button>
     </div>
-</div>
-</div>
-    <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden">
-    <div class="flex flex-row items-center justify-center w-full" style="gap: 8cqmin;">
-        
-        <div class="transition-transform duration-1000 ease-out origin-center" 
-             :style="{ transform: `scale(${1 + noiseGauge/300})` }">
-            <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
-                 :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= 100 }"
-                 style="font-size: 40cqmin;"> 
-                <span v-if="noiseGauge < 30">😊</span>
-                <span v-else-if="noiseGauge < 60">😐</span>
-                <span v-else-if="noiseGauge < 90">😠</span>
-                <span v-else>👿</span>
+    <div class="w-full flex justify-end mb-4 shrink-0 relative z-20">
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+            
+            <div @click.stop.prevent="setSensitivity('reading')" 
+                 class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
+                 :class="currentNoisePreset === 'reading' ? 'bg-rose-50 border border-rose-200 shadow-inner' : ''">
+                 <span class="text-lg font-black transition-colors"
+                       :class="currentNoisePreset === 'reading' ? 'text-rose-500' : 'text-slate-400 group-hover:text-rose-400'">📖 독서</span>
+            </div>
+
+            <div class="relative w-48 flex items-center">
+                <input type="range" v-model.number="noiseThreshold" @input="onThresholdChange" min="30" max="100" 
+                       class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all border border-slate-200">
+            </div>
+
+            <div @click.stop.prevent="setSensitivity('discussion')" 
+                 class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
+                 :class="currentNoisePreset === 'discussion' ? 'bg-blue-50 border border-blue-200 shadow-inner' : ''">
+                 <span class="text-lg font-black transition-colors"
+                       :class="currentNoisePreset === 'discussion' ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-400'">🗣️ 토론</span>
+            </div>
+
+            <div class="w-px h-8 bg-slate-200 mx-1"></div>
+            <span class="font-mono font-black text-teal-600 text-3xl w-14 text-center">{{ noiseThreshold }}</span>
+
+            <div class="ml-2 flex gap-2">
+                <button v-if="!isMeasuring" @click="startNoiseMeasurement" 
+                        class="w-12 h-12 bg-teal-500 text-white rounded-xl shadow-md hover:bg-teal-600 transition-all flex items-center justify-center active:scale-95" title="측정 시작">
+                    <i class="fa-solid fa-play text-xl pl-1"></i>
+                </button>
+                <button v-else @click="pauseNoiseMeasurement"
+                        class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95" title="일시 정지">
+                    <i class="fa-solid fa-pause text-xl"></i>
+                </button>
+                <button @click="stopAndReset" 
+                        class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300" title="중지 및 초기화">
+                    <i class="fa-solid fa-stop text-xl"></i>
+                </button>
             </div>
         </div>
-
-        <div class="flex items-baseline font-mono font-black text-slate-700 transition-colors duration-500 leading-none"
-             :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
-             style="font-size: 30cqmin; gap: 20px;"> <span>{{ displayedDb }}</span>
-            
-            <span class="font-bold text-slate-400 ml-6 tracking-widest" style="font-size: 8cqmin;">dB</span>
-        </div>
-
     </div>
-</div>
+
+    <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden pt-4">
+        <div class="flex flex-row items-center justify-center w-full" style="gap: 8cqmin;">
+            <div class="transition-transform duration-1000 ease-out origin-center" 
+                 :style="{ transform: `scale(${1 + noiseGauge/300})` }">
+                <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
+                     :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= 100 }"
+                     style="font-size: 40cqmin;"> 
+                    <span v-if="noiseGauge < 30">😊</span>
+                    <span v-else-if="noiseGauge < 60">😐</span>
+                    <span v-else-if="noiseGauge < 90">😠</span>
+                    <span v-else>👿</span>
+                </div>
+            </div>
+
+            <div class="flex items-baseline font-mono font-black text-slate-700 transition-colors duration-500 leading-none"
+                 :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
+                 style="font-size: 30cqmin; gap: 20px;"> 
+                <span>{{ displayedDb }}</span>
+                <span class="ml-4 tracking-widest" style="font-family: 'Dongle', sans-serif !important; font-weight: 700; font-size: 10cqmin; color: #475569; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">와글</span>
+            </div>
+        </div>
+    </div>
 
     <div class="mt-4 shrink-0 pb-6">
         <div class="flex justify-between items-end mb-2 px-2">
@@ -4199,21 +4283,16 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 {{ noiseGauge.toFixed(0) }}%
             </span>
         </div>
-        
         <div class="w-full h-20 bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner border-4 border-slate-300 relative">
             <div class="h-full transition-all duration-500 ease-linear flex items-center justify-end px-4"
-                 :class="[
-                    noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-400'),
-                    { 'animate-pulse': noiseGauge > 90 }
-                 ]"
+                 :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-400'), { 'animate-pulse': noiseGauge > 90 }]"
                  :style="{ width: noiseGauge + '%' }">
                  <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
                  <span v-if="noiseGauge > 10" class="text-white font-black text-2xl opacity-50 tracking-widest">///</span>
             </div>
         </div>
     </div>
-</div>
-        <div v-else-if="noiseMode === 'sound'" 
+</div>   <div v-else-if="noiseMode === 'sound'" 
      class="flex-1 w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden"
      style="container-type: size;">
     
@@ -4349,6 +4428,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     createApp({
         data() {
             return {
+isOneMinAlarmOn: false,       // 1분 알림 ON/OFF 상태
+        lastMinuteAlarmPlayed: -1,
 timeBankSeconds: 0,
         timeBankHistory: [],
         showTimeBankModal: false,
@@ -4375,7 +4456,7 @@ lotteryPools: {
         },
 isEndingSoundPlayed: false,
 timerAudio: null,
-currentMaxZ: 20000, // 기준 높이
+currentMaxZ: 30000, // 기준 높이
         boardZ: 20001,      // 판서
         timerZ: 20002,      // 타이머
         pickerZ: 20003,     // 뽑기창
@@ -4421,8 +4502,8 @@ showLotteryFilter: false,
 // 신규: 뽑기 마스터 모달
         showPickerMaster: false,
         pickerTab: 'lottery',         isPickerMaximized: false,
-        pickerX: 100,
-        pickerY: 100,
+        pickerX: 350,
+        pickerY: 50,
         pickerW: 900,
         pickerH: 700,
         ladderContentMode: 'winner',     
@@ -4463,6 +4544,12 @@ ladderSelectionList: [],
         dataArray: null,         // 소음 데이터 배열
         volumeInterval: null,    // 반복 체크용 인터벌
         currentVolume: 0,        // 현재 소음(dB 비슷하게 변환된 값)
+// 기존 데이터 변수들 맨 아래쯤에 다음 내용을 추가하세요
+thresholdReading: 50,
+thresholdDiscussion: 80,
+currentNoisePreset: 'reading',
+noiseRecordSeconds: 0,
+noiseRecordInterval: null,
         noiseThreshold: 60,      // [설정] 기준 민감도 (슬라이더 값)
         noiseGauge: 0,
         currentVolume: 0,
@@ -4571,10 +4658,10 @@ fullBracketTree: [],
 // 소음 측정기 모달
         showNoiseMeter: false,
         isNoiseMaximized: false,
-        noiseX: 100,
-        noiseY: 100,
-        noiseW: 400,
-        noiseH: 300,
+        noiseX: 350,
+        noiseY: 50,
+        noiseW: 900,
+        noiseH: 700,
         noiseZ: 5004,
         noiseAnalyzer: null,   
         noiseStream: null,     
@@ -4595,7 +4682,7 @@ isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, te
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
                 
                 showTimer: false, timerSeconds: 0, timerInterval: null, timerX: null, timerY: null, timerSize: 400, isExploding: false,
-                isTimerMaximized: false,
+                isTimerMaximized: true,
                inputMin: "0", 
                 inputSec: "00",
 timerTargetTime: 0,
@@ -4619,7 +4706,7 @@ userSelectedMode: null,
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
                 
-                showBlackboard: false, blackboardContent: '', boardX: 100, boardY: 100, boardW: 600, boardH: 400, showBoardList: false, savedBoards: [], showSymbolPalette: false, history: [], historyIndex: -1,
+                showBlackboard: false, blackboardContent: '', boardX: 350, boardY: 50, boardW: 900, boardH: 700, showBoardList: false, savedBoards: [], showSymbolPalette: false, history: [], historyIndex: -1,
                 historyTimeout: null, isRestoringHistory: false, isComposing: false, isSyncing: false,
 specialSymbols: ['★', '♥', '□', '■', '●', '▶', '→', '←', '↑', '↓', '①', '②', '③', '④', '⑤'],
 paletteColors: ['#ffffff', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#d946ef', '#000000'],                showForeColorPalette: false, showHiliteColorPalette: false,
@@ -4656,6 +4743,8 @@ showStudentSelectModal: false, targetLockSeatIdx: null,
                 showRouletteResult: false, rouletteWinner: '',
                 rouletteX: 300, rouletteY: 150, rouletteW: 1050, rouletteH: 750, showRouletteList: false, savedRoulettes: [],
 
+
+
                 /* 모둠 편성 */
 showGroupMakerModal: false, tempGroupCount: 6, 
 groupingMode: 'mixed', // tempGenderBalance 삭제하고 모드 변수 추가
@@ -4664,6 +4753,8 @@ showGroupingHistory: false, // 저장 목록 창 표시 여부
                 /* 🪨 [돌 레이스 데이터] (Rock) */
                 showRockRace: false,
                 showRaceSetup: true,
+deductWinnerCount: true,
+rememberParticipants: false,
                 isGameRunning: false,
                 showRaceCountdown: false,
                 countdownNum: 3,
@@ -4934,7 +5025,6 @@ currentLotteryPool() {
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
-
             'soundSettings.game'(val) {
                 if (!val) {
                     this.stopSound('bgm_race');
@@ -4994,6 +5084,19 @@ currentLotteryPool() {
 
 
            methods: {
+
+toggleOneMinAlarm() {
+            this.isOneMinAlarmOn = !this.isOneMinAlarmOn;
+            
+            // 켤 때와 끌 때 소리 다르게 (피드백)
+            if (this.isOneMinAlarmOn) {
+                this.playSound('click'); // 켤 때는 딸깍!
+            } else {
+                this.playSound('hover'); // 끌 때는 둔탁한 소리
+            }
+            
+            this.saveToLocal(); // 상태 영구 저장
+        },
 // [★수정] 글자 조합 중(isComposing)일 때는 절대 저장하지 않으며, 1초 뒤에 조용히 저장합니다.
             handleBoardInput() {
                 if (this.isRestoringHistory || this.isComposing) return;
@@ -5077,27 +5180,7 @@ formatTimeBank(secs) {
                 this.saveSelection(); 
             },
             
-            // 2. 글자 증발 완벽 방지: 한글 조합 중일 땐 절대 저장하지 않음!
-            handleBoardInput(e) {
-                this.blackboardContent = e.target.innerHTML; 
-                if (this.isComposing) return; // 글자 조합 중에는 서버 전송만 멈춤
-                
-                if (this.historyTimeout) clearTimeout(this.historyTimeout);
-                this.historyTimeout = setTimeout(() => {
-                    this.saveHistory();
-                    this.saveToLocal();
-                }, 300); 
-            },
-            handleCompositionEnd(e) {
-                this.isComposing = false;
-                this.blackboardContent = e.target.innerHTML;
-                if (this.historyTimeout) clearTimeout(this.historyTimeout);
-                this.historyTimeout = setTimeout(() => {
-                    this.saveHistory();
-                    this.saveToLocal();
-                }, 300); 
-            },
-            handleBoardBlur(e) {
+                       handleBoardBlur(e) {
                 // [★핵심] 다른 창이나 바탕화면을 누를 때 한글 조합(받침 등)이 칠판에 온전히 찍힐 수 있도록 0.2초 기다린 후 텍스트를 저장합니다.
                 setTimeout(() => {
                     const editor = document.getElementById('board-editor');
@@ -5124,9 +5207,17 @@ saveBoardToList() {
                 // HTML 태그 찌꺼기 제거
                 let textOnly = tempHtml.replace(/<[^>]+>/g, '');
                 
-                // 줄바꿈 기준으로 나누고, 비어있지 않은 첫 번째 줄을 찾음
+                // 줄바꿈 기준으로 나누고, 비어있지 않은 줄을 찾음
                 const lines = textOnly.split('\n').map(l => l.trim()).filter(l => l !== "");
                 const title = lines.length > 0 ? lines[0].substring(0, 30) : "제목 없음";
+                
+                // ★ [수정] 미리보기는 첫 번째 줄(제목)을 제외한 두 번째 줄부터 보여주기
+                let previewText = "";
+                if (lines.length > 1) {
+                    previewText = lines.slice(1).join(' ').substring(0, 40);
+                } else {
+                    previewText = "내용 없음";
+                }
                 
                 get(child(ref(db), DB_KEY + '/savedBoards')).then((snapshot) => {
                     let latestBoards = [];
@@ -5139,7 +5230,7 @@ saveBoardToList() {
                         id: Date.now(), 
                         title: title, 
                         content: this.blackboardContent, 
-                        preview: textOnly.replace(/\n/g, ' ').substring(0, 40) 
+                        preview: previewText // ★ 변경된 미리보기 텍스트 적용
                     });
                     
                     this.savedBoards = latestBoards;
@@ -5150,7 +5241,6 @@ saveBoardToList() {
                     alert("저장 중 오류가 발생했습니다.");
                 });
             },
-
 getDistToSegment(px, py, x1, y1, x2, y2) {
     const l2 = (x2 - x1)**2 + (y2 - y1)**2;
     if (l2 === 0) return Math.sqrt((px - x1)**2 + (py - y1)**2);
@@ -5161,56 +5251,12 @@ getDistToSegment(px, py, x1, y1, x2, y2) {
     return Math.sqrt((px - projX)**2 + (py - projY)**2);
 },
 
-// [신규] 현재 상태 저장 (기록용)
-            saveHistory() {
-                const currentState = {
-                    paths: JSON.parse(JSON.stringify(this.paths)),
-                    content: this.blackboardContent
-                };
 
-                // 새로운 동작이 발생하면 현재 인덱스 이후의 기록(다시 실행 데이터)은 삭제
-                if (this.historyIndex < this.history.length - 1) {
-                    this.history = this.history.slice(0, this.historyIndex + 1);
-                }
 
-                this.history.push(currentState);
-                if (this.history.length > 50) this.history.shift(); // 기록 50개 제한
-                this.historyIndex = this.history.length - 1;
-            },
-
-            // [신규] 되돌리기 (Undo)
-            undo() {
-                if (this.historyIndex > 0) {
-                    this.historyIndex--;
-                    this.applyHistoryState(this.history[this.historyIndex]);
-                }
-            },
-
-            // [신규] 다시 실행 (Redo)
-            redo() {
-                if (this.historyIndex < this.history.length - 1) {
-                    this.historyIndex++;
-                    this.applyHistoryState(this.history[this.historyIndex]);
-                }
-            },
-
-            // [신규] 히스토리 상태를 화면에 적용
-            // [수정] 복구 중이라는 깃발(Flag)을 세워 복구 데이터가 다시 저장되는 무한루프를 막습니다.
-            applyHistoryState(state) {
-                this.isRestoringHistory = true; 
-                this.paths = JSON.parse(JSON.stringify(state.paths));
-                this.blackboardContent = state.content;
-                this.$nextTick(() => {
-                    const editor = document.getElementById('board-editor');
-                    if (editor) editor.innerHTML = this.blackboardContent;
-                    this.redrawCanvas();
-                    this.saveToLocal();
-                    setTimeout(() => { this.isRestoringHistory = false; }, 100); // 복구 완료 후 깃발 내림
-                });
-            },
 focusInput(event) {
     event.target.select();
 },
+
 handleFontSizeChange(e) {
     const val = e.target.value;
     if (!val) return;
@@ -5389,14 +5435,6 @@ handleVideoError() {
 closeLocalVideo() {
     this.isVideoVisible = false;
     // 닫으면 영상 소리도 꺼짐 (v-if로 제거되므로 자동 처리됨)
-},
-setSensitivity(mode) {
-    if (mode === 'high') {
-        this.noiseThreshold = 50; 
-    } else {
-        this.noiseThreshold = 80; 
-    }
-    this.saveToLocal(); // 여기서 Firebase 저장이 실행됨
 },
 
 playCustomSound(src) {
@@ -5921,93 +5959,443 @@ startGroupShuffle() {
 },
     
 
-    // 2. 소음 측정 시작
-async startNoiseMeasurement() {
-    if (this.isMeasuring) return;
+// [1] 기록 저장 한도 증가 및 저장 로직
+            // ==========================================
+            // 🖍️ [1] 판서 기능 (커서 위치 정밀 추적 & Undo 유지)
+            // ==========================================
+          saveHistory() {
+                try {
+                    const editor = document.getElementById('board-editor');
+                    // 포커스가 있을 때만 실제 위치 계산, 아니면 마지막으로 기억한 위치 사용
+                    if (editor && document.activeElement === editor) {
+                        this.lastKnownCaret = this.getCaretOffset(editor);
+                    }
+                    const caretPos = this.lastKnownCaret || 0;
 
-    // [핵심] 이미 오디오 연결이 살아있다면(일시정지 상태), 권한 요청 없이 루프만 재개
-    if (this.audioContext && this.microphone && this.noiseAnalyzer) {
-        this.isMeasuring = true;
-        if (this.audioContext.state === 'suspended') await this.audioContext.resume();
-        this.updateVolume(); // 루프 재시작
-        return; 
-    }
+                    const currentState = {
+                        paths: JSON.parse(JSON.stringify(this.paths)),
+                        content: this.blackboardContent,
+                        caret: caretPos
+                    };
+                    
+                    if (this.history.length > 0 && this.historyIndex >= 0) {
+                        const prev = this.history[this.historyIndex];
+                        // 글씨와 그림이 완전히 똑같으면 중복 저장 안 함
+                        if (prev.content === currentState.content && JSON.stringify(prev.paths) === JSON.stringify(currentState.paths)) return;
+                    }
+                    
+                    if (this.historyIndex < this.history.length - 1) {
+                        this.history = this.history.slice(0, this.historyIndex + 1);
+                    }
+                    this.history.push(currentState);
+                    if (this.history.length > 200) this.history.shift();
+                    this.historyIndex = this.history.length - 1;
+                } catch(err) { console.error(err); }
+            },
 
-    // [최초 실행] 마이크 권한 요청 및 연결 설정
-    try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.audioContext = new AudioContext();
-        
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
-        this.noiseStream = stream;
-        this.microphone = this.audioContext.createMediaStreamSource(stream);
-        this.noiseAnalyzer = this.audioContext.createAnalyser();
-        
-        this.noiseAnalyzer.fftSize = 512;
-        this.noiseAnalyzer.smoothingTimeConstant = 0.8;
-        
-        this.microphone.connect(this.noiseAnalyzer);
-        this.dataArray = new Uint8Array(this.noiseAnalyzer.frequencyBinCount);
-        
-        this.isMeasuring = true;
-        this.updateVolume(); 
-    } catch (err) {
-        alert("마이크 권한이 필요합니다.");
-        this.isMeasuring = false;
-    }
-},
-pauseNoiseMeasurement() {
-    this.isMeasuring = false;
-    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
-    // 오디오 컨텍스트는 닫지 않음 -> 다시 재생 시 권한 요청 안 함
-},
-stopAndReset() {
-    this.isMeasuring = false;
-    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
 
-    // 마이크 및 오디오 자원 완전히 해제
-    if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
-    if (this.microphone) { this.microphone.disconnect(); this.microphone = null; }
-    if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
-    this.noiseAnalyzer = null; 
-    
-    // 수치 0으로 리셋
-    this.noiseGauge = 0;
-    this.currentVolume = 0;
-    this.displayedDb = 0;
-},
-resetNoiseGauge() {
-    this.noiseGauge = 0;
-    this.currentVolume = 0;
-    // (선택) 측정 중이 아닐 때 화면 숫자도 0으로 맞추기
-    if (!this.isMeasuring) this.displayedDb = 0;
-},
-updateVolume() {
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
+
+            applyHistoryState(state) {
+                this.isRestoringHistory = true; 
+                this.paths = JSON.parse(JSON.stringify(state.paths));
+                this.blackboardContent = state.content;
+                
+                this.$nextTick(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) {
+                        editor.innerHTML = this.blackboardContent;
+                        editor.focus();
+                        
+                        // 저장해둔 정확한 커서 위치로 복구
+                        if (state.caret !== null && state.caret !== undefined) {
+                            this.setCaretOffset(editor, state.caret);
+                            this.lastKnownCaret = state.caret; // 복구된 위치 업데이트
+                        } else {
+                            this.placeCaretAtEnd(editor);
+                        }
+                    }
+                    this.redrawCanvas();
+                    this.saveToLocal();
+                    setTimeout(() => { this.isRestoringHistory = false; }, 100); 
+                });
+            },
+
+            // 텍스트 길이로 정확한 커서 위치 추출
+            getCaretOffset(element) {
+                let caretOffset = 0;
+                const doc = element.ownerDocument || element.document;
+                const win = doc.defaultView || doc.parentWindow;
+                if (typeof win.getSelection !== "undefined") {
+                    const sel = win.getSelection();
+                    if (sel.rangeCount > 0 && element.contains(sel.anchorNode)) {
+                        const range = win.getSelection().getRangeAt(0);
+                        const preCaretRange = range.cloneRange();
+                        preCaretRange.selectNodeContents(element);
+                        preCaretRange.setEnd(range.endContainer, range.endOffset);
+                        caretOffset = preCaretRange.toString().length;
+                    }
+                }
+                return caretOffset;
+            },
+            // ★ [핵심] 재귀 함수로 텍스트 노드를 샅샅이 뒤져 정확한 위치에 커서를 꽂아줍니다!
+           setCaretOffset(element, position) {
+                if (typeof window.getSelection === "undefined" || !element) return;
+                
+                const selection = window.getSelection();
+                const range = document.createRange();
+                let currentPos = 0;
+                let found = false;
+
+                function traverseNodes(node) {
+                    if (found) return;
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const length = node.textContent.length;
+                        if (currentPos + length >= position) {
+                            range.setStart(node, position - currentPos);
+                            range.collapse(true);
+                            found = true;
+                        } else {
+                            currentPos += length;
+                        }
+                    } else {
+                        for (let i = 0; i < node.childNodes.length; i++) {
+                            traverseNodes(node.childNodes[i]);
+                            if (found) break;
+                        }
+                    }
+                }
+                
+               traverseNodes(element);
+                
+                if (!found) {
+                    range.selectNodeContents(element);
+                    range.collapse(false);
+                }
+                
+                selection.removeAllRanges();
+                selection.addRange(range);
+            },
+
+            placeCaretAtEnd(el) {
+                el.focus();
+                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                    let range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    let sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            },
+
+            // 타이핑할 때마다 즉시 히스토리 저장 (1글자씩 Undo/Redo 지원)
+            handleBoardInput(e) {
+                if (this.isRestoringHistory || this.isComposing) return;
+                this.blackboardContent = e.target.innerHTML;
+                this.lastKnownCaret = this.getCaretOffset(e.target); // 입력 즉시 커서 저장
+                
+                this.saveHistory();
+
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    this.saveToLocal();
+                }, 300); 
+            },
+
+            // 한글 조합이 끝났을 때 즉시 히스토리 저장
+            handleCompositionEnd(e) {
+                this.isComposing = false;
+                if (this.isRestoringHistory) return;
+                
+                this.blackboardContent = e.target.innerHTML;
+                
+                this.saveHistory();
+
+                if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                this.historyTimeout = setTimeout(() => {
+                    this.saveToLocal();
+                }, 300); 
+            },
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.applyHistoryState(this.history[this.historyIndex]);
+                }
+            },
+
+            applyHistoryState(state) {
+                this.isRestoringHistory = true; 
+                this.paths = JSON.parse(JSON.stringify(state.paths));
+                this.blackboardContent = state.content;
+                
+                this.$nextTick(() => {
+                    const editor = document.getElementById('board-editor');
+                    if (editor) {
+                        editor.innerHTML = this.blackboardContent;
+                        editor.focus();
+                        
+                        // ★ 저장해둔 커서 위치로 정확하게 복구
+                        if (state.caret !== null && state.caret !== undefined) {
+                            this.setCaretOffset(editor, state.caret);
+                        } else {
+                            this.placeCaretAtEnd(editor);
+                        }
+                    }
+                    this.redrawCanvas();
+                    this.saveToLocal();
+                    setTimeout(() => { this.isRestoringHistory = false; }, 100); 
+                });
+            },
+
+            // 커서 위치(글자 수) 알아내기
+            getCaretOffset(element) {
+                let caretOffset = 0;
+                const doc = element.ownerDocument || element.document;
+                const win = doc.defaultView || doc.parentWindow;
+                let sel;
+                if (typeof win.getSelection !== "undefined") {
+                    sel = win.getSelection();
+                    if (sel.rangeCount > 0) {
+                        const range = win.getSelection().getRangeAt(0);
+                        const preCaretRange = range.cloneRange();
+                        preCaretRange.selectNodeContents(element);
+                        preCaretRange.setEnd(range.endContainer, range.endOffset);
+                        caretOffset = preCaretRange.toString().length;
+                    }
+                }
+                return caretOffset;
+            },
+
+            // 알아낸 글자 수만큼 커서 이동시키기
+            setCaretOffset(element, offset) {
+                const createRange = (node, chars, range) => {
+                    if (!range) {
+                        range = document.createRange();
+                        range.selectNode(node);
+                        range.setStart(node, 0);
+                    }
+                    if (chars.count === 0) {
+                        range.setEnd(node, chars.count);
+                    } else if (node && chars.count > 0) {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            if (node.textContent.length < chars.count) {
+                                chars.count -= node.textContent.length;
+                            } else {
+                                range.setEnd(node, chars.count);
+                                chars.count = 0;
+                            }
+                        } else {
+                            for (let lp = 0; lp < node.childNodes.length; lp++) {
+                                range = createRange(node.childNodes[lp], chars, range);
+                                if (chars.count === 0) break;
+                            }
+                        }
+                    } 
+                    return range;
+                };
+
+                try {
+                    if (offset >= 0) {
+                        const sel = window.getSelection();
+                        let range = createRange(element, { count: offset });
+                        if (range) {
+                            range.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                } catch(e) {
+                    this.placeCaretAtEnd(element);
+                }
+            },
+
+            placeCaretAtEnd(el) {
+                el.focus();
+                if (typeof window.getSelection !== "undefined" && typeof document.createRange !== "undefined") {
+                    let range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false); // 끝으로 이동
+                    let sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            },
+
+            // ==========================================
+            // 🎤 [2] 소음 측정기 기능 (설정 기억 & 타이머 제어)
+            // ==========================================
+            
+            // ★ 슬라이더를 움직이면 로컬에 즉시 영구 저장!
+            onThresholdChange() {
+                if (this.currentNoisePreset === 'reading') {
+                    this.thresholdReading = this.noiseThreshold;
+                    localStorage.setItem('thresholdReading', this.noiseThreshold);
+                } else if (this.currentNoisePreset === 'discussion') {
+                    this.thresholdDiscussion = this.noiseThreshold;
+                    localStorage.setItem('thresholdDiscussion', this.noiseThreshold);
+                }
+                this.saveToLocal(); 
+            },
+
+            // 독서/토론 버튼 클릭 시 기억해둔 수치 불러오기
+            setSensitivity(mode) {
+                this.currentNoisePreset = mode;
+                localStorage.setItem('currentNoisePreset', mode);
+                
+                if (mode === 'reading') {
+                    this.noiseThreshold = this.thresholdReading || 50; 
+                } else if (mode === 'discussion') {
+                    this.noiseThreshold = this.thresholdDiscussion || 80;
+                }
+                this.saveToLocal();
+            },
+
+            formatNoiseTime(secs) {
+                const m = Math.floor(secs / 60).toString().padStart(2, '0');
+                const s = (secs % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            },
+
+            startNoiseTimer() {
+                if (!this.noiseRecordInterval) {
+                    this.noiseRecordInterval = setInterval(() => {
+                        if (this.isMeasuring && this.noiseGauge < 100) {
+                            this.noiseRecordSeconds++;
+                            // ★ 1초가 지날 때마다 즉시 서버와 로컬에 모두 저장!
+                            this.saveToLocal(); 
+                        }
+                    }, 1000);
+                }
+            },
+            stopNoiseTimer() {
+                if (this.noiseRecordInterval) {
+                    clearInterval(this.noiseRecordInterval);
+                    this.noiseRecordInterval = null;
+                }
+            },
+
+            async startNoiseMeasurement() {
+                if (this.isMeasuring) return;
+                
+                // 일시 정지 후 다시 재생 누를 때
+                if (this.audioContext && this.microphone && this.noiseAnalyzer) {
+                    this.isMeasuring = true;
+                    this.startNoiseTimer(); 
+                    if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+                    this.updateVolume(); 
+                    return; 
+                }
+
+                // ★ 이 곳에 있던 this.noiseRecordSeconds = 0; 강제 리셋 코드 삭제!
+                
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioContext = new AudioContext();
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+                    this.noiseStream = stream;
+                    this.microphone = this.audioContext.createMediaStreamSource(stream);
+                    this.noiseAnalyzer = this.audioContext.createAnalyser();
+                    this.noiseAnalyzer.fftSize = 512;
+                    this.noiseAnalyzer.smoothingTimeConstant = 0.8;
+                    this.microphone.connect(this.noiseAnalyzer);
+                    this.dataArray = new Uint8Array(this.noiseAnalyzer.frequencyBinCount);
+                    
+                    this.isMeasuring = true;
+                    this.startNoiseTimer(); 
+                    this.updateVolume(); 
+                } catch (err) {
+                    alert("마이크 권한이 필요합니다.");
+                    this.isMeasuring = false;
+                }
+            },
+
+            pauseNoiseMeasurement() {
+                this.isMeasuring = false;
+                this.stopNoiseTimer(); 
+                this.saveToLocal(); // ★ 일시정지 때도 확실히 저장
+                
+                if (this.audioContext && this.audioContext.state === 'running') {
+                    this.audioContext.suspend();
+                }
+                if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+            },
+
+            stopAndReset() {
+                this.isMeasuring = false;
+                this.stopNoiseTimer(); 
+                
+                this.noiseRecordSeconds = 0; 
+                this.saveToLocal(); // ★ 초기화되었을 때도 0초로 서버에 확실히 저장
+
+                if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+                if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
+                if (this.microphone) { this.microphone.disconnect(); this.microphone = null; }
+                if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
+                this.noiseAnalyzer = null; 
+                
+                this.noiseGauge = 0;
+                this.currentVolume = 0;
+                this.displayedDb = 0;
+            },
+
+            handleNoiseFail() {
+                if (this.isNoiseCooldown) return;
+                this.isNoiseCooldown = true;
+
+                this.stopAndReset(); // 폭탄 터져도 0초 리셋
+                this.noiseRecordSeconds = 0; 
+
+                this.playCustomSound('./police.mp3'); 
+                this.triggerSoundEffect('fail'); 
+                this.showToast("🚨탈락!", "danger-big");
+                
+                setTimeout(() => { this.isNoiseCooldown = false; }, 3000);
+            },
+
+            updateVolume() {
                 if (!this.isMeasuring || !this.noiseAnalyzer) return;
 
-                this.noiseAnalyzer.getByteFrequencyData(this.dataArray);
+                this.noiseAnalyzer.getByteTimeDomainData(this.dataArray);
+                let sumSquares = 0;
+                for (let i = 0; i < this.dataArray.length; i++) {
+                    let amplitude = (this.dataArray[i] / 128.0) - 1.0;
+                    sumSquares += amplitude * amplitude;
+                }
+                let rms = Math.sqrt(sumSquares / this.dataArray.length);
+                let rawDb = 0; 
                 
-                let sum = 0;
-                for (let i = 5; i < this.dataArray.length; i++) { sum += this.dataArray[i]; }
-                const average = sum / (this.dataArray.length - 5);
-                
-                let safeInput = Math.max(1, average);
+                if (rms > 0.02) {
+                    rawDb = (rms - 0.02) * 1000; 
+                }
 
-                // [★수정] 조용할 때 10, 시끄러울 때 110이 나오도록 급간(Range)을 대폭 넓힘
-                const sensitivity = 160; 
-                const offset = 190; 
-
-                let rawDb = Math.floor((Math.log10(safeInput) * sensitivity) - offset); 
-
-                // [★수정] 최소값을 10으로 낮춤 (자연스러운 백색소음 연출을 위해 8~12 사이로 흔들림)
-                if (rawDb < 10) rawDb = Math.floor(Math.random() * 5) + 8; 
-
-                if (Math.abs(rawDb - this.currentVolume) > 0.5) {
+                if (rawDb > this.currentVolume) {
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.25; 
+                } else {
                     this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
                 }
                 
+                if (this.currentVolume < 1) { this.currentVolume = 0; }
                 let calcVol = Math.floor(this.currentVolume);
-                calcVol = Math.max(0, Math.min(120, calcVol));
+                calcVol = Math.max(0, Math.min(100, calcVol)); 
 
                 const now = Date.now();
                 if (now - (this.lastDbUpdate || 0) > 500) { 
@@ -6017,41 +6405,21 @@ updateVolume() {
 
                 if (calcVol > this.noiseThreshold) {
                     const gap = calcVol - this.noiseThreshold;
-                    let increaseSpeed = 0.01 + (gap * 0.05); 
-                    increaseSpeed = Math.min(increaseSpeed, 0.5); 
+                    let increaseSpeed = 0.02 + (gap * 0.015); 
+                    increaseSpeed = Math.min(increaseSpeed, 0.4); 
                     this.noiseGauge += increaseSpeed;
                 } else {        
-                    this.noiseGauge -= 0.001; 
+                    this.noiseGauge -= 0.02; 
                 }
 
                 if (this.noiseGauge < 0) this.noiseGauge = 0;
                 if (this.noiseGauge > 100) this.noiseGauge = 100;
 
-                if (this.noiseGauge >= 100) {
-                    this.handleNoiseFail(); 
-                    return; 
-                }
+                if (this.noiseGauge >= 100) { this.handleNoiseFail(); return; }
 
                 this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
             },
-// 2. [필수] 탈락 처리 함수 (이게 없으면 소리가 안 납니다!)
-handleNoiseFail() {
-    // 쿨타임 중이면 실행 안 함 (중복 실행 방지)
-    if (this.isNoiseCooldown) return;
-    this.isNoiseCooldown = true;
 
-    this.stopNoiseMeasurement(); // 측정 멈춤
-    
-    // 소리 및 효과
-    this.playCustomSound('./police.mp3'); 
-    this.triggerSoundEffect('fail'); 
-    
-    // ★ 알림창 띄우기 (이 함수가 있어야 화면에 뜹니다)
-    this.showToast("🚨탈락!", "danger-big");
-    
-    // 3초 뒤 쿨타임 해제
-    setTimeout(() => { this.isNoiseCooldown = false; }, 3000);
-},
 
 // 3. [필수] 알림창(Toast) 표시 함수 (이게 없으면 경고 문구가 안 뜹니다!)
 showToast(msg, type = 'warning') {
@@ -6064,17 +6432,7 @@ showToast(msg, type = 'warning') {
     }, 3000);
 },
 
-   // 3. 소음 측정 중단
-   stopNoiseMeasurement() {
-    this.isMeasuring = false;
-    if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
-    if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
-    if (this.microphone) { this.microphone.disconnect(); this.microphone = null; }
-    if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
-    this.noiseAnalyzer = null; 
-    this.currentVolume = 0;
-},
-
+ 
 handleWarning() {
     // 경고 쿨타임은 별도로 짧게 (1.5초)
     if (this.isWarningCooldown) return;
@@ -7365,23 +7723,24 @@ deleteAlarm() {
     this.showToast("🔕 알람이 삭제되었습니다.");
 },
 focusWindow(target) {
-    this.currentMaxZ++; // 클릭할 때마다 번호 증가 (맨 앞으로)
-    
-    if (target === 'board') this.boardZ = this.currentMaxZ;
-    else if (target === 'timer') {
-        if (!this.isTimerMaximized) this.timerZ = this.currentMaxZ;
-    }
-    else if (target === 'picker') {
-        if (!this.isPickerMaximized) this.pickerZ = this.currentMaxZ;
-    }
-    else if (target === 'noise') {
-        if (!this.isNoiseMaximized) this.noiseZ = this.currentMaxZ;
-    }
-    else if (target === 'ladderResult') {
-        this.ladderResultZ = this.currentMaxZ;
-    }
-},
-syncInputToTime() { 
+                // ★ 가장 완벽한 방법: Math.max로 가장 높은 Z-index를 알아낸 뒤 무조건 그것보다 크게 덮어씁니다.
+                const maxZ = Math.max(
+                    this.boardZ || 0, 
+                    this.timerZ || 0, 
+                    this.pickerZ || 0, 
+                    this.noiseZ || 0, 
+                    this.ladderResultZ || 0, 
+                    this.currentMaxZ || 0
+                );
+                
+                this.currentMaxZ = maxZ + 1; 
+                
+                if (target === 'board') this.boardZ = this.currentMaxZ;
+                else if (target === 'timer') this.timerZ = this.currentMaxZ;
+                else if (target === 'picker') this.pickerZ = this.currentMaxZ;
+                else if (target === 'noise') this.noiseZ = this.currentMaxZ;
+                else if (target === 'ladderResult') this.ladderResultZ = this.currentMaxZ;
+            },syncInputToTime() { 
     const min = parseInt(this.inputMin) || 0;
     const sec = parseInt(this.inputSec) || 0;
     this.timerSeconds = (min * 60) + sec; 
@@ -7446,20 +7805,16 @@ toggleTimer() {
     if (this.timerInterval) {
         clearInterval(this.timerInterval);
         this.timerInterval = null;
-        // (선택) 멈춤 시 소리 끄기
         if (this.timerAudio) { this.timerAudio.pause(); this.timerAudio.currentTime = 0; }
     } 
     // 2. [시작]
     else {
-        // (1) 모드 초기 설정
         if (!this.userSelectedMode) {
             this.syncInputToTime();
             this.isStopwatchMode = (this.timerSeconds === 0);
             this.userSelectedMode = this.isStopwatchMode ? 'stopwatch' : 'timer';
         }
         
-        // (2) 시작 시 소리 재생 상태 초기화 (2.5초 이상 남았을 때만)
-        // 1초에 터지므로 여유를 두고 2.5초 정도로 설정
         if (this.timerSeconds > 2.5) {
             this.isEndingSoundPlayed = false;
         }
@@ -7472,42 +7827,67 @@ toggleTimer() {
         }
 
         let lastAlertSec = -1; 
+        
+        // ★ [신규] 시작하자마자 소리가 울리는 것을 방지하기 위해 시작 시점의 '초'를 기억
+        const startTotalSecs = this.timerSeconds;
+        this.lastMinuteAlarmPlayed = Math.floor(startTotalSecs);
 
         this.timerInterval = setInterval(() => {
             const currentNow = Date.now();
-            
+            let currentTotalSecs = 0;
+
             if (this.isStopwatchMode) {
-                this.timerSeconds = (currentNow - this.timerTargetTime) / 1000;
+                currentTotalSecs = (currentNow - this.timerTargetTime) / 1000;
+                this.timerSeconds = currentTotalSecs;
             } else {
-                const remaining = (this.timerTargetTime - currentNow) / 1000;
+                currentTotalSecs = (this.timerTargetTime - currentNow) / 1000;
                 
+                // [폭발 종료]
+                if (currentTotalSecs <= 1.0) {
+                    this.timerSeconds = 0;
+                    this.handleExplosion(); 
+                    return;
+                }
+                this.timerSeconds = currentTotalSecs;
+            }
+
+            // ★ [신규] 1분(60초) 정각 알림 로직 (스탑워치 & 타이머 공통)
+            if (this.isOneMinAlarmOn && currentTotalSecs > 0) {
+                const totalIntSec = Math.floor(currentTotalSecs);
+                const displaySec = totalIntSec % 60; // 화면에 표시되는 초 (00~59)
+
+                // 화면상 초가 딱 '00'이 되는 순간 (totalIntSec이 60의 배수)
+                if (displaySec === 0 && totalIntSec > 0) {
+                    // 이번 '분'에 아직 소리를 안 냈을 때만 단 1번 재생
+                    if (this.lastMinuteAlarmPlayed !== totalIntSec) {
+                        // ★ 'warning' 효과음으로 변경 (볼륨도 살짝 더 키움)
+                        this.playSound('warning', false, 0.7); 
+                        this.lastMinuteAlarmPlayed = totalIntSec;
+                    }
+                }
+            }
+
+            // [타이머 전용 경고음 로직]
+            if (!this.isStopwatchMode) {
                 // [1] 10초 ~ 3초 구간: '삐-' 경고음
-                if (remaining <= 10 && remaining > 4) {
-                    const currentSec = Math.ceil(remaining);
+                if (currentTotalSecs <= 10 && currentTotalSecs > 4) {
+                    const currentSec = Math.ceil(currentTotalSecs);
                     if (currentSec !== lastAlertSec) {
                         this.playSound('warning', false, 0.6); 
                         lastAlertSec = currentSec;
                     }
                 }
 
-                // [2] 2.1초 ~ 1초 구간: '타이머 효과음' 재생 (약 1.1초간 재생됨)
-                // 폭발이 1초에 일어나므로 1초보다 클 때만 소리 체크
-                if (remaining <= 4 && remaining > 1.0 && !this.isEndingSoundPlayed) {
+                // [2] 2.1초 ~ 1초 구간: '타이머 효과음'
+                if (currentTotalSecs <= 4 && currentTotalSecs > 1.0 && !this.isEndingSoundPlayed) {
                     if (this.timerAudio) {
                         this.timerAudio.currentTime = 0; 
                         this.timerAudio.play().catch(e => console.log("재생 오류:", e));
                     }
                     this.isEndingSoundPlayed = true; 
                 }
-
-                // [3] ★수정됨★ 1초 남았을 때 종료 처리 (1.0초에 폭발!)
-                if (remaining <= 1.0) {
-                    this.timerSeconds = 0; // 화면 숫자는 0으로 바꿈
-                    this.handleExplosion(); 
-                    return;
-                }
-                this.timerSeconds = remaining;
             }
+            
             this.syncTimeToInput();
         }, 50);
     }
@@ -7892,17 +8272,18 @@ this.playSound('finish', false, 0.5);
 
 
 saveToLocal() {
-                if (this.isSyncing) return; // 다른 창에서 온 데이터를 적용 중일 땐 내 저장을 막음
-                localStorage.setItem('noiseThreshold', this.noiseThreshold);
-                localStorage.setItem('isRotated', this.isRotated);
-                
-                if (this.saveTimeout) clearTimeout(this.saveTimeout);
-                this.saveTimeout = setTimeout(() => { 
-                    this.saveToFirebase(); 
-                    this.saveTimeout = null; 
-                }, 50); // 0.05초 딜레이로 즉시 저장
-            },
+    // ★ [데이터 증발 방지 핵심] 서버에서 데이터를 받아오는 중이거나, 초기 로딩 중일 때는 절대 저장 금지!
+    if (this.isSyncing || this.isInitialLoad) return; 
 
+    localStorage.setItem('noiseThreshold', this.noiseThreshold);
+    localStorage.setItem('isRotated', this.isRotated);
+    
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(() => { 
+        this.saveToFirebase(); 
+        this.saveTimeout = null; 
+    }, 50);
+},
             saveToFirebase() {
                 if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
                     this.isSavingNow = true; // [동시저장 방어막] 내가 저장 중임을 알림
@@ -7915,6 +8296,8 @@ saveToLocal() {
 
                     // [★복구] 선생님의 모든 소중한 데이터를 하나도 빠짐없이 포장합니다.
                     const dataToSave = {
+                        thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset,
+isOneMinAlarmOn: this.isOneMinAlarmOn,
                         noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
                         timeBankHistory: this.timeBankHistory, currentView: this.view, isRotated: this.isRotated,
                         capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
@@ -7926,6 +8309,10 @@ saveToLocal() {
                         blackboardContent: this.blackboardContent, paths: this.paths, groupingList: this.groupingList, 
                         animalRunners: currentAnimalRunners, animalRaceResults: this.animalRaceResults,
                         animalRaceFinished: this.animalRaceFinished, noiseLevels: this.noiseLevels,
+                        noiseRecordSeconds: this.noiseRecordSeconds, // ★ 누락되었던 소음 측정기 누적 시간 저장 추가!!
+                        deductWinnerCount: this.deductWinnerCount,
+                        rememberParticipants: this.rememberParticipants,
+                        participantList: this.participantList,
                         showGenderHint: this.showGenderHint, showStudentNumber: this.showStudentNumber, 
                         statsWarningCount: this.statsWarningCount, statsPenaltyCount: this.statsPenaltyCount,
                         clockMessage: this.clockMessage, alarmList: this.alarmList,
@@ -8005,9 +8392,27 @@ saveToLocal() {
                             if (parsed.showStudentNumber !== undefined) this.showStudentNumber = parsed.showStudentNumber;
                             // 시계 메시지가 옛날 찌꺼기(..., -)면 싹 비웁니다.
                             this.clockMessage = (parsed.clockMessage && parsed.clockMessage !== "..." && parsed.clockMessage !== "-") ? parsed.clockMessage : "";
-                            if (parsed.noiseThreshold !== undefined) this.noiseThreshold = Number(parsed.noiseThreshold);
+
+                            if (parsed.thresholdReading !== undefined) this.thresholdReading = Number(parsed.thresholdReading);
+if (parsed.thresholdDiscussion !== undefined) this.thresholdDiscussion = Number(parsed.thresholdDiscussion);
+if (parsed.currentNoisePreset) this.currentNoisePreset = parsed.currentNoisePreset;
+
+// 로컬 데이터 기반으로 슬라이더 초기 위치 잡아주기
+if (this.currentNoisePreset === 'reading') {
+    this.noiseThreshold = this.thresholdReading || 50;
+} else if (this.currentNoisePreset === 'discussion') {
+    this.noiseThreshold = this.thresholdDiscussion || 80;
+} else {
+    this.noiseThreshold = 50; // 기본값
+}
+
                             if (parsed.timeBankSeconds !== undefined) this.timeBankSeconds = Number(parsed.timeBankSeconds);
-                            if (parsed.showGenderHint !== undefined) this.showGenderHint = parsed.showGenderHint;
+                         if (parsed.isOneMinAlarmOn !== undefined) this.isOneMinAlarmOn = parsed.isOneMinAlarmOn;
+if (parsed.noiseRecordSeconds !== undefined) {
+                                this.noiseRecordSeconds = Number(parsed.noiseRecordSeconds);
+                                localStorage.setItem('noiseRecordSeconds', this.noiseRecordSeconds);
+                            }
+   if (parsed.showGenderHint !== undefined) this.showGenderHint = parsed.showGenderHint;
                             this.statsWarningCount = parsed.statsWarningCount || 0;
                             this.statsPenaltyCount = parsed.statsPenaltyCount || 0;
                             this.noiseLevels = parsed.noiseLevels || { safe: 50, caution: 70, warning: 90 };
@@ -8060,6 +8465,9 @@ saveToLocal() {
                                 this.animalRunners = Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 }));
                             }
                             this.animalRaceFinished = parsed.animalRaceFinished || false;
+                            if (parsed.deductWinnerCount !== undefined) this.deductWinnerCount = parsed.deductWinnerCount;
+                            if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants; // ★ 추가
+                            if (parsed.participantList) this.participantList = toArray(parsed.participantList);
 
                             this.lotteryPools = parsed.lotteryPools || { all: [], M: [], F: [] };
                             this.lastWinners = parsed.lastWinners || { all: null, M: null, F: null };
@@ -8098,28 +8506,20 @@ saveToLocal() {
                                     this.timerY = getNum(parsed.uiState.timer.y, (wh / 2) - 150);
                                     this.isTimerMaximized = !!parsed.uiState.timer.isMaximized;
                                 }
-                                if (parsed.uiState.noise) {
-                                    this.noiseW = getNum(parsed.uiState.noise.w, 400);
-                                    this.noiseH = getNum(parsed.uiState.noise.h, 300);
-                                    this.noiseX = Math.max(0, Math.min(getNum(parsed.uiState.noise.x, 100), ww - 100));
-                                    this.noiseY = Math.max(0, Math.min(getNum(parsed.uiState.noise.y, 100), wh - 100));
-                                    this.isNoiseMaximized = !!parsed.uiState.noise.isMaximized;
-                                }
-                                if (parsed.uiState.board) {
-                                    this.boardX = getNum(parsed.uiState.board.x, 100);
-                                    this.boardY = getNum(parsed.uiState.board.y, 100);
-                                    this.boardW = getNum(parsed.uiState.board.w, 600);
-                                    this.boardH = getNum(parsed.uiState.board.h, 400);
-                                    this.isMaximized = !!parsed.uiState.board.isMaximized;
-                                    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0;
+                                // ★ 판서, 소음, 뽑기는 서버에서 크기를 불러오더라도 무조건 고정값(350, 50, 900, 700) 유지
+                                if (parsed.uiState.board) { 
+                                    this.isMaximized = !!parsed.uiState.board.isMaximized; 
+                                    this.boardZoom = parsed.uiState.board.zoom !== undefined ? Number(parsed.uiState.board.zoom) : 5.0; 
                                     this.eraserSize = getNum(parsed.uiState.board.eraserSize, 64);
+                                    this.boardX = 350; this.boardY = 50; this.boardW = 900; this.boardH = 700;
                                 }
-                                if (parsed.uiState.picker) {
-                                    this.pickerX = getNum(parsed.uiState.picker.x, 100);
-                                    this.pickerY = getNum(parsed.uiState.picker.y, 100);
-                                    this.pickerW = getNum(parsed.uiState.picker.w, 900);
-                                    this.pickerH = getNum(parsed.uiState.picker.h, 700);
-                                    this.isPickerMaximized = !!parsed.uiState.picker.isMaximized;
+                                if (parsed.uiState.noise) { 
+                                    this.isNoiseMaximized = !!parsed.uiState.noise.isMaximized; 
+                                    this.noiseX = 350; this.noiseY = 50; this.noiseW = 900; this.noiseH = 700;
+                                }
+                                if (parsed.uiState.picker) { 
+                                    this.isPickerMaximized = !!parsed.uiState.picker.isMaximized; 
+                                    this.pickerX = 350; this.pickerY = 50; this.pickerW = 900; this.pickerH = 700;
                                 }
                                 if (parsed.uiState.raceSetup) {
                                     this.setupW = getNum(parsed.uiState.raceSetup.w, 1600);
@@ -8670,7 +9070,179 @@ saveNameList() {
     }
 },
 
-getIndex(b, r, p) { 
+// 🔒 데이터 내보내기
+            exportData() {
+                try {
+                    // ★ 요청하신 모든 데이터가 빠짐없이 저장되도록 객체 완벽 구성
+                    const backupData = {
+                        // 1. 좌석 및 명단 관련
+                        seats: this.seats,
+                        waitingRoom: this.waitingRoom,
+                        seatConfig: this.seatConfig,
+                        manualLocks: this.manualLocks,
+                        separationPairs: this.separationPairs,
+                        shuffleHistory: this.shuffleHistory,
+                        
+                        // 2. 모둠 활동 관련
+                        groups: this.groups,
+                        groupingList: this.groupingList,
+                        savedGroupings: this.savedGroupings,
+                        
+                        // 3. 뽑기 도구 및 게임 관련 (돌 선수 숫자 포함)
+                        participantList: this.participantList, 
+                        animalRaceResults: this.animalRaceResults, 
+                        lotteryPools: this.lotteryPools,
+                        lastWinners: this.lastWinners,
+                        lotteryMode: this.lotteryMode,
+                        savedRoulettes: this.savedRoulettes, 
+                        rouletteInput: this.rouletteInput, // ★ 돌림판 텍스트 누락 추가
+                        capsules: this.capsules, // ★ 캡슐 누락 추가
+                        
+                        // 4. 판서 관련
+                        blackboardContent: this.blackboardContent,
+                        paths: this.paths,
+                        savedBoards: this.savedBoards, 
+                        
+                        // 5. 시간 저금통, 알람, 메인 타이머
+                        timeBankSeconds: this.timeBankSeconds,
+                        timeBankHistory: this.timeBankHistory,
+                        alarmList: this.alarmList,
+                        clockMessage: this.clockMessage,
+                        timerSeconds: this.timerSeconds, // ★ 메인 타이머 시간 누락 추가
+                        inputMin: this.inputMin, 
+                        inputSec: this.inputSec, 
+                        isStopwatchMode: this.isStopwatchMode,
+
+                        // 6. 소음 측정기 관련
+                        noiseLevels: this.noiseLevels,
+                        noiseThreshold: this.noiseThreshold, 
+                        thresholdReading: this.thresholdReading, 
+                        thresholdDiscussion: this.thresholdDiscussion, 
+                        currentNoisePreset: this.currentNoisePreset, 
+                        noiseRecordSeconds: this.noiseRecordSeconds, // ★ 소음 측정 누적 시간 누락 추가
+                        
+                        // 7. UI 창 크기 및 위치
+                        uiState: {
+                            timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
+                            board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
+                            noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
+                            picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
+                            raceSetup: { w: this.setupW, h: this.setupH }
+                        },
+                        
+                        // 8. 토너먼트 상태
+                        tournamentData: {
+                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket          
+                        },
+
+                        version: "2.1", 
+                        exportDate: new Date().toLocaleString()
+                    };
+
+                    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    
+                    const dateStr = new Date().toISOString().slice(0, 10);
+                    a.href = url;
+                    a.download = `우리반_매니저_데이터_백업_${dateStr}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    this.playSound('save');
+                    alert("데이터가 JSON 파일로 안전하게 전체 저장되었습니다! 📂");
+                } catch (e) {
+                    alert("내보내기 중 오류 발생: " + e.message);
+                }
+            },
+
+            // 🔓 데이터 불러오기
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (!confirm("백업 파일을 불러오시겠습니까? 현재 데이터는 모두 덮어씌워집니다.")) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        // ★ 백업본에서 데이터가 존재하면 완벽하게 덮어씌우기
+                        if (data.seats) this.seats = data.seats;
+                        if (data.waitingRoom) this.waitingRoom = data.waitingRoom;
+                        if (data.seatConfig) this.seatConfig = data.seatConfig;
+                        if (data.manualLocks) this.manualLocks = data.manualLocks;
+                        if (data.separationPairs) this.separationPairs = data.separationPairs;
+                        if (data.shuffleHistory) this.shuffleHistory = data.shuffleHistory;
+                        
+                        if (data.groups) this.groups = data.groups;
+                        if (data.groupingList) this.groupingList = data.groupingList;
+                        if (data.savedGroupings) this.savedGroupings = data.savedGroupings;
+                        
+                        if (data.participantList) this.participantList = data.participantList;
+                        if (data.animalRaceResults) this.animalRaceResults = data.animalRaceResults;
+                        if (data.lotteryPools) this.lotteryPools = data.lotteryPools;
+                        if (data.lastWinners) this.lastWinners = data.lastWinners;
+                        if (data.lotteryMode) this.lotteryMode = data.lotteryMode;
+                        if (data.savedRoulettes) this.savedRoulettes = data.savedRoulettes;
+                        if (data.rouletteInput !== undefined) this.rouletteInput = data.rouletteInput;
+                        if (data.capsules) this.capsules = data.capsules;
+                        
+                        if (data.blackboardContent !== undefined) this.blackboardContent = data.blackboardContent;
+                        if (data.paths) this.paths = data.paths;
+                        if (data.savedBoards) this.savedBoards = data.savedBoards;
+                        
+                        if (data.timeBankSeconds !== undefined) this.timeBankSeconds = data.timeBankSeconds;
+                        if (data.timeBankHistory) this.timeBankHistory = data.timeBankHistory;
+                        if (data.alarmList) this.alarmList = data.alarmList;
+                        if (data.clockMessage !== undefined) this.clockMessage = data.clockMessage;
+                        
+                        // 타이머 복구
+                        if (data.timerSeconds !== undefined) this.timerSeconds = data.timerSeconds;
+                        if (data.inputMin !== undefined) this.inputMin = data.inputMin;
+                        if (data.inputSec !== undefined) this.inputSec = data.inputSec;
+                        if (data.isStopwatchMode !== undefined) this.isStopwatchMode = data.isStopwatchMode;
+
+                        // 소음 설정 및 타이머 누적 시간 복구
+                        if (data.noiseLevels) this.noiseLevels = data.noiseLevels;
+                        if (data.noiseThreshold !== undefined) this.noiseThreshold = data.noiseThreshold;
+                        if (data.thresholdReading !== undefined) this.thresholdReading = data.thresholdReading;
+                        if (data.thresholdDiscussion !== undefined) this.thresholdDiscussion = data.thresholdDiscussion;
+                        if (data.currentNoisePreset) this.currentNoisePreset = data.currentNoisePreset;
+                        if (data.noiseRecordSeconds !== undefined) {
+                            this.noiseRecordSeconds = data.noiseRecordSeconds;
+                            localStorage.setItem('noiseRecordSeconds', this.noiseRecordSeconds);
+                        }
+
+                        // UI 위치와 크기 복구
+                        if (data.uiState) {
+                            if (data.uiState.timer) { this.timerX = data.uiState.timer.x; this.timerY = data.uiState.timer.y; this.timerSize = data.uiState.timer.size; this.isTimerMaximized = data.uiState.timer.isMaximized; }
+                            if (data.uiState.board) { this.boardX = data.uiState.board.x; this.boardY = data.uiState.board.y; this.boardW = data.uiState.board.w; this.boardH = data.uiState.board.h; this.isMaximized = data.uiState.board.isMaximized; this.boardZoom = data.uiState.board.zoom; this.eraserSize = data.uiState.board.eraserSize; }
+                            if (data.uiState.noise) { this.noiseX = data.uiState.noise.x; this.noiseY = data.uiState.noise.y; this.noiseW = data.uiState.noise.w; this.noiseH = data.uiState.noise.h; this.isNoiseMaximized = data.uiState.noise.isMaximized; }
+                            if (data.uiState.picker) { this.pickerX = data.uiState.picker.x; this.pickerY = data.uiState.picker.y; this.pickerW = data.uiState.picker.w; this.pickerH = data.uiState.picker.h; this.isPickerMaximized = data.uiState.picker.isMaximized; }
+                            if (data.uiState.raceSetup) { this.setupW = data.uiState.raceSetup.w; this.setupH = data.uiState.raceSetup.h; }
+                        }
+                        
+                        // 서버 동기화 진행
+                        this.saveToFirebase();
+                        this.playSound('magic');
+                        alert("모든 백업 데이터를 성공적으로 불러왔습니다! 🎉");
+                        
+                        // 창 닫고 칠판 화면 다시 그리기
+                        this.showSettings = false;
+                        const editor = document.getElementById('board-editor');
+                        if (editor) editor.innerHTML = this.blackboardContent;
+                        this.redrawCanvas();
+                        
+                    } catch (err) {
+                        alert("잘못된 파일이거나 파일이 손상되었습니다.");
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            },getIndex(b, r, p) { 
     return ((b-1)*10) + ((r-1)*2) + (p-1); 
 },
 
@@ -8723,9 +9295,15 @@ saveSelection() {
                     const sel = window.getSelection();
                     if (sel.getRangeAt && sel.rangeCount > 0) {
                         this.savedRange = sel.getRangeAt(0);
+                        const editor = document.getElementById('board-editor');
+                        if (editor && editor.contains(sel.anchorNode)) {
+                            this.lastKnownCaret = this.getCaretOffset(editor); // 클릭/드래그 즉시 커서 저장
+                        }
                     }
                 }
             },
+
+
             restoreSelection() {
                 if (this.savedRange && window.getSelection) {
                     const sel = window.getSelection();
@@ -10208,6 +10786,8 @@ this.stopSound('bgm_rock');
             },
 
             applyWinnerDeduction() {
+                if (!this.deductWinnerCount) return; 
+
                 const winners = this.finalRanking.slice(0, 3);
                 winners.forEach(winner => {
                     const participant = this.participantList.find(p => p.name === winner.name);
@@ -10215,27 +10795,42 @@ this.stopSound('bgm_rock');
                         participant.count--; 
                     }
                 });
+
+                // 차감된 결과를 즉시 서버에 저장하여 '선수 기억' 모드 시 유지되도록 함
+                this.saveToLocal();
             },
             
-            syncParticipants() {
-    // 1. 전체 학생 명단을 가져와서 정렬
-    const sortedList = [...this.allStudents].sort((a, b) => {
-        // 번호가 둘 다 있는 경우 번호순 정렬
-        if (a.number && b.number) return a.number - b.number;
-        // 한쪽만 번호가 있는 경우 번호 있는 쪽을 위로
-        if (a.number) return -1;
-        if (b.number) return 1;
-        // 번호가 둘 다 없는 경우 이름순 정렬
-        return a.name.localeCompare(b.name);
-    });
+           syncParticipants() {
+                const sortedList = [...this.allStudents].sort((a, b) => {
+                    if (a.number && b.number) return a.number - b.number;
+                    if (a.number) return -1;
+                    if (b.number) return 1;
+                    return a.name.localeCompare(b.name);
+                });
 
-    // 2. 정렬된 명단을 기반으로 참가자 리스트 생성
-    this.participantList = sortedList.map(s => ({
-        name: s.name,
-        count: 0,
-        selected: true
-    }));
-},
+                // 기존 참가자 리스트 백업 (기억 모드용)
+                const oldListMap = new Map(this.participantList.map(p => [p.name, p]));
+
+                this.participantList = sortedList.map(s => {
+                    let defaultCount = 0;
+                    let defaultSelected = true;
+
+                    // ★ '선수 기억'이 켜져 있고, 예전 데이터가 존재하면 예전 카운트와 선택 상태를 그대로 씀
+                    if (this.rememberParticipants && oldListMap.has(s.name)) {
+                        const oldData = oldListMap.get(s.name);
+                        defaultCount = oldData.count;
+                        defaultSelected = oldData.selected;
+                    }
+
+                    return {
+                        name: s.name,
+                        count: defaultCount,
+                        selected: defaultSelected
+                    };
+                });
+                
+                this.saveToLocal(); // 최신화된 명단 저장
+            },
 
             addParticipant() { 
                 this.participantList.push({ name: '', count: 1, selected: false }); 
@@ -10249,8 +10844,25 @@ this.stopSound('bgm_rock');
             toggleSelectAll() { this.participantList.forEach(p => p.selected = this.isSelectAll); },
             updateSelectAllState() { this.isSelectAll = this.participantList.every(p => p.selected); },
             bulkAdjust(delta) { this.participantList.forEach(p => { if(p.selected) p.count = Math.max(0, p.count + delta); }); },
-            startSetupResize(e) { e.preventDefault(); const sx = e.clientX, sy = e.clientY, w = this.setupW, h = this.setupH; const mv = (ev) => { this.setupW = Math.max(500, w + (ev.clientX - sx)); this.setupH = Math.max(400, h + (ev.clientY - sy)); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', () => document.removeEventListener('mousemove', mv), { once: true }); },
-            
+startSetupResize(e) { 
+    e.preventDefault(); 
+    const sx = e.clientX, sy = e.clientY, w = this.setupW, h = this.setupH; 
+    
+    const mv = (ev) => { 
+        this.setupW = Math.max(500, w + (ev.clientX - sx)); 
+        this.setupH = Math.max(400, h + (ev.clientY - sy)); 
+    }; 
+    
+    const mu = () => {
+        document.removeEventListener('mousemove', mv);
+        document.removeEventListener('mouseup', mu);
+        // ★ 창 크기 조절이 끝나면(마우스를 뗐을 때) 현재 크기를 서버/로컬에 저장합니다.
+        this.saveToLocal(); 
+    };
+
+    document.addEventListener('mousemove', mv); 
+    document.addEventListener('mouseup', mu); 
+},            
             async startRaceSequence() {
     const activeParticipants = this.participantList.filter(p => p.name.trim() !== '' && p.count > 0 && p.selected);
     if (activeParticipants.length === 0) return alert('참가자가 없습니다!');
@@ -10953,35 +11565,29 @@ startReverseLadderGame(endColIdx) {
 },
 
        mounted() { 
-    
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
 
-            // 저장된 민감도 수치 불러오기
-            const savedThreshold = localStorage.getItem('noiseThreshold');
-            if (savedThreshold) {
-                this.noiseThreshold = parseInt(savedThreshold);
+// ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
+            const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');
+            if (savedNoiseSecs) this.noiseRecordSeconds = parseInt(savedNoiseSecs);
+
+            // 로컬 스토리지에서 독서/토론 설정값을 최우선으로 불러와서 세팅!
+            const savedTR = localStorage.getItem('thresholdReading');
+            if (savedTR) this.thresholdReading = parseInt(savedTR);
+
+            const savedTD = localStorage.getItem('thresholdDiscussion');
+            if (savedTD) this.thresholdDiscussion = parseInt(savedTD);
+
+            const savedMode = localStorage.getItem('currentNoisePreset');
+            if (savedMode) {
+                this.currentNoisePreset = savedMode;
+                this.noiseThreshold = savedMode === 'reading' ? this.thresholdReading : this.thresholdDiscussion;
             } else {
-                this.noiseThreshold = 50;
+                this.noiseThreshold = 50; // 완전 처음 켰을 때 기본값
             }
 
-            if (typeof db !== 'undefined' && typeof onValue !== 'undefined' && typeof ref !== 'undefined') {
-                const settingsRef = ref(db, 'settings/noiseThreshold');
-                onValue(settingsRef, (snapshot) => {
-                    const val = snapshot.val();
-                    if (val !== null) {
-                        this.noiseThreshold = Number(val);
-                    } else {
-                        const localVal = localStorage.getItem('noiseThreshold');
-                        if (localVal) this.noiseThreshold = Number(localVal);
-                    }
-                });
-            } else {
-                const localVal = localStorage.getItem('noiseThreshold');
-                if (localVal) this.noiseThreshold = Number(localVal);
-            }
-
-            // 2. 이벤트 리스너
+            // 2. 이벤트 리스너 (아래부터 쭉 이어짐...)
             window.addEventListener('keydown', this.handleEscKey);
             window.addEventListener('resize', () => { 
                 this.resizeLadderCanvas(); 

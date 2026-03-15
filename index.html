@@ -3347,7 +3347,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
    </div>
    
    <div class="blackboard-toolbar" style="overflow: visible !important;" @mousedown.prevent>
-       <select ref="fontSizeSelect" @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
+       <select ref="fontSizeSelect" @mousedown.stop @change="handleFontSizeChange" class="toolbar-select !h-[52px] !text-lg bg-white">
            <option value="" disabled selected hidden>크기</option>
            <option value="3">작게</option><option value="5">보통</option><option value="7">크게</option>
        </select>
@@ -4486,7 +4486,7 @@ selectedBracketMode: 'random32',
                 groupingList: [], 
                 showGroupingResultModal: false, 
                 stoppedGroups: [], 
-                boardZoom: 5.0, 
+boardZoom: 1.0,
                 zoomTimer: null,
 showNoiseSettings: false,
 showLadderGame: false,
@@ -9268,28 +9268,59 @@ openBlackboard() {
             },
 
             applyStyle(cmd, val = null) { 
-                this.restoreSelection();
-                
-                // [★핵심] 이전 코드의 찌꺼기(span 변환 로직)를 완전히 삭제했습니다!
-                // 브라우저의 기본 기능을 방해하지 않아야 부분 선택 시 앞뒤 글자가 예쁘게 쪼개집니다.
-                if (cmd === 'fontSize') {
-                    document.execCommand('styleWithCSS', false, false);
-                } else {
-                    document.execCommand('styleWithCSS', false, true);
+                this.restoreSelection(); // 1. 저장해둔 선택 영역 복구
+
+                let activeEditor = document.getElementById('board-editor');
+
+                // 코넬 모드 호환성 유지
+                if (this.isCornellMode) {
+                    if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
+                        const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
+                        if(box) {
+                            box.focus();
+                            activeEditor = box; 
+                        }
+                    } else {
+                        activeEditor = document.activeElement;
+                    }
                 }
-                
+
+                // ★ [핵심 1] 전체 선택(Ctrl+A) 강제 보정
+                // 텍스트 전체가 선택된 상태라면, 선택 범위를 에디터의 '모든 내부 노드'로 강제 재지정합니다.
+                // 이렇게 하면 브라우저가 첫 줄을 빼먹는 고질적인 버그를 원천 차단할 수 있습니다.
+                const sel = window.getSelection();
+                if (activeEditor && sel && sel.rangeCount > 0) {
+                    const selectedText = sel.toString().replace(/\s+/g, '');
+                    const totalText = activeEditor.textContent.replace(/\s+/g, '');
+                    
+                    if (selectedText.length > 0 && selectedText === totalText) {
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(activeEditor);
+                        sel.removeAllRanges();
+                        sel.addRange(newRange);
+                    }
+                }
+
+                if (cmd === 'fontSize') document.execCommand('styleWithCSS', false, false);
+                else document.execCommand('styleWithCSS', false, true);
+
+                // 2. 브라우저 기본 명령 실행 (크기, 굵기 등 변경)
                 document.execCommand(cmd, false, val);
-                
+
                 this.closePalettes(); 
+                
+                // ★ [핵심 2] 명령 실행 직후 선택 영역 재캡처!
+                // HTML 구조가 변했으므로, 브라우저가 새로 잡은 선택 영역을 즉시 다시 저장합니다.
+                // 이 한 줄 덕분에 연속으로 크기를 여러 번 바꿔도 첫 줄이 절대 빠지지 않습니다.
+                this.saveSelection();
+
                 this.$nextTick(() => {
-                    const editor = document.getElementById('board-editor');
-                    if (editor) {
-                        this.blackboardContent = editor.innerHTML;
+                    if (!this.isCornellMode && activeEditor) {
+                        this.blackboardContent = activeEditor.innerHTML;
                     }
                     this.saveToLocal();
                 });
             },
-
 saveSelection() {
                 if (window.getSelection) {
                     const sel = window.getSelection();
@@ -9312,33 +9343,95 @@ saveSelection() {
                 }
             },
 
-            // 텍스트 스타일 적용
-            applyStyle(cmd, val = null) { 
-                this.restoreSelection(); // 선택 영역 복구!
+           // 색상 적용 및 펜 색상 동기화
+            applyColor(cmd, color) { 
+                if (cmd === 'foreColor') {
+                    this.drawColor = color; 
+                }
+                // ★ [크롬 버그 해결] 형광펜(배경색)이 안 먹히는 현상을 방지하기 위해 명령어 변환
+                if (cmd === 'hiliteColor') {
+                    cmd = 'backColor';
+                }
+                this.applyStyle(cmd, color); 
+            },
 
+            // 텍스트 스타일 적용 (크기, 색상, 배경색, 굵기 등)
+            applyStyle(cmd, val = null) { 
+                this.restoreSelection(); // 1. 저장해둔 선택 영역 복구
+
+                let activeEditor = document.getElementById('board-editor');
+
+                // 코넬 모드 호환성 유지
                 if (this.isCornellMode) {
                     if (!document.activeElement || !document.activeElement.classList.contains('cornell-box')) {
                         const box = this.$refs['cornell_' + this.lastFocusedCornellBox];
-                        if(box) box.focus();
+                        if(box) {
+                            box.focus();
+                            activeEditor = box; 
+                        }
+                    } else {
+                        activeEditor = document.activeElement;
+                    }
+                }
+
+                // ★ [핵심 1] 전체 선택(Ctrl+A) 강제 보정
+                const sel = window.getSelection();
+                if (activeEditor && sel && sel.rangeCount > 0) {
+                    const selectedText = sel.toString().replace(/\s+/g, '');
+                    const totalText = activeEditor.textContent.replace(/\s+/g, '');
+                    
+                    if (selectedText.length > 0 && selectedText === totalText) {
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(activeEditor);
+                        sel.removeAllRanges();
+                        sel.addRange(newRange);
                     }
                 }
 
                 if (cmd === 'fontSize') document.execCommand('styleWithCSS', false, false);
                 else document.execCommand('styleWithCSS', false, true);
 
+                // 2. 브라우저 기본 명령 실행
                 document.execCommand(cmd, false, val);
-                this.closePalettes(); 
-                this.saveToLocal();
-            },
 
-            // 색상 적용 및 펜 색상 동기화
-            applyColor(cmd, color) { 
-                if (cmd === 'foreColor') {
-                    this.drawColor = color; 
+                // 3. [크롬 고질적 버그 완벽 해결] 브라우저가 빠뜨린 텍스트에 색상, 크기 등 수동 강제 적용
+                if (activeEditor && sel && sel.rangeCount > 0) {
+                    Array.from(activeEditor.childNodes).forEach(node => {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+                            if (sel.containsNode(node, true)) {
+                                let wrapper = document.createElement('span'); // 안전한 span 태그 기반으로 통합
+                                
+                                if (cmd === 'fontSize') {
+                                    wrapper = document.createElement('font');
+                                    wrapper.setAttribute('size', val);
+                                } else {
+                                    // 색상 및 기타 스타일 완벽 대응
+                                    if (cmd === 'foreColor') wrapper.style.color = val;
+                                    else if (cmd === 'backColor' || cmd === 'hiliteColor') wrapper.style.backgroundColor = val === 'transparent' ? 'transparent' : val;
+                                    else if (cmd === 'bold') wrapper.style.fontWeight = 'bold';
+                                    else if (cmd === 'italic') wrapper.style.fontStyle = 'italic';
+                                    else if (cmd === 'underline') wrapper.style.textDecoration = 'underline';
+                                }
+                                
+                                activeEditor.insertBefore(wrapper, node);
+                                wrapper.appendChild(node);
+                            }
+                        }
+                    });
                 }
-                this.applyStyle(cmd, color); 
+
+                this.closePalettes(); 
+                
+                // 명령 실행 직후 선택 영역 재캡처 (연속 스타일 변경 시 튕김 방지)
+                this.saveSelection();
+
+                this.$nextTick(() => {
+                    if (!this.isCornellMode && activeEditor) {
+                        this.blackboardContent = activeEditor.innerHTML;
+                    }
+                    this.saveToLocal();
+                });
             },
-          
 
      // 기존 clearBoard 덮어쓰기 (텍스트와 그림 동시 삭제)
             clearBoard() {

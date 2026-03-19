@@ -1503,7 +1503,8 @@ span[contenteditable="true"] {
     color: white !important;
     border: none !important;
 }
-.no-transition { transition: none !important; }
+/* 로딩 중 내부 요소 전체 애니메이션 완벽 차단 */
+.no-transition, .no-transition * { transition: none !important; animation: none !important; }
 
         #board-editor {
     font-family: 'Pretendard', 'Noto Sans KR', sans-serif !important;
@@ -8160,20 +8161,24 @@ updateClock() {
                 if (this.showBlackboard) {
                     const editor = document.getElementById('board-editor');
                     if (editor) {
-                        // 1. 날짜 갱신
-                        const dynamicDates = editor.querySelectorAll('.dynamic-date');
+                        // 1. 날짜 갱신 (선생님이 적용한 색상/크기를 보호하며 글씨만 변경)
+                        const dynamicDates = editor.querySelectorAll('.dynamic-date, c-date');
                         dynamicDates.forEach(el => {
-                            if (el.innerText !== this.currentDate) el.innerText = this.currentDate;
+                            let target = el;
+                            while(target.firstElementChild) target = target.firstElementChild;
+                            if (target.textContent !== this.currentDate) target.textContent = this.currentDate;
                         });
 
-                        // 2. 요일별 일정 갱신
-                        const dynamicSchedules = editor.querySelectorAll('.dynamic-schedule');
+                        // 2. 요일별 일정 갱신 (선생님이 적용한 색상/크기를 보호하며 글씨만 변경)
+                        const dynamicSchedules = editor.querySelectorAll('.dynamic-schedule, c-sched');
                         if (dynamicSchedules.length > 0) {
                             const currentData = this.scheduleVersions[this.currentScheduleVersion]?.data || {};
                             const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]}) 설정된 일정이 없습니다.`;
                             
                             dynamicSchedules.forEach(el => {
-                                if (el.innerText !== todaySchedule) el.innerText = todaySchedule;
+                                let target = el;
+                                while(target.firstElementChild) target = target.firstElementChild;
+                                if (target.textContent !== todaySchedule) target.textContent = todaySchedule;
                             });
                         }
                     }
@@ -8182,26 +8187,19 @@ updateClock() {
 
 insertDynamicDate() {
     this.restoreSelection(); 
-    
-    // ★ contenteditable="false"를 제거하여 드래그 및 서식 변경을 가능하게 만듭니다.
-    const dateHtml = `<span class="dynamic-date" style="color: #eab308; font-weight: 900;">${this.currentDate}</span>&nbsp;`;
-    
+    // 브라우저가 지우지 못하게 특수 태그 <c-date> 사용
+    const dateHtml = `<c-date class="dynamic-date" style="color: #eab308; font-weight: 900;">${this.currentDate}</c-date>&nbsp;`;
     document.execCommand('insertHTML', false, dateHtml);
 
     this.closePalettes(); 
     this.saveSelection();
-
     this.$nextTick(() => {
         const editor = document.getElementById('board-editor');
-        if (editor && !this.isCornellMode) {
-            this.blackboardContent = editor.innerHTML;
-        }
+        if (editor && !this.isCornellMode) this.blackboardContent = editor.innerHTML;
         this.saveHistory();
         this.saveToLocal();
     });
-},
-
-// [수정] 알람 추가/수정 (자동 정렬 포함)
+},// [수정] 알람 추가/수정 (자동 정렬 포함)
 addAlarm() {
     // 1. 입력값 보정 (00~23, 00~59)
     this.padTime('alarmHour');
@@ -10301,24 +10299,21 @@ saveSelection() {
 
         // [수정] 현재 버전에 맞는 일정 삽입
        insertDaySchedule() {
-                this.restoreSelection(); 
-                // 글씨 대신 자동 갱신되는 'dynamic-schedule' 클래스를 가진 빈 태그 삽입
-                const html = `<span class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;"></span>&nbsp;`;
-                document.execCommand('insertHTML', false, html);
+    this.restoreSelection(); 
+    // 브라우저가 지우지 못하게 특수 태그 <c-sched> 사용
+    const html = `<c-sched class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;"></c-sched>&nbsp;`;
+    document.execCommand('insertHTML', false, html);
 
-                this.closePalettes(); 
-                this.saveSelection();
-
-                this.$nextTick(() => {
-                    this.updateClock(); // 삽입 즉시 글씨 채우기 실행
-                    const editor = document.getElementById('board-editor');
-                    if (editor && !this.isCornellMode) {
-                        this.blackboardContent = editor.innerHTML;
-                    }
-                    this.saveHistory();
-                    this.saveToLocal();
-                });
-            },
+    this.closePalettes(); 
+    this.saveSelection();
+    this.$nextTick(() => {
+        this.updateClock(); 
+        const editor = document.getElementById('board-editor');
+        if (editor && !this.isCornellMode) this.blackboardContent = editor.innerHTML;
+        this.saveHistory();
+        this.saveToLocal();
+    });
+},
 
             duplicateBoardFromList(board) {
                 let contentModified = false;

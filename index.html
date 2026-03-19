@@ -996,21 +996,17 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     box-shadow: 0 0 30px #fbbf24, 0 0 60px rgba(251, 191, 36, 0.5) !important;
     animation: aura-blink 1s infinite alternate !important;
 }
-@keyframes rock-golden-pulse {
-    0% { 
-        filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)) drop-shadow(0 0 5px rgba(251, 191, 36, 0.8)); 
-        transform: scale(1.05) translateY(-2px); 
-    }
-    100% { 
-        filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)) drop-shadow(0 0 15px rgba(251, 191, 36, 1)) drop-shadow(0 0 30px rgba(251, 191, 36, 0.6)); 
-        transform: scale(1.08) translateY(-5px); 
-    }
-}
+/* 번쩍이는 효과 삭제 후 얇은 초록색(emerald) 테두리로 변경 */
 .rock-golden-glow {
-    animation: rock-golden-pulse 0.8s infinite alternate !important;
-}
-
-/* [신규] 메뉴바용 미니 캡슐 아이콘 (위 빨강, 아래 하양) */
+    filter: drop-shadow(2px 0 0 #64748b) 
+            drop-shadow(-2px 0 0 #64748b) 
+            drop-shadow(0 2px 0 #64748b) 
+            drop-shadow(0 -2px 0 #64748b) 
+            drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important;
+    
+    transform: scale(1.05);
+    animation: none !important;
+}/* [신규] 메뉴바용 미니 캡슐 아이콘 (위 빨강, 아래 하양) */
 .capsule-mini-icon {
     width: 18px;
     height: 18px;
@@ -2904,9 +2900,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
              <div class="game-layout">
                 <div class="canvas-wrapper" ref="canvasContainer">
                     <canvas id="raceCanvas"></canvas>
-                    <div v-if="isGameRunning" class="fixed bottom-8 right-8 z-[100] pointer-events-auto">
+                    <div v-if="isGameRunning" class="fixed bottom-8 right-8 z-[100] pointer-events-auto flex gap-3">
+                        <button @click="toggleGameSpeed" class="bg-blue-600 text-white px-6 py-3 rounded-full font-black shadow-2xl border-4 border-blue-400 text-xl cursor-pointer hover:bg-blue-700 hover:scale-105 transition-all">
+                            <i class="fa-solid fa-bolt mr-1"></i>X{{ gameSpeed }}
+                        </button>
                         <button class="bg-red-500 text-white px-8 py-3 rounded-full font-black shadow-2xl border-4 border-red-400 text-xl cursor-pointer hover:bg-red-600 hover:scale-105 transition-all" @click="forceFinishRace">
-                            <i class="fa-solid fa-flag-checkered mr-2"></i>경기 종료
+
+                            <i class="fa-solid fa-flag-checkered mr-2"></i>종료
                         </button>
                     </div>
                 </div>
@@ -3102,6 +3102,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="flex justify-between items-end mb-8">
                     <h2 class="text-5xl font-black text-white italic">🏁 모둠 달리기</h2>
                     <div class="flex gap-4">
+                        <button @click="toggleGameSpeed" class="bg-purple-500 text-white px-6 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-purple-600 active:scale-95 transition-all flex items-center justify-center">
+                            <i class="fa-solid fa-bolt mr-2"></i>X{{ gameSpeed }}
+                        </button>
                         <button v-if="animalRaceFinished" @click="startAnimalRace" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-blue-700">
                             <i class="fa-solid fa-rotate-right mr-2"></i>재시합
                         </button>
@@ -4143,6 +4146,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <i class="fa-solid fa-tree mr-2"></i> 정글 탐험
             </h2>
             <div class="flex gap-4">
+                <button @click="toggleGameSpeed" class="group relative inline-flex items-center justify-center px-4 py-2 font-black text-white transition-all duration-200 bg-blue-600 font-game rounded-xl hover:bg-blue-500 active:scale-95 shadow-md active:translate-y-[4px]">
+                    <i class="fa-solid fa-bolt mr-1"></i> X{{ gameSpeed }}
+                </button>
                 <button @click="revealAllLadders" class="group relative inline-flex items-center justify-center px-6 py-2 font-black text-white transition-all duration-200 bg-emerald-600 font-game rounded-xl hover:bg-emerald-500 active:scale-95 shadow-md active:translate-y-[4px]">
                     <i class="fa-solid fa-eye mr-2"></i> 결과 공개
                 </button>
@@ -4776,6 +4782,7 @@ timeBankSeconds: 0,
         timeBankInputMemo: '',
         timeBankEffect: '',
         lastAddedTime: '',
+gameSpeed: 1.0,
 paths: [],          // 모든 그림 획 데이터를 저장
         currentPath: null,   // 현재 그리고 있는 획
         selectedPath: null,
@@ -5474,7 +5481,18 @@ sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.loca
         },
 
 
+
            methods: {
+toggleGameSpeed() {
+                if (this.gameSpeed === 1.0) this.gameSpeed = 1.5;
+                else if (this.gameSpeed === 1.5) this.gameSpeed = 2.0;
+                else if (this.gameSpeed === 2.0) this.gameSpeed = 0.7; // ★ 0.7배속 추가
+                else this.gameSpeed = 1.0;
+                
+                this.playSound('click');
+                this.saveToLocal(); // 변경 시 즉시 서버(Firebase)에 저장되어 기억함
+            },
+
 invertCurrentSelection() {
                 if (this.view === 'group') {
                     this.groups.forEach(g => g.checked = !g.checked);
@@ -7809,74 +7827,87 @@ startLadderGame(startColIdx) {
     // 애니메이션 실행 (도착 열 인덱스를 전달)
     this.runSVGAnimation(pathPoints, currentCol, startColIdx); 
 },
-// (4) 애니메이션 실행
-// (4) 애니메이션 실행 (도착음 로직 수정됨)
-runSVGAnimation(pathPoints, finalResultIdx, topIdx = null) {
-    this.ballPos = { x: pathPoints[0].x, y: pathPoints[0].y, visible: true };
-    this.activePolyline = `${pathPoints[0].x},${pathPoints[0].y}`;
-            
-            let currentPointIdx = 0;
-            let progress = 0;
-            // ★ [수정] 애니메이션 속도를 기존 대비 1.3배 더 빠르게 상향!
-            const speed = 0.088; 
+// (4) 애니메이션 실행 (어떤 모니터든 속도 동일!)
+            runSVGAnimation(pathPoints, finalResultIdx, topIdx = null) {
+                this.ballPos = { x: pathPoints[0].x, y: pathPoints[0].y, visible: true };
+                this.activePolyline = `${pathPoints[0].x},${pathPoints[0].y}`;
+                
+                let currentPointIdx = 0;
+                let progress = 0;
+                
+                // 선생님이 설정하신 최적의 긴장감 속도!
+const speed = 0.1 * this.gameSpeed; // ★ 사다리 배속 적용
+                
+                // ★ 이전 프레임의 시간을 기억할 변수
+                let lastFrameTime = performance.now(); 
 
-            const animate = () => {
-        if (currentPointIdx >= pathPoints.length - 1) {
-    this.stopSound('move'); // 이동 소리 끄기
+                const animate = (timestamp) => {
+                    // ★ 모니터 주사율(Hz)에 상관없이 속도를 일정하게 맞추는 마법(Delta Time)
+                    if (!timestamp) timestamp = performance.now();
+                    let deltaTime = timestamp - lastFrameTime;
+                    if (deltaTime > 100) deltaTime = 16.666; // 화면을 내렸다가 켰을 때 순간이동 방지
+                    lastFrameTime = timestamp;
+                    
+                    // 60Hz 모니터(16.66ms)를 기준(1.0)으로 잡음
+                    const dt = deltaTime / 16.666;
 
-    // 1. 하단 결과 공개 (정방향 타기: 위->아래 도착 시)
-    if (finalResultIdx !== null && !this.revealedResults.includes(finalResultIdx)) {
-        this.revealedResults.push(finalResultIdx);
-       
-        const resText = this.ladderResults[finalResultIdx] || '';
-        if (resText.includes('꽝') || resText.includes('벌칙') || resText.includes('걸')) {
-            this.playSound('fail', false, 0.8); // 띠용~ (실패/코믹)
-        } else {
-this.playSound('magic', false, 0.6);
-        }
-    }
+                    if (currentPointIdx >= pathPoints.length - 1) {
+                        this.stopSound('move'); // 이동 소리 끄기
 
-    // 2. 상단 이름표 처리
-    if (topIdx !== null) {
-        if (!this.revealedStarts.includes(topIdx)) {
-            this.revealedStarts.push(topIdx);
-        }
-        // 역방향(아래->위) 타기인 경우 도착음
-        if (finalResultIdx === null) {
-            this.playSound('ding'); 
-        }
-    }
-    
-    this.isLadderAnimating = false;
-    this.ballHideTimeout = setTimeout(() => { 
-        this.ballPos.visible = false; 
-    }, 1000);
-    return;
-}
+                        // 1. 하단 결과 공개 (정방향 타기)
+                        if (finalResultIdx !== null && !this.revealedResults.includes(finalResultIdx)) {
+                            this.revealedResults.push(finalResultIdx);
+                            
+                            const resText = this.ladderResults[finalResultIdx] || '';
+                            if (resText.includes('꽝') || resText.includes('벌칙') || resText.includes('걸')) {
+                                this.playSound('fail', false, 0.8); // 실패음
+                            } else {
+                                this.playSound('magic', false, 0.6); // 성공음
+                            }
+                        }
 
-        progress += speed;
-        if (progress >= 1) {
-            progress = 0;
-            currentPointIdx++;
-            const p = pathPoints[currentPointIdx];
-            
-            // 선 그리기
-            this.activePolyline += ` ${p.x},${p.y}`;
-            
-            // 공 위치 업데이트
-            this.ballPos.x = p.x;
-            this.ballPos.y = p.y;
-        } else {
-            // 점과 점 사이 부드러운 이동 (Interpolation)
-            const p1 = pathPoints[currentPointIdx];
-            const p2 = pathPoints[currentPointIdx + 1];
-            this.ballPos.x = p1.x + (p2.x - p1.x) * progress;
-            this.ballPos.y = p1.y + (p2.y - p1.y) * progress;
-        }
-        requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-},
+                        // 2. 상단 이름표 처리 (역방향 타기)
+                        if (topIdx !== null) {
+                            if (!this.revealedStarts.includes(topIdx)) {
+                                this.revealedStarts.push(topIdx);
+                            }
+                            if (finalResultIdx === null) {
+                                this.playSound('ding'); 
+                            }
+                        }
+                        
+                        this.isLadderAnimating = false;
+                        this.ballHideTimeout = setTimeout(() => { 
+                            this.ballPos.visible = false; 
+                        }, 1000);
+                        return;
+                    }
+
+                    // ★ 기존 progress += speed 에 배율(dt)을 곱해주어 144Hz 모니터의 폭주를 막음!
+                    progress += speed * dt;
+                    
+                    if (progress >= 1) {
+                        progress = 0;
+                        currentPointIdx++;
+                        const p = pathPoints[currentPointIdx];
+                        
+                        // 선 그리기
+                        this.activePolyline += ` ${p.x},${p.y}`;
+                        
+                        // 공 위치 업데이트
+                        this.ballPos.x = p.x;
+                        this.ballPos.y = p.y;
+                    } else {
+                        // 점과 점 사이 부드러운 이동 (Interpolation)
+                        const p1 = pathPoints[currentPointIdx];
+                        const p2 = pathPoints[currentPointIdx + 1];
+                        this.ballPos.x = p1.x + (p2.x - p1.x) * progress;
+                        this.ballPos.y = p1.y + (p2.y - p1.y) * progress;
+                    }
+                    requestAnimationFrame(animate);
+                };
+                requestAnimationFrame(animate);
+            },
 // (5) 전체 공개
 revealAllLadders() {
     // 1. 애니메이션 중단 및 시각적 초기화
@@ -9333,8 +9364,8 @@ openAnimalRaceModal() {
 
                         // (3) 속도 계산 (가속도에 dt 적용)
                         let targetSpeed = 0;
-                        // [★수정] 전체 속도 0.8배 적용 (2.25 -> 1.8)
-                        const speedFactor = 2; 
+                        // ★ 동물 달리기 배속 적용
+                        const speedFactor = 2 * this.gameSpeed;
                         switch (r.state) {
                             case 'sprint': targetSpeed = (0.8 + Math.random() * 0.5) * speedFactor * 0.8; break;
                             case 'tired': targetSpeed = 0.02 * speedFactor; break;
@@ -12022,7 +12053,7 @@ loop(timestamp) {
     this.lastFrameTime = timestamp;
     const dt = deltaTime / 16.666;
 
-    const GLOBAL_SPEED = 1.5 * (this.timeScale || 1.0); 
+    const GLOBAL_SPEED = 1.5 * this.gameSpeed; // ★ 돌 레이스 배속 적용
     this.slowMoTimer = 0;
 
     this.rankingTimer = (this.rankingTimer || 0) + dt;

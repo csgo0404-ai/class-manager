@@ -2449,6 +2449,28 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             color: #5e3008;
             border-color: #8b4513;
         }
+/* 돌 7개 이상 선택 시 무지개 그라데이션 */
+/* 🪨 개수에 따른 돌멩이 본체 색상 변경 필터 */
+.rock-color-2 {filter: sepia(1) saturate(10) hue-rotate(300deg) brightness(0.9) drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important; 
+}
+.rock-color-3 { filter: sepia(1) saturate(5) hue-rotate(325deg) drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important; } /* 주황 */
+.rock-color-4 { filter: sepia(1) saturate(2.5) hue-rotate(70deg) brightness(0.95) drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important; }
+.rock-color-5 { filter: sepia(1) saturate(5) hue-rotate(170deg) drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important; } /* 파랑 */
+.rock-color-6 { filter: sepia(1) saturate(4) hue-rotate(260deg) drop-shadow(0 5px 5px rgba(0,0,0,0.2)) !important; } /* 보라 */
+
+/* 7개 이상: 무지개빛으로 스스로 색이 변하는 돌멩이 */
+.rock-color-rainbow { 
+    animation: rock-rainbow-filter 2s linear infinite !important; 
+}
+@keyframes rock-rainbow-filter {
+    0% { filter: sepia(1) saturate(5) hue-rotate(0deg) drop-shadow(0 5px 5px rgba(0,0,0,0.2)); }
+    100% { filter: sepia(1) saturate(5) hue-rotate(360deg) drop-shadow(0 5px 5px rgba(0,0,0,0.2)); }
+}
+@keyframes rainbow-bg-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 </style>  
 </head>
 <body>
@@ -2999,13 +3021,20 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          :class="{'inactive': item.count === 0}" 
          @click="handleRockCardClick(item)">
          
-         <div class="relative flex items-center justify-center w-full">
+         <div class="relative flex items-center justify-center w-full transition-all duration-300" :class="{'rock-golden-glow': rockAllMode}">
              <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" 
              class="rock-avatar-img relative z-10 transition-all duration-300" 
-             :class="{'rock-golden-glow': rockAllMode}"
+             :class="[
+                 item.count === 1 ? 'rock-color-1' : '',
+                 item.count === 2 ? 'rock-color-2' : '',
+                 item.count === 3 ? 'rock-color-3' : '',
+                 item.count === 4 ? 'rock-color-4' : '',
+                 item.count === 5 ? 'rock-color-5' : '',
+                 item.count === 6 ? 'rock-color-6' : '',
+                 item.count >= 7 ? 'rock-color-rainbow' : ''
+             ]"
              alt="Rock">
          </div>
-         
          <div class="rock-overlay-info">
              <div class="rock-name">{{ item.name }}</div>
              <div class="rock-count-row">
@@ -6900,7 +6929,7 @@ startGroupShuffle() {
                 }
 
                 if (rawDb > this.currentVolume) {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.25; 
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.1; 
                 } else {
                     this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
                 }

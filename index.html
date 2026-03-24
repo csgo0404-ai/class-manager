@@ -9168,7 +9168,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
 
                             this.$nextTick(() => { 
                                 this.isSyncing = false; 
-                                this.isInitialLoad = false; 
+                                // ★ 여기서 섣부르게 잠금을 풀지 않습니다! (mounted의 1.5초 타이머가 안전하게 풀어줍니다)
                             });
                         }
                     });

@@ -8190,11 +8190,12 @@ updateClock() {
                 if (this.showBlackboard) {
                     const editor = document.getElementById('board-editor');
                     if (editor) {
-                        // 1. 날짜 갱신 (선생님이 적용한 색상/크기를 보호하며 글씨만 변경)
+                       // 1. 날짜 갱신 (선생님이 적용한 색상/크기를 보호하며 글씨만 변경)
                         const dynamicDates = editor.querySelectorAll('.dynamic-date, c-date');
                         dynamicDates.forEach(el => {
                             let target = el;
-                            while(target.firstElementChild) target = target.firstElementChild;
+                            // ★ 부분 서식이 꼬인 경우 방지: 자식이 딱 1개일 때만 안쪽으로 파고듦
+                            while(target.firstElementChild && target.childNodes.length === 1) target = target.firstElementChild;
                             if (target.textContent !== this.currentDate) target.textContent = this.currentDate;
                         });
 
@@ -8206,7 +8207,8 @@ updateClock() {
                             
                             dynamicSchedules.forEach(el => {
                                 let target = el;
-                                while(target.firstElementChild) target = target.firstElementChild;
+                                // ★ 부분 서식이 꼬인 경우 방지: 자식이 딱 1개일 때만 안쪽으로 파고듦
+                                while(target.firstElementChild && target.childNodes.length === 1) target = target.firstElementChild;
                                 if (target.textContent !== todaySchedule) target.textContent = todaySchedule;
                             });
                         }
@@ -8228,7 +8230,8 @@ insertDynamicDate() {
         this.saveHistory();
         this.saveToLocal();
     });
-},// [수정] 알람 추가/수정 (자동 정렬 포함)
+},
+
 addAlarm() {
     // 1. 입력값 보정 (00~23, 00~59)
     this.padTime('alarmHour');
@@ -9203,7 +9206,22 @@ openRankModal() {
             },
 
             // [수정] 단축키 로직 (충돌 방지를 위해 Ctrl+Z 로직은 위 함수로 분리됨)
+            // [수정] 단축키 로직 (그리기 모드에서도 Ctrl+Z가 먹히도록 글로벌 적용)
             handleEscKey(e) {
+                // ★ [추가] 판서 창이 열려있을 때 윈도우 전체에서 Ctrl+Z / Ctrl+Y 감지
+                if (this.showBlackboard) {
+                    if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+                        e.preventDefault(); 
+                        if (typeof this.undo === 'function') this.undo();
+                        return;
+                    }
+                    if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+                        e.preventDefault();
+                        if (typeof this.redo === 'function') this.redo();
+                        return;
+                    }
+                }
+
                 // 1. 기존 지우개 크기 조절 단축키 (+, -)
                 if (this.isDrawMode && this.drawTool === 'eraser') {
                     if (e.key === '+' || e.key === '=') {
@@ -10329,8 +10347,14 @@ saveSelection() {
         // [수정] 현재 버전에 맞는 일정 삽입
        insertDaySchedule() {
     this.restoreSelection(); 
-    // 브라우저가 지우지 못하게 특수 태그 <c-sched> 사용
-    const html = `<c-sched class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;"></c-sched>&nbsp;`;
+    const now = new Date();
+    const dayIdx = now.getDay();
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const currentData = this.scheduleVersions[this.currentScheduleVersion]?.data || {};
+    const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]}) 설정된 일정이 없습니다.`;
+
+    // ★ 브라우저가 빈 태그를 지우지 못하게 처음부터 오늘 일정을 채워서 삽입
+    const html = `<c-sched class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;">${todaySchedule}</c-sched>&nbsp;`;
     document.execCommand('insertHTML', false, html);
 
     this.closePalettes(); 
@@ -10581,12 +10605,26 @@ draw(e) {
     }
 },
 
-redrawCanvas() {
-    const canvas = this.$refs.drawCanvas;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// ★ [추가] 지우개 작동을 위한 선분 거리 계산 함수 (이게 없어서 지우개가 안 작동했습니다!)
+            getDistToSegment(x, y, x1, y1, x2, y2) {
+                const A = x - x1; const B = y - y1; const C = x2 - x1; const D = y2 - y1;
+                const dot = A * C + B * D;
+                const len_sq = C * C + D * D;
+                let param = -1;
+                if (len_sq !== 0) param = dot / len_sq;
+                let xx, yy;
+                if (param < 0) { xx = x1; yy = y1; }
+                else if (param > 1) { xx = x2; yy = y2; }
+                else { xx = x1 + param * C; yy = y1 + param * D; }
+                const dx = x - xx; const dy = y - yy;
+                return Math.sqrt(dx * dx + dy * dy);
+            },
 
+            redrawCanvas() {
+                const canvas = this.$refs.drawCanvas;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.paths.forEach(path => {
         if (path.points.length < 1) return;
         ctx.beginPath();

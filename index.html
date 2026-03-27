@@ -3924,12 +3924,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
     <button @click="rollLottery" class="h-20 px-16 bg-white text-indigo-600 rounded-[2rem] border-x-4 border-t-4 border-indigo-100 font-black text-4xl shadow-xl hover:bg-slate-50 transition-all active:translate-y-2 active:border-b-0 border-b-[10px] border-indigo-200 cursor-pointer">START</button>
     <div class="h-20 px-8 bg-indigo-900/30 text-white rounded-2xl border-2 border-white/30 flex flex-col items-center justify-center shadow-inner backdrop-blur-sm min-w-[140px]">
-        <span class="text-[10px] font-bold opacity-60 uppercase tracking-widest leading-none mb-1">Remaining</span>
-        <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-black tabular-nums text-yellow-300 leading-none">{{ remainingCount }}</span>
-            <span class="text-lg font-bold opacity-90 leading-none">명</span>
+            <span class="text-[10px] font-bold opacity-60 uppercase tracking-widest leading-none mb-1">Remaining</span>
+            <div class="flex items-baseline gap-1">
+                <span class="text-4xl font-black tabular-nums text-yellow-300 leading-none">{{ remainingCount }}</span>
+                <span class="text-lg font-bold opacity-90 leading-none">명</span>
+            </div>
         </div>
-    </div>
     <button @click.stop="resetLottery" class="w-16 h-16 bg-white/10 text-white rounded-2xl hover:bg-red-500 hover:border-red-400 transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm" title="현재 모드 초기화">
         <i class="fa-solid fa-rotate-right text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
     </button>
@@ -3985,38 +3985,46 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     <div class="w-full h-28 bg-gradient-to-r from-purple-600 to-indigo-600 flex justify-center items-center gap-6 px-10 shrink-0 z-50 shadow-[0_-10px_40px_rgba(79,70,229,0.3)] border-t-2 border-white/20 mt-auto">
     
-    <button @click="showGenderHint = !showGenderHint; saveToLocal();" 
-        class="w-20 h-20 rounded-2xl font-black transition-all border-2 flex items-center justify-center shadow-md active:scale-95 bg-white/10 text-white border-white/30 hover:bg-white/20 box-border"
-        title="성별 힌트 켜기/끄기">
-    <i :class="showGenderHint ? 'fa-solid fa-eye text-3xl' : 'fa-solid fa-eye-slash text-3xl'"></i>
-</button>
+        <button @click="showGenderHint = !showGenderHint; saveToLocal();" 
+            class="w-20 h-20 rounded-2xl font-black transition-all border-2 flex items-center justify-center shadow-md active:scale-95 bg-white/10 text-white border-white/30 hover:bg-white/20 box-border"
+            title="성별 힌트 켜기/끄기">
+            <i :class="showGenderHint ? 'fa-solid fa-eye text-3xl' : 'fa-solid fa-eye-slash text-3xl'"></i>
+        </button>
 
-    <div class="relative w-80 h-20 bg-black/20 rounded-2xl p-1.5 flex items-center cursor-pointer shadow-inner border-2 border-white/10 box-border"
-         @click="toggleCapsuleSwitch">
-        
-        <div class="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-lg transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1)"
-             :class="capsuleSwitchState === 'open' ? 'left-1.5' : 'left-[calc(50%+4px)]'">
+        <div class="relative w-80 h-20 bg-black/20 rounded-2xl p-1.5 flex items-center cursor-pointer shadow-inner border-2 border-white/10 box-border"
+             @click="toggleCapsuleSwitch">
+            
+            <div class="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-lg transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1)"
+                 :class="capsuleSwitchState === 'open' ? 'left-1.5' : 'left-[calc(50%+4px)]'">
+            </div>
+
+            <div class="flex-1 z-10 text-center font-black text-2xl transition-colors duration-300 flex items-center justify-center gap-2 h-full"
+                 :class="capsuleSwitchState === 'open' ? 'text-indigo-600' : 'text-white/40'">
+                <i class="fa-solid fa-lock-open"></i> 열기
+            </div>
+
+            <div class="flex-1 z-10 text-center font-black text-2xl transition-colors duration-300 flex items-center justify-center gap-2 h-full"
+                 :class="capsuleSwitchState === 'closed' ? 'text-indigo-600' : 'text-white/40'">
+                <i class="fa-solid fa-lock"></i> 닫기
+            </div>
         </div>
 
-        <div class="flex-1 z-10 text-center font-black text-2xl transition-colors duration-300 flex items-center justify-center gap-2 h-full"
-             :class="capsuleSwitchState === 'open' ? 'text-indigo-600' : 'text-white/40'">
-            <i class="fa-solid fa-lock-open"></i> 열기
+        <div class="h-20 px-8 bg-indigo-900/30 text-white rounded-2xl border-2 border-white/30 flex flex-col items-center justify-center shadow-inner backdrop-blur-sm min-w-[140px]">
+            <span class="text-[10px] font-bold opacity-60 uppercase tracking-widest leading-none mb-1">Remaining</span>
+            <div class="flex items-baseline gap-1">
+                <span class="text-4xl font-black tabular-nums text-yellow-300 leading-none">{{ capsules.filter(c => !c.revealed).length }}</span>
+                <span class="text-lg font-bold opacity-90 leading-none">명</span>
+            </div>
         </div>
 
-        <div class="flex-1 z-10 text-center font-black text-2xl transition-colors duration-300 flex items-center justify-center gap-2 h-full"
-             :class="capsuleSwitchState === 'closed' ? 'text-indigo-600' : 'text-white/40'">
-            <i class="fa-solid fa-lock"></i> 닫기
-        </div>
+        <button @click="shuffleCapsules" 
+                class="w-20 h-20 bg-white/10 text-white rounded-2xl transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm active:scale-90 box-border
+                       hover:bg-red-500 hover:border-red-400 hover:text-white" 
+                title="섞기">
+            <i class="fa-solid fa-shuffle text-3xl group-hover:rotate-180 transition-transform duration-500"></i>
+        </button>
+
     </div>
-
-    <button @click="shuffleCapsules" 
-            class="w-20 h-20 bg-white/10 text-white rounded-2xl transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm active:scale-90 box-border
-                   hover:bg-red-500 hover:border-red-400 hover:text-white" 
-            title="섞기">
-        <i class="fa-solid fa-shuffle text-3xl group-hover:rotate-180 transition-transform duration-500"></i>
-    </button>
-
-</div>
 </div>
 
 
@@ -4904,7 +4912,7 @@ isClockMaximized: false,
 showLotteryFilter: false,
 // 신규: 뽑기 마스터 모달
         showPickerMaster: false,
-        pickerTab: 'lottery',         isPickerMaximized: false,
+        pickerTab: localStorage.getItem('lastPickerTab') || 'lottery',         isPickerMaximized: false,
         pickerX: 350,
         pickerY: 50,
         pickerW: 900,
@@ -5037,7 +5045,6 @@ capsuleSwitchState: 'closed',
 isRollingDice: false,
 showDiceResultEffect: false,
         // 토너먼트 (미구현)
-pickerTab: 'tournament',
 bracketTree: [], 
         roundTitles: ['16강', '8강', '4강', '결승'],
         bracketSize: 16, // 기본 16강
@@ -8045,12 +8052,16 @@ initializeLotteryPool(mode) {
 
 // 뽑기 마스터 모달 열기 (좌측 하단 버튼용)
     openPickerMaster() {
-    this.showPickerMaster = true;
-this.focusWindow('picker');
-    this.pickerTab = 'lottery'; 
-this.ladderPeopleMode = 'select';
-this.ladderContentMode = 'winner';
-},
+                this.showPickerMaster = true;
+                this.focusWindow('picker');
+                
+                // ★ 마지막으로 쓰던 탭을 그대로 유지 (초기화 코드 삭제)
+                if (this.pickerTab === 'capsule') {
+                    if (!this.capsules || this.capsules.length === 0) this.initCapsules();
+                } else if (this.pickerTab === 'ladder') {
+                    this.$nextTick(this.resizeLadderCanvas);
+                }
+            },
 
    // 참가자 모드 변경 (전체 / 선택)
         setLadderPeopleMode(mode) {
@@ -8846,25 +8857,27 @@ this.playSound('finish', false, 0.5);
     },
     // 탭 전환 메서드 수정 (capsule 탭일 때 초기화 추가)
     setPickerTab(tab) {
-    this.pickerTab = tab;
-    if (tab === 'capsule') {
-        if (!this.capsules || this.capsules.length === 0) {
-            this.initCapsules();  // ★ 수정: 항상 호출 (데이터 최신화)
-         }
-    }
-    
-    if (tab === 'roulette') {
-        if (this.rouletteItems.length === 0) {
-            this.rouletteInput = "1\n2\n3\n4\n5\n6";
-        }
-    }
-    
-    // 사다리 초기화
-    if (tab === 'ladder') {
-        this.showLadderGame = false;
-        this.$nextTick(this.resizeLadderCanvas);
-    }
-},
+                this.pickerTab = tab;
+                localStorage.setItem('lastPickerTab', tab); // ★ 마지막으로 누른 탭 기억!
+                
+                if (tab === 'capsule') {
+                    if (!this.capsules || this.capsules.length === 0) {
+                        this.initCapsules();
+                    }
+                }
+                
+                if (tab === 'roulette') {
+                    if (this.rouletteItems.length === 0) {
+                        this.rouletteInput = "1\n2\n3\n4\n5\n6";
+                    }
+                }
+                
+                // 사다리 초기화
+                if (tab === 'ladder') {
+                    this.showLadderGame = false;
+                    this.$nextTick(this.resizeLadderCanvas);
+                }
+            },
 
 // [수정] 현재 자리를 히스토리에 저장
             saveCurrentLayoutToHistory() {
@@ -9501,59 +9514,60 @@ openAnimalRaceModal() {
     return '';
 },
     // 추첨 실행 (가장 중요한 부분 수정)
+    // 추첨 실행 (가장 중요한 부분 수정)
     rollLottery() {
-    const pool = this.lotteryPools[this.lotteryMode];
-    if (!pool || pool.length === 0) {
-        alert('남은 인원이 없습니다! \n우측 하단의 초기화 버튼(↻)을 눌러주세요.');
-        return;
-    }
+        const pool = this.lotteryPools[this.lotteryMode];
+        if (!pool || pool.length === 0) {
+            alert('남은 인원이 없습니다! \n우측 하단의 초기화 버튼(↻)을 눌러주세요.');
+            return;
+        }
 
-    if (this.isRolling) return;
+        if (this.isRolling) return;
 
-    // [핵심] 1명만 남았을 경우의 로직
-    if (pool.length === 1) {
-        const lastOne = pool[0];
-        this.displayWinner = lastOne; // 바로 당첨자로 표시
-        
-        // 데이터 처리 (리스트에서 제거 및 기록 저장)
-        pool.splice(0, 1);
-        this.lastWinners[this.lotteryMode] = lastOne;
-        
-        // 당첨 효과음만 즉시 재생
-        this.playSound('fanfare', false, 0.8);
-        this.saveToLocal();
-        return; // 함수 종료
-    }
-
-    // --- 2명 이상일 때: 기존 섞기 애니메이션 유지 ---
-    this.isRolling = true;
-    this.playSound('drum', false, 0.6);
-
-    let count = 0;
-    const maxCount = 40; 
-
-    const interval = setInterval(() => {
-        const randomName = pool[Math.floor(Math.random() * pool.length)];
-        this.displayWinner = randomName;
-
-        if (++count > maxCount) { 
-            clearInterval(interval);
+        // [핵심] 1명만 남았을 경우의 로직
+        if (pool.length === 1) {
+            const lastOne = pool[0];
+            this.displayWinner = lastOne; // 바로 당첨자로 표시
             
-            const winnerName = this.displayWinner;
-            const winnerIndex = pool.indexOf(winnerName);
-            if (winnerIndex !== -1) {
-                pool.splice(winnerIndex, 1);
-            }
-
-            this.lastWinners[this.lotteryMode] = winnerName;
-            this.isRolling = false;
+            // 데이터 처리 (리스트에서 제거 및 기록 저장)
+            pool.splice(0, 1);
+            this.lastWinners[this.lotteryMode] = lastOne;
             
-            this.stopSound('drum');
+            // 당첨 효과음만 즉시 재생
             this.playSound('fanfare', false, 0.8);
             this.saveToLocal();
+            return; // 함수 종료
         }
-    }, 80);
-},
+
+        // --- 2명 이상일 때: 섞기 애니메이션 ---
+        this.isRolling = true;
+        this.playSound('drum', false, 0.6);
+
+        let count = 0;
+        const maxCount = 25; // ★ 2초로 세팅 (25번 반복)
+
+        const interval = setInterval(() => {
+            const randomName = pool[Math.floor(Math.random() * pool.length)];
+            this.displayWinner = randomName;
+
+            if (++count > maxCount) { 
+                clearInterval(interval);
+                
+                const winnerName = this.displayWinner;
+                const winnerIndex = pool.indexOf(winnerName);
+                if (winnerIndex !== -1) {
+                    pool.splice(winnerIndex, 1);
+                }
+
+                this.lastWinners[this.lotteryMode] = winnerName;
+                this.isRolling = false;
+                
+                this.stopSound('drum');
+                this.playSound('fanfare', false, 0.8);
+                this.saveToLocal();
+            }
+        }, 80); // ★ 0.08초마다 이름 바뀜 (총 2초)
+    },
          openSettings() { 
                 try {
                     const seats = Array.isArray(this.seats) ? this.seats : [];

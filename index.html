@@ -8234,7 +8234,7 @@ updateClock() {
                         const dynamicSchedules = editor.querySelectorAll('.dynamic-schedule, c-sched');
                         if (dynamicSchedules.length > 0) {
                             const currentData = this.scheduleVersions[this.currentScheduleVersion]?.data || {};
-                            const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]}) 설정된 일정이 없습니다.`;
+                            const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]})`;
                             
                             dynamicSchedules.forEach(el => {
                                 let target = el;
@@ -10346,7 +10346,7 @@ saveSelection() {
     const dayIdx = now.getDay();
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     const currentData = this.scheduleVersions[this.currentScheduleVersion]?.data || {};
-    const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]}) 설정된 일정이 없습니다.`;
+    const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]})`;
 
     // ★ 브라우저가 빈 태그를 지우지 못하게 처음부터 오늘 일정을 채워서 삽입
     const html = `<c-sched class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;">${todaySchedule}</c-sched>&nbsp;`;

@@ -2644,11 +2644,24 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     
 </div></div>
 
-        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
-            <div class="flex items-center gap-3 mb-8 px-2"> 
-                <h1 class="text-3xl font-black text-slate-800">🏫 우리반 매니저</h1>
-                <button @click="openSettings" class="text-slate-300 hover:text-orange-500 transition-all"><i class="fa-solid fa-gear"></i></button>
+       <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
+            <div class="relative w-full mb-8 px-2">
+                <div class="flex items-center justify-between cursor-pointer group" @click="showHiddenMenu = !showHiddenMenu">
+                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="상점/키오스크 열기">🏫 우리반 매니저</h1>
+                    <div class="flex items-center gap-2">
+                        <button @click.stop="openSettings" class="text-slate-300 hover:text-orange-500 transition-all ml-1" title="설정"><i class="fa-solid fa-gear"></i></button>
+                    </div>
+                </div>
+                <div v-show="showHiddenMenu" class="absolute top-full left-0 mt-3 w-full bg-white rounded-2xl shadow-xl border-2 border-slate-100 overflow-hidden z-50 animate-fade-in origin-top">
+                    <button @click="openStore" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-orange-50 hover:text-orange-600 border-b border-slate-100 transition-colors flex items-center gap-3">
+                        🏪 상 점
+                    </button>
+                    <button @click="openKiosk" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-3">
+                         🖥️ 키오스크
+                    </button>
+                </div>
             </div>
+
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-2 space-y-4 flex flex-col"> 
                 <div @click="view = 'main'; playSound('click')" :class="view === 'main' ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
@@ -2721,7 +2734,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="mt-auto pt-5 border-t border-slate-100 flex justify-between gap-3 shrink-0 pb-1">
                 <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-16 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bomb"></i></button>
                 <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-16 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-gift"></i></button>
-                <button @click="openNoiseMeter" title="주의집중" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bell"></i></button>
+                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl no-default-sound"><i class="fa-solid fa-bell"></i></button>
                 <button @click="openBlackboard" title="판서" class="flex-1 h-16 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-chalkboard-user"></i></button>
             </div>
         </aside>
@@ -2861,8 +2874,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                     <div v-for="(g, idx) in groups" :key="idx" @click="handleGroupClick(idx)"
                          class="w-[280px] h-[220px] shadow-2xl rounded-[3rem] border-4 flex flex-col items-center justify-center relative transition-all cursor-pointer overflow-hidden"
-                         :class="[ g.checked ? 'bg-slate-500 border-slate-600' : (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), { 'aura-gold': allMode } ]">
-                        <div v-if="g.checked" class="check-icon-wrapper w-10 h-10 bg-white rounded-full flex items-center justify-center text-emerald-600 border-2 border-emerald-200 shadow-sm"><i class="fa-solid fa-check text-xl"></i></div>
+                        :class="[ (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), g.checked ? 'ring-4 ring-[#8f6a49] ring-offset-2 !border-[#8f6a49] shadow-[0_0_15px_rgba(143,106,73,0.8)]' : '', { 'aura-gold': allMode } ]">
+                        <div v-if="g.checked" class="check-icon-wrapper w-12 h-12 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-lg"><i class="fa-solid fa-check text-2xl"></i></div>
                         <div class="content-reverse card-container">
                            <div class="font-black text-2xl mb-2" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ idx + 1 }}모둠</div>
                             <div class="font-black text-7xl" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ g.score > 0 ? '+' : '' }}{{ g.score }}</div>
@@ -2890,17 +2903,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                      @click="handleCardClick(getIndex(bIdx, rIdx, pIdx))" 
                                      :class="[
                                          (view === 'order') ? (isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)]) ? 'bg-red-600 scale-110 shadow-2xl z-50 text-white' : (seats[getIndex(bIdx, rIdx, pIdx)].order ? 'bg-yellow-400 text-black' : 'bg-white text-black')) : '',
-                                         (view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked) ? 'bg-slate-500 border-slate-600 text-white' : 
                                          (view !== 'order' ? (seats[getIndex(bIdx, rIdx, pIdx)].activityScore >= 7 ? 'score-rainbow' : getScoreBg(seats[getIndex(bIdx, rIdx, pIdx)].activityScore)) : ''),
+                                         (view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked) ? 'ring-4 ring-[#8f6a49] ring-offset-2 !border-[#8f6a49] shadow-[0_0_15px_rgba(143,106,73,0.8)]' : '',
                                          { 'aura-gold': allMode && view !== 'order' }
                                      ]">
-                                    <div v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number" 
-                                         class="student-number-wrapper text-[22px] font-black opacity-90 pointer-events-none tracking-tighter"
-                                         style="color: #9e8268;">
-                                        {{ seats[getIndex(bIdx, rIdx, pIdx)].number }}
-                                    </div>
-                                    <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-7 h-7 bg-white rounded-full flex items-center justify-center text-emerald-600 border border-emerald-200 shadow-sm"><i class="fa-solid fa-check text-xs"></i></div>
-                                    <div class="content-reverse card-container">
+<div v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number" 
+</div>
+                                    <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-8 h-8 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md"><i class="fa-solid fa-check text-lg"></i></div>                                    <div class="content-reverse card-container">
                                         <div class="font-black text-xl leading-none mb-3" 
                                              :class="[ (view !== 'order' && (seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
                                              {{ seats[getIndex(bIdx, rIdx, pIdx)].name }}
@@ -3805,6 +3814,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
              @dragover.prevent 
              @drop.stop="onDropBoardReorder(idx)"
              @dragend="draggedBoardIdx = null"
+             @dragend="onDragEndBoard"
              @click="loadBoard(board)" 
              class="bg-white p-2 rounded mb-2 border border-slate-200 shadow-sm cursor-move hover:border-blue-400 group relative transition-all"
              :class="{'opacity-40 scale-95': draggedBoardIdx === idx}">
@@ -4703,70 +4713,69 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             
             <div class="grid grid-cols-4 items-center justify-items-center w-full h-full"
                  style="gap: 2cqmin; padding: 3cqmin;">
-                <button @click="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🔔</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-yellow-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-yellow-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">주 목</span>
                 </button>
 
-                <button @click="triggerSoundEffect('schoolbell', $event); playCustomSound('./school bell.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="triggerSoundEffect('schoolbell', $event); playCustomSound('./school bell.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🏫</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-orange-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-orange-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">학교종</span>
                 </button>
 
-                <button @click="playCustomSound('./drumroll.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="playCustomSound('./drumroll.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🥁</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-yellow-600 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-yellow-300 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">두구두구</span>
                 </button>
 
-                <button @click="openYoutube('https://www.youtube.com/watch?v=z2dlN1guso8')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="openYoutube('https://www.youtube.com/watch?v=z2dlN1guso8')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🧹</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-teal-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-teal-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">청소(3분)</span>
                 </button>
 
-                <button @click="triggerSoundEffect('magic', $event); playCustomSound('./correct.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="triggerSoundEffect('magic', $event); playCustomSound('./correct.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-3">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🙆🏻‍♀️</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-emerald-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-emerald-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">정 답</span>
                 </button>
 
-                <button @click="triggerSoundEffect('fail', $event); playCustomSound('./wrong.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="triggerSoundEffect('fail', $event); playCustomSound('./wrong.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-3">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🙅🏻‍♀</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-blue-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-blue-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">땡!</span>
                 </button>
 
-                <button @click="triggerSoundEffect('news', $event); playCustomSound('./news.mp3')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
+                <button @click.stop="triggerSoundEffect('news', $event); playCustomSound('./news.mp3')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">📺</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-purple-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-purple-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">뉴 스</span>
                 </button>
 
-                <button @click="openYoutube('https://www.youtube.com/watch?v=-Vo_WwDCo_M')" 
-                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full">
-                    <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
+                <button @click.stop="openYoutube('https://www.youtube.com/watch?v=-Vo_WwDCo_M')" 
+                        class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
+                    <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🧼</span>
                     </div>
                     <span class="font-black text-slate-400 group-hover:text-sky-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-sky-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">청소(5분)</span>
                 </button>
-
             </div>
         </div>
 
@@ -4831,6 +4840,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     createApp({
         data() {
             return {
+showHiddenMenu: false, // 타이틀 드롭다운 메뉴
 isNoiseTimeHidden: false,
 isSortedByNumber: false,  // ★ 추가: 번호순 정렬 상태인지 확인
 preSortLayout: null,      // ★ 추가: 섞기 전 원래 자리 기억
@@ -5541,6 +5551,16 @@ sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.loca
 
 
            methods: {
+openStore() {
+            // 선생님의 상점 주소로 새 창 열기
+            window.open('https://csgo0404-ai.github.io/class-store/', '_blank');
+            this.showHiddenMenu = false; // 드롭다운 메뉴 닫기
+        },
+        openKiosk() {
+            // 선생님의 키오스크 주소로 새 창 열기
+            window.open('https://csgo0404-ai.github.io/class-koisk/', '_blank');
+            this.showHiddenMenu = false; // 드롭다운 메뉴 닫기
+        },
 toggleGameSpeed() {
                 if (this.gameSpeed === 1.0) this.gameSpeed = 1.5;
                 else if (this.gameSpeed === 1.5) this.gameSpeed = 2.0;
@@ -6002,33 +6022,20 @@ closeLocalVideo() {
 },
 
 playCustomSound(src) {
-    // 1. 같은 소리를 다시 누르면 -> 멈춤 (Stop)
-    if (this.currentAudio && this.currentAudioSrc === src) {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
-        this.currentAudio = null;
-        this.currentAudioSrc = null;
-        return; 
-    }
-
-    // 2. 다른 소리가 재생 중이면 -> 끄고 새 소리 재생
+    // 다른 소리든 같은 소리든 무조건 초기화 후 새롭게 재생
     if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
     }
-
-    // 3. 새 소리 재생
     this.currentAudio = new Audio(src);
     this.currentAudioSrc = src;
     this.currentAudio.play().catch(e => console.log('재생 오류:', e));
 
-    // 4. 재생이 끝나면 상태 초기화
     this.currentAudio.onended = () => {
         this.currentAudio = null;
         this.currentAudioSrc = null;
     };
 },
-
 triggerSoundEffect(key, event) {
     // 1. 소리 재생
     this.playSound(key);
@@ -9513,8 +9520,7 @@ openAnimalRaceModal() {
     if (mode === 'F') return '여학생';
     return '';
 },
-    // 추첨 실행 (가장 중요한 부분 수정)
-    // 추첨 실행 (가장 중요한 부분 수정)
+    
     rollLottery() {
         const pool = this.lotteryPools[this.lotteryMode];
         if (!pool || pool.length === 0) {
@@ -9541,33 +9547,33 @@ openAnimalRaceModal() {
 
         // --- 2명 이상일 때: 섞기 애니메이션 ---
         this.isRolling = true;
-        this.playSound('drum', false, 0.6);
+    this.playSound('drum', false, 0.6);
 
-        let count = 0;
-        const maxCount = 25; // ★ 2초로 세팅 (25번 반복)
+    let count = 0;
+    const maxCount = 20; // ★ 1.5초로 단축 (20번 반복)
 
-        const interval = setInterval(() => {
-            const randomName = pool[Math.floor(Math.random() * pool.length)];
-            this.displayWinner = randomName;
+    const interval = setInterval(() => {
+        const randomName = pool[Math.floor(Math.random() * pool.length)];
+        this.displayWinner = randomName;
 
-            if (++count > maxCount) { 
-                clearInterval(interval);
-                
-                const winnerName = this.displayWinner;
-                const winnerIndex = pool.indexOf(winnerName);
-                if (winnerIndex !== -1) {
-                    pool.splice(winnerIndex, 1);
-                }
-
-                this.lastWinners[this.lotteryMode] = winnerName;
-                this.isRolling = false;
-                
-                this.stopSound('drum');
-                this.playSound('fanfare', false, 0.8);
-                this.saveToLocal();
+        if (++count > maxCount) { 
+            clearInterval(interval);
+            
+            const winnerName = this.displayWinner;
+            const winnerIndex = pool.indexOf(winnerName);
+            if (winnerIndex !== -1) {
+                pool.splice(winnerIndex, 1);
             }
-        }, 80); // ★ 0.08초마다 이름 바뀜 (총 2초)
-    },
+
+            this.lastWinners[this.lotteryMode] = winnerName;
+            this.isRolling = false;
+            
+            this.stopSound('drum');
+            this.playSound('fanfare', false, 0.8);
+            this.saveToLocal();
+        }
+    }, 75); // ★ 0.075초마다 이름 바뀜 (총 1.5초)
+},
          openSettings() { 
                 try {
                     const seats = Array.isArray(this.seats) ? this.seats : [];
@@ -10817,27 +10823,34 @@ toggleForeColorPalette() {
     this.saveToLocal();
 },
            toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
+            onDragEndBoard() {
+                this.draggedBoardIdx = null;
+                this.lastDragEndTime = Date.now(); // 드래그가 끝난 시간 기록
+            },
+
             loadBoard(board) {
-    if (!confirm('이 판서를 불러오시겠습니까? 현재 작성 중인 내용은 지워집니다.')) return;
-    
-    this.currentBoardId = board.id; // ★ 불러온 판서의 ID 기억하기
-    
-    this.blackboardContent = board.content;
-    this.paths = board.paths ? JSON.parse(JSON.stringify(board.paths)) : [];
-    
-    const editor = document.getElementById('board-editor');
-    if (editor) {
-        editor.innerHTML = this.blackboardContent;
-    }
-    
-    this.redrawCanvas();
-    this.showBoardList = false;
-    
-    this.$nextTick(() => {
-        this.saveHistory();
-        this.saveToLocal();
-    });
-},
+                // ★ 드래그 종료 직후 0.3초 내에 발생한 '클릭' 이벤트는 무시하여 덮어쓰기 방지!
+                if (Date.now() - (this.lastDragEndTime || 0) < 300) return;
+                
+                if (!confirm('이 판서를 불러오시겠습니까? 현재 작성 중인 내용은 지워집니다.')) return;
+                
+                this.currentBoardId = board.id; 
+                this.blackboardContent = board.content;
+                this.paths = board.paths ? JSON.parse(JSON.stringify(board.paths)) : [];
+                
+                const editor = document.getElementById('board-editor');
+                if (editor) {
+                    editor.innerHTML = this.blackboardContent;
+                }
+                
+                this.redrawCanvas();
+                this.showBoardList = false;
+                
+                this.$nextTick(() => {
+                    this.saveHistory();
+                    this.saveToLocal();
+                });
+            },
             deleteBoard(idx) { if(confirm("정말 삭제할까요?")) { this.savedBoards.splice(idx, 1); this.saveToLocal(); } },
             deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this.savedBoards = []; this.saveToLocal(); } },
            /* 판서 창 드래그 (이탈 방지 포함) */
@@ -10899,8 +10912,8 @@ startBoardResize(e) {
 
 
 onDropBoardReorder(targetIdx) {
-    if (this.draggedBoardIdx === null || this.draggedBoardIdx === targetIdx) return;
-    
+    this.lastDropTime = Date.now(); // ★ 추가: 드랍한 시간 기록
+    if (this.draggedBoardIdx === null || this.draggedBoardIdx === targetIdx) return;  
     // 1. 배열에서 항목을 빼서 새 위치로 이동
     const item = this.savedBoards.splice(this.draggedBoardIdx, 1)[0];
     this.savedBoards.splice(targetIdx, 0, item);
@@ -11567,9 +11580,8 @@ async applyShuffle() {
                         if (this.avoidPrevious) {
                             const hIdx = partnerHistoryMap.get(s1.name)?.get(s2.name);
                             if (hIdx !== undefined) {
-                                // 가장 최근(hIdx=0)일수록 50만점의 큰 벌점
-                                // 옛날(hIdx가 큼)일수록 벌점이 작아져서 결국 가장 오래된 짝꿍이 우선 당첨!
-                                return 500000 - (hIdx * 10000); 
+                                // ★ 짝꿍 중복 벌점을 500만 점으로 올려서 자리 중복(최대 400만점)보다 무조건 피하도록 설정!
+                                return 5000000 - (hIdx * 10000); 
                             }
                         }
                         return 0;
@@ -11590,7 +11602,7 @@ async applyShuffle() {
                         const n = arr.length;
                         const fixed = arr[0];
                         const rotating = arr.slice(1);
-                        const rotIdx = round % (n - 1) || 0;
+const rotIdx = (n > 1) ? round % (n - 1) : 0;
                         let rotated = rotIdx > 0 ? [...rotating.slice(rotating.length - rotIdx), ...rotating.slice(0, rotating.length - rotIdx)] : rotating;
                         pairs.push([fixed, rotated[0]]);
                         let left = 1, right = rotated.length - 1;
@@ -11652,7 +11664,8 @@ async applyShuffle() {
 
                     const canSitPenalty = (student, config) => {
                         if (!student || !config || this.shuffleMode === 'random') return 0; 
-                        return student.gender === config ? 0 : 1000; 
+                        // ★ 성별이 안 맞으면 1000만 점의 패널티를 부여해 절대 자리를 바꾸지 못하게 금지합니다.
+                        return student.gender === config ? 0 : 10000000; 
                     };
 
                     let bestFinalSeats = null;
@@ -11668,7 +11681,10 @@ async applyShuffle() {
                         if (!this.avoidPrevious) {
                             currentPairs = solveMatching(pool, this.shuffleMode);
                         } else {
-                            let r = t % 30; 
+                            const historyOffset = this.shuffleHistory.length;
+let r = this.shuffleMode === 'mixed'
+    ? (historyOffset + t) % Math.max(poolF.length, 1)
+    : (historyOffset + t) % Math.max(pool.length - 1, 1);
                             if (this.shuffleMode === 'mixed') currentPairs = getLineShiftPairs(poolM, poolF, r);
                             else if (this.shuffleMode === 'same') currentPairs = [...getCircleMethodPairs(poolM, r), ...getCircleMethodPairs(poolF, r)];
                             else if (this.shuffleMode === 'random') currentPairs = getCircleMethodPairs(pool, r);
@@ -11772,26 +11788,39 @@ async applyShuffle() {
                         for (let p of remainingPairs) {
                             let s1 = p[0]; let s2 = p[1];
                             if (!s1 || !s2) {
-                                let student = s1 || s2;
-                                let bestSeatIndex = -1; let minPen = Infinity;
-                                for (let i = 0; i < tempSingles.length; i++) {
-                                    let seat = tempSingles[i];
-                                    let pen = canSitPenalty(student, seat.config);
-                                    tempSeats[seat.idx] = student;
-                                    pen += getSeatDistPenalty(student, seat.idx);
-                                    tempSeats[seat.idx] = null;
-                                    if (pen < minPen) { minPen = pen; bestSeatIndex = i; }
-                                }
-                                if (bestSeatIndex !== -1) {
-                                    tempSeats[tempSingles[bestSeatIndex].idx] = student;
-                                    currentSeatPenalty += minPen;
-                                    tempSingles.splice(bestSeatIndex, 1);
-                                } else {
-                                    const fallbackIdx = tempSeats.findIndex((seat, idx) => !seat && safeSeatConfig[idx] !== 'X');
-                                    if (fallbackIdx !== -1) { tempSeats[fallbackIdx] = student; currentSeatPenalty += 1000000; }
-                                }
-                                continue;
-                            }
+    let student = s1 || s2;
+    let bestSeatIndex = -1; let minPen = Infinity;
+    for (let i = 0; i < tempSingles.length; i++) {
+        let seat = tempSingles[i];
+        let pen = canSitPenalty(student, seat.config);
+        tempSeats[seat.idx] = student;
+        pen += getSeatDistPenalty(student, seat.idx);
+        tempSeats[seat.idx] = null;
+        if (pen < minPen) { minPen = pen; bestSeatIndex = i; }
+    }
+    if (bestSeatIndex !== -1) {
+        tempSeats[tempSingles[bestSeatIndex].idx] = student;
+        currentSeatPenalty += minPen;
+        tempSingles.splice(bestSeatIndex, 1);
+    } else if (tempDesks.length > 0) {
+        // ★ 수정: 남은 짝꿍 책상의 한 자리를 활용
+        const desk = tempDesks[0];
+        const side = canSitPenalty(student, desk.leftConfig) <= canSitPenalty(student, desk.rightConfig)
+            ? { idx: desk.leftIdx, config: desk.leftConfig }
+            : { idx: desk.rightIdx, config: desk.rightConfig };
+        tempSeats[side.idx] = student;
+        currentSeatPenalty += canSitPenalty(student, side.config) + getSeatDistPenalty(student, side.idx);
+        // 사용한 책상은 단일 잔여 자리로 전환
+        const remainIdx = side.idx === desk.leftIdx ? desk.rightIdx : desk.leftIdx;
+        const remainConfig = side.idx === desk.leftIdx ? desk.rightConfig : desk.leftConfig;
+        tempSingles.push({ idx: remainIdx, config: remainConfig });
+        tempDesks.splice(0, 1);
+    } else {
+        const fallbackIdx = tempSeats.findIndex((seat, idx) => !seat && safeSeatConfig[idx] !== 'X');
+        if (fallbackIdx !== -1) { tempSeats[fallbackIdx] = student; currentSeatPenalty += 1000000; }
+    }
+    continue;
+}
 
                             let bestDeskIndex = -1;
                             let bestArrangement = null; 
@@ -12818,13 +12847,15 @@ startReverseLadderGame(endColIdx) {
 
             // 모든 버튼 클릭 시 효과음
             document.addEventListener('mouseover', (e) => {
-                if (e.target.closest('button') || e.target.closest('.clickable')) {
+                const btn = e.target.closest('button') || e.target.closest('.clickable');
+                if (btn && !btn.classList.contains('no-default-sound')) {
                     this.playSound('hover', false, 0.2); 
                 }
             });
             document.addEventListener('click', (e) => {
                 const btn = e.target.closest('button') || e.target.closest('.clickable');
-                if (btn) {
+                // ★ 'no-default-sound' 클래스가 있는 버튼은 기본 띡! 소리를 생략합니다.
+                if (btn && !btn.classList.contains('no-default-sound') && !e.target.closest('.no-default-sound')) {
                     this.playSound('click', false, 0.3);
                 }
             });

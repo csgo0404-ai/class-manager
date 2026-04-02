@@ -624,6 +624,8 @@ will-change: width, height;
     z-index: 9005;
 }
 
+
+
 /* 분/초 개별 그룹 */
 .time-group {
     display: flex;
@@ -2485,6 +2487,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     background-color: #ffffff !important;
     border-color: #a68b6d !important;
 }
+.bomb-msg-handle { opacity: 0; }
+.bomb-window:hover .bomb-msg-handle { opacity: 1; }
 </style>  
 </head>
 <body>
@@ -2908,12 +2912,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                          { 'aura-gold': allMode && view !== 'order' }
                                      ]">
 <div v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number" 
-</div>
-                                    <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-8 h-8 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md"><i class="fa-solid fa-check text-lg"></i></div>                                    <div class="content-reverse card-container">
+     class="student-number-wrapper text-[22px] font-black opacity-90 pointer-events-none tracking-tighter"
+     style="color: #9e8268;">
+    {{ seats[getIndex(bIdx, rIdx, pIdx)].number }}
+</div>                                    <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-8 h-8 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md"><i class="fa-solid fa-check text-lg"></i></div>                                    <div class="content-reverse card-container">
                                         <div class="font-black text-xl leading-none mb-3" 
-                                             :class="[ (view !== 'order' && (seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
-                                             {{ seats[getIndex(bIdx, rIdx, pIdx)].name }}
-                                        </div>
+     :class="[ (view !== 'order' && (seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
+     {{ seats[getIndex(bIdx, rIdx, pIdx)].name }}
+</div>
+
                                         <div v-if="view === 'main'" class="text-2xl font-black leading-none mb-1" :class="(seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0) ? 'text-inherit' : ''">{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore > 0 ? '+' : '' }}{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore }}</div>
                                         <div v-if="view === 'order' && seats[getIndex(bIdx, rIdx, pIdx)].order" class="w-8 h-8 bg-black/10 rounded-full flex items-center justify-center font-black text-sm text-black">{{ seats[getIndex(bIdx, rIdx, pIdx)].order }}</div>
                                       <div v-if="isMemoVisible && view !== 'order'" class="memo-container" @click.stop>
@@ -4501,6 +4508,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 <div v-if="showTimer" 
      class="bomb-window"
+     @keydown.enter.stop="if(isTimerMaximized && !isEditingBombMessage){ isEditingBombMessage = true; $nextTick(() => $refs.bombMsgInput && $refs.bombMsgInput.focus()); }"
      :class="[
        {'stopwatch-mode': isStopwatchMode},
        {'stopwatch-running-beat': isStopwatchMode && timerInterval},
@@ -4515,7 +4523,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          height: !isTimerMaximized ? ((timerSize || 400) * 0.633) + 'px' : '100%',
          zIndex: timerZ /* ★ 조건부 삭제하고 무조건 최상단 허용 */
      }" 
-     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)">
+     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)"
+@keydown.enter.stop="if(isTimerMaximized && !isEditingBombMessage){ isEditingBombMessage = true; $nextTick(() => $refs.bombMsgInput && $refs.bombMsgInput.focus()); }"
+tabindex="0">
     
     <div class="display-unit" @mousedown.stop>
     
@@ -4558,8 +4568,88 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     <button @click.stop="isTimerMaximized = !isTimerMaximized; saveToLocal()" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
     <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
 
-    <div v-if="!isTimerMaximized" class="timer-resize-handle" @mousedown.stop="startTimerResize"></div>
+<!-- 폭탄 타이머 활동 메시지 -->
+<!-- 폭탄 타이머 활동 메시지 -->
+<div v-if="isTimerMaximized" @click.stop
+    :style="{
+        position: 'absolute',
+        left: bombMsgX + 'px',
+        top: bombMsgY + 'px',
+        width: bombMsgW + 'px',
+        zIndex: 20,
+        userSelect: 'none',
+    }">
+
+    <!-- 드래그 핸들 (상단) -->
+    <div @mousedown.stop="startBombMsgDrag($event)"
+    style="position:absolute;top:-18px;left:0;right:0;height:18px;cursor:grab;">
 </div>
+
+    <!-- 입력 중 -->
+    <input v-if="isEditingBombMessage"
+        v-model="bombMessage"
+        @blur="isEditingBombMessage = false; saveToLocal()"
+        @keydown.enter="isEditingBombMessage = false; saveToLocal()"
+        ref="bombMsgInput"
+        placeholder="활동 내용 입력"
+        autoFocus
+        :style="{
+            width: '100%',
+            background: 'rgba(0,0,0,0.6)',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            fontSize: Math.max(16, bombMsgH * 0.35) + 'px',
+            fontWeight: '700',
+            color: '#fff',
+            outline: 'none',
+            boxSizing: 'border-box',
+            fontFamily: 'inherit',
+        }">
+
+    <!-- 메시지 표시 -->
+    <div v-else-if="bombMessage"
+        @mousedown.stop="startBombMsgDrag($event)"
+        @click.stop="isEditingBombMessage = true; $nextTick(() => $refs.bombMsgInput && $refs.bombMsgInput.focus())"
+        title="드래그: 이동 / 클릭: 수정"
+        :style="{
+            padding: '8px 4px',
+            cursor: 'grab',
+        }">
+        <!-- MISSION 배지 -->
+<div style="margin-bottom:-8px; margin-top:0px; position:relative; z-index:1;">
+
+
+    <span style="display:inline-block;font-size:16px;font-weight:700;background:#f5c400;color:#000;padding:6px 18px;border-radius:6px;letter-spacing:0.12em;">MISSION</span>
+</div>
+        <!-- 형광 마커 텍스트 -->
+        <div :style="{
+            fontSize: Math.max(16, bombMsgH * 0.48) + 'px',
+
+            fontWeight: '900',
+            color: '#fff',
+            lineHeight: '1.6',
+            wordBreak: 'break-word',
+            textShadow: '1px 1px 2px rgba(0,0,0,0.6)',
+        }">
+            <span :style="{
+                padding: '0 6px',
+
+            }">{{ bombMessage }}</span>
+        </div>
+    </div>
+
+    <!-- 비어있을 때 -->
+    <div v-else style="height:10px;"></div>
+
+    <!-- 크기 조절 핸들 (우하단) -->
+    <div @mousedown.stop="startBombMsgResize($event)"
+    style="position:absolute;bottom:-10px;right:-10px;width:22px;height:22px;cursor:se-resize;opacity:0;">
+</div>
+</div>
+
+
+    <div v-if="!isTimerMaximized" class="timer-resize-handle" @mousedown.stop="startTimerResize"></div></div>
 
 <div class="full-screen-explosion" :class="{'explode-active': isExploding}">BOOM!</div>
 
@@ -4980,6 +5070,12 @@ lastDbUpdate: 0,
 currentAudio: null,    
 currentAudioSrc: null,
 clockMessage: "",
+bombMessage: "",
+isEditingBombMessage: false,
+bombMsgX: 200,
+bombMsgY: 500,
+bombMsgW: 700,
+bombMsgH: 80,
 isEditingMessage: false,
 alarmTime: "", 
 alarmHour: "08",   // 기본 시 (24시간제)
@@ -5089,6 +5185,12 @@ noiseMode: 'sound',
         isWarningCooldown: false,
         isPenaltyShock: false,
 notificationMsg: '', // 알림 텍스트
+bombMessage: '',
+isEditingBombMessage: false,
+bombMsgX: 200,
+bombMsgY: 500,
+bombMsgW: 700,
+bombMsgH: 100,
         notificationType: '', // 알림 색상 (info, warning, danger)
         notificationTimer: null,
         notificationMsg: '',    // ★ 이게 있어야 알림이 뜹니다!
@@ -5551,6 +5653,41 @@ sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.loca
 
 
            methods: {
+startBombMsgDrag(e) {
+    if (this.isEditingBombMessage) return;
+    // ★ 드래그 시작 시 현재 위치를 기준으로 offset 계산
+    const startOffsetX = e.clientX - this.bombMsgX;
+    const startOffsetY = e.clientY - this.bombMsgY;
+    const onMove = (ev) => {
+        this.bombMsgX = ev.clientX - startOffsetX;
+        this.bombMsgY = ev.clientY - startOffsetY;
+    };
+    const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        this.saveToLocal();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+},
+
+startBombMsgResize(e) {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = this.bombMsgW;
+    const startH = this.bombMsgH;
+    const onMove = (ev) => {
+        this.bombMsgW = Math.max(200, startW + (ev.clientX - startX));
+        this.bombMsgH = Math.max(60,  startH + (ev.clientY - startY));
+    };
+    const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        this.saveToLocal();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+},
 openStore() {
             // 선생님의 상점 주소로 새 창 열기
             window.open('https://csgo0404-ai.github.io/class-store/', '_blank');
@@ -8954,6 +9091,11 @@ currentScheduleVersion: this.currentScheduleVersion, // ★ 누락되었던 일�
                         blackboardContent: this.blackboardContent,
                         thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset,
 isOneMinAlarmOn: this.isOneMinAlarmOn,
+bombMessage: this.bombMessage,
+bombMsgX: this.bombMsgX,
+bombMsgY: this.bombMsgY,
+bombMsgW: this.bombMsgW,
+bombMsgH: this.bombMsgH,
                         noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
                         timeBankHistory: this.timeBankHistory, currentView: this.view, isRotated: this.isRotated,
                         capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
@@ -9056,7 +9198,11 @@ this.view = 'main'; // ★ 무조건 좌석 배치도(main)가 가장 먼저 뜨
                                 // 구버전 데이터 호환용
                                 this.scheduleVersions[0].data = parsed.daySchedules;
                             }
-
+if (parsed.bombMessage !== undefined) this.bombMessage = parsed.bombMessage;
+if (parsed.bombMsgX !== undefined) this.bombMsgX = parsed.bombMsgX;
+if (parsed.bombMsgY !== undefined) this.bombMsgY = parsed.bombMsgY;
+if (parsed.bombMsgW !== undefined) this.bombMsgW = parsed.bombMsgW;
+if (parsed.bombMsgH !== undefined) this.bombMsgH = parsed.bombMsgH;
                             // 로컬 데이터 기반으로 슬라이더 초기 위치 잡아주기
                             if (this.currentNoisePreset === 'reading') {
                                 this.noiseThreshold = this.thresholdReading || 50;
@@ -11498,480 +11644,660 @@ async startShuffleSequence() {
             },
 
 async applyShuffle() {
-                try {
-                    const safeSeatConfig = Array.from({length: 30}, (_, i) => this.seatConfig[i] || null);
-                    const safeSeats = Array.from({length: 30}, (_, i) => this.seats[i] || null);
-                    
-                    let activeSeatCount = 0;
-                    for (let i = 0; i < 30; i++) {
-                        if (safeSeatConfig[i] !== 'X') activeSeatCount++;
-                    }
-                    
-                    const allStudentsLocal = [];
-                    safeSeats.forEach(s => { if(s && s.name) allStudentsLocal.push(s); });
-                    const waitingArr = Array.isArray(this.waitingRoom) ? this.waitingRoom : Object.values(this.waitingRoom || {});
-                    waitingArr.forEach(s => { if(s && s.name) allStudentsLocal.push(s); });
+    try {
+        // ================================================================
+        // 0. 기초 데이터 준비
+        // ================================================================
+        const safeSeatConfig = Array.from({ length: 30 }, (_, i) => this.seatConfig[i] || null);
+        const safeSeats      = Array.from({ length: 30 }, (_, i) => this.seats[i]      || null);
 
-                    let shortage = allStudentsLocal.length - activeSeatCount;
-                    if (shortage > 0) {
-                        for (let i = 0; i < 30 && shortage > 0; i++) {
-                            if (safeSeatConfig[i] === 'X') {
-                                safeSeatConfig[i] = null;
-                                this.seatConfig[i] = null;
-                                shortage--;
-                            }
-                        }
-                    }
-                    
-                    const backupSeats = JSON.parse(JSON.stringify(safeSeats));
-                    const backupWaiting = JSON.parse(JSON.stringify(waitingArr));
+        let activeSeatCount = safeSeatConfig.filter(c => c !== 'X').length;
 
-                    const seatHistoryMap = new Map(); 
-                    const partnerHistoryMap = new Map();
-                    
-                    allStudentsLocal.forEach(s => {
-                        seatHistoryMap.set(s.name, {}); 
-                        partnerHistoryMap.set(s.name, new Map()); 
-                    });
+        const allStudents = [];
+        safeSeats.forEach(s => { if (s?.name) allStudents.push(s); });
+        const waitingArr = Array.isArray(this.waitingRoom)
+            ? this.waitingRoom
+            : Object.values(this.waitingRoom || {});
+        waitingArr.forEach(s => { if (s?.name) allStudents.push(s); });
 
-                    const recentHistory = this.shuffleHistory.slice(0, 3);
-                    recentHistory.forEach((rec, hIdx) => {
-                        const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-                        for (let i = 0; i < 30; i++) {
-                            if (hSeats[i] && hSeats[i].name && seatHistoryMap.has(hSeats[i].name)) {
-                                seatHistoryMap.get(hSeats[i].name)[hIdx] = i;
-                            }
-                        }
-                    });
+        if (allStudents.length === 0) return alert("배치할 학생이 없습니다.");
 
-                    const historyToLook = this.shuffleHistory.slice(0, 50);
-                    historyToLook.forEach((rec, hIdx) => { 
-                        const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-                        for (let i = 0; i < 30; i += 2) {
-                            const s1 = hSeats[i];
-                            const s2 = hSeats[i + 1];
-                            if (s1 && s2 && s1.name && s2.name) {
-                                const pMap1 = partnerHistoryMap.get(s1.name);
-                                const pMap2 = partnerHistoryMap.get(s2.name);
-                                // ★ [버그 수정 1] 몇 번째 전(hIdx)에 만났는지 기록합니다 (작을수록 최근!)
-                                if (pMap1 && !pMap1.has(s2.name)) pMap1.set(s2.name, hIdx);
-                                if (pMap2 && !pMap2.has(s1.name)) pMap2.set(s1.name, hIdx);
-                            }
-                        }
-                    });
-
-                    let pool = [...allStudentsLocal];
-                    let poolM = pool.filter(s => s.gender === 'M');
-                    let poolF = pool.filter(s => s.gender === 'F');
-
-                    if (pool.length === 0) return alert("배치할 학생이 없습니다.");
-
-                    const shuffleStartTime = Date.now(); 
-                    this.isCurtainDown = true;
-                    this.playSound('slide', false, 0.8); 
-                    this.playSound('making', true, 1.0); 
-                    await new Promise(r => setTimeout(r, 800));
-
-                    // ★ [버그 수정 2] 시간차 패널티 계산기 도입!
-                    const getPartnerPenalty = (s1, s2) => {
-                        if (!s1 || !s2) return 0; 
-                        if (this.separationPairs.some(p => (p.student1 === s1.name && p.student2 === s2.name) || (p.student1 === s2.name && p.student2 === s1.name))) return 9999999;
-                        
-                        if (this.avoidPrevious) {
-                            const hIdx = partnerHistoryMap.get(s1.name)?.get(s2.name);
-                            if (hIdx !== undefined) {
-                                // ★ 짝꿍 중복 벌점을 500만 점으로 올려서 자리 중복(최대 400만점)보다 무조건 피하도록 설정!
-                                return 5000000 - (hIdx * 10000); 
-                            }
-                        }
-                        return 0;
-                    };
-
-                    const sortByLastChar = (a, b) => {
-                        const lastA = a.name.charAt(a.name.length - 1);
-                        const lastB = b.name.charAt(b.name.length - 1);
-                        if (lastA === lastB) return a.name.localeCompare(b.name); 
-                        return lastA.localeCompare(lastB);
-                    };
-
-                    const getCircleMethodPairs = (students, round) => {
-                        if (students.length === 0) return [];
-                        let arr = [...students].sort(sortByLastChar);
-                        let pairs = [];
-                        if (arr.length % 2 !== 0) arr.push(null); 
-                        const n = arr.length;
-                        const fixed = arr[0];
-                        const rotating = arr.slice(1);
-const rotIdx = (n > 1) ? round % (n - 1) : 0;
-                        let rotated = rotIdx > 0 ? [...rotating.slice(rotating.length - rotIdx), ...rotating.slice(0, rotating.length - rotIdx)] : rotating;
-                        pairs.push([fixed, rotated[0]]);
-                        let left = 1, right = rotated.length - 1;
-                        while (left < right) {
-                            pairs.push([rotated[left], rotated[right]]);
-                            left++; right--;
-                        }
-                        return pairs.map(p => p.filter(s => s !== null)); 
-                    };
-
-                    const getLineShiftPairs = (males, females, round) => {
-                        let mArr = [...males].sort(sortByLastChar);
-                        let fArr = [...females].sort(sortByLastChar);
-                        let pairs = [];
-                        const fLen = fArr.length;
-                        const shift = fLen > 0 ? (round % fLen) : 0;
-                        let shiftedF = shift > 0 ? [...fArr.slice(fLen - shift), ...fArr.slice(0, fLen - shift)] : [...fArr];
-                        const maxLen = Math.max(mArr.length, shiftedF.length);
-                        for (let i = 0; i < maxLen; i++) {
-                            let m = mArr[i] || null; let f = shiftedF[i] || null;
-                            if (m && f) pairs.push([m, f]);
-                            else if (m) pairs.push([m, null]);
-                            else if (f) pairs.push([f, null]);
-                        }
-                        return pairs.map(p => p.filter(s => s !== null));
-                    };
-
-                    const solveMatching = (inputPool, mode) => {
-                        let temp = [...inputPool].sort(() => Math.random() - 0.5);
-                        let units = [];
-                        while(temp.length > 1) {
-                            const me = temp.shift();
-                            let bIdx = -1; let bPen = Infinity;
-                            for(let i=0; i<temp.length; i++) {
-                                let p = 0;
-                                if (mode === 'mixed' && me.gender === temp[i].gender) p += 5000;
-                                if (mode === 'same' && me.gender !== temp[i].gender) p += 5000;
-                                if (p < bPen) { bPen = p; bIdx = i; }
-                            }
-                            if (bIdx !== -1 && bPen < 50000) {
-                                units.push([me, temp[bIdx]]); temp.splice(bIdx, 1);
-                            } else { units.push([me]); }
-                        }
-                        if (temp.length > 0) units.push([temp[0], null]);
-                        return units;
-                    };
-
-                    let originalAvailableDesks = []; 
-                    let originalSingleSeats = [];    
-                    for (let i = 0; i < 30; i += 2) {
-                        const isLeftX = safeSeatConfig[i] === 'X';
-                        const isRightX = safeSeatConfig[i+1] === 'X';
-                        if (!isLeftX && !isRightX) originalAvailableDesks.push({ leftIdx: i, rightIdx: i + 1, leftConfig: safeSeatConfig[i], rightConfig: safeSeatConfig[i+1] });
-                        else {
-                            if (!isLeftX) originalSingleSeats.push({ idx: i, config: safeSeatConfig[i] });
-                            if (!isRightX) originalSingleSeats.push({ idx: i+1, config: safeSeatConfig[i+1] });
-                        }
-                    }
-
-                    const canSitPenalty = (student, config) => {
-                        if (!student || !config || this.shuffleMode === 'random') return 0; 
-                        // ★ 성별이 안 맞으면 1000만 점의 패널티를 부여해 절대 자리를 바꾸지 못하게 금지합니다.
-                        return student.gender === config ? 0 : 10000000; 
-                    };
-
-                    let bestFinalSeats = null;
-                    let minTotalSeatPenalty = Infinity;
-
-                    // ★ 점검단 시작
-                    for (let t = 0; t < 10000; t++) { 
-                        if (t % 30 === 0) await new Promise(r => setTimeout(r, 2));
-
-                        let currentPairs = [];
-                        let pairPenalty = 0;
-
-                        if (!this.avoidPrevious) {
-                            currentPairs = solveMatching(pool, this.shuffleMode);
-                        } else {
-                            const historyOffset = this.shuffleHistory.length;
-let r = this.shuffleMode === 'mixed'
-    ? (historyOffset + t) % Math.max(poolF.length, 1)
-    : (historyOffset + t) % Math.max(pool.length - 1, 1);
-                            if (this.shuffleMode === 'mixed') currentPairs = getLineShiftPairs(poolM, poolF, r);
-                            else if (this.shuffleMode === 'same') currentPairs = [...getCircleMethodPairs(poolM, r), ...getCircleMethodPairs(poolF, r)];
-                            else if (this.shuffleMode === 'random') currentPairs = getCircleMethodPairs(pool, r);
-                        }
-
-                        // 짝꿍 패널티 합산
-                        for (let p of currentPairs) {
-                            pairPenalty += getPartnerPenalty(p[0], p[1]);
-                        }
-                        
-                        if (pairPenalty >= 9999999) continue; // 거리두기 999만점은 폐기
-
-                        let tempSeats = Array(30).fill(null);
-                        let currentSeatPenalty = pairPenalty; // 시간차 벌점을 안고 자리 배치 시작
-                        let tempDesks = [...originalAvailableDesks];
-                        let tempSingles = [...originalSingleSeats];
-                        let placedStudents = new Set();
-
-                        // 고정석 배치
-                        for (let lock of this.manualLocks) {
-                            if (safeSeatConfig[lock.seatIdx] === 'X') continue;
-                            let targetPair = currentPairs.find(p => p[0]?.name === lock.student || p[1]?.name === lock.student);
-                            if (!targetPair || placedStudents.has(targetPair[0]?.name) || placedStudents.has(targetPair[1]?.name)) continue;
-
-                            let s1 = targetPair[0]; let s2 = targetPair[1];
-                            let lockIsLeft = lock.seatIdx % 2 === 0;
-                            let deskIdx = lockIsLeft ? lock.seatIdx : lock.seatIdx - 1;
-
-                            let deskIndex = tempDesks.findIndex(d => d.leftIdx === deskIdx);
-                            if (deskIndex !== -1) {
-                                let desk = tempDesks[deskIndex];
-                                tempSeats[desk.leftIdx] = (s1?.name === lock.student) ? s1 : s2;
-                                tempSeats[desk.rightIdx] = (s1?.name === lock.student) ? s2 : s1;
-                                
-                                let partner = (s1?.name === lock.student) ? s2 : s1;
-                                if (partner) {
-                                    let partnerLock = this.manualLocks.find(l => l.student === partner.name);
-                                    if (partnerLock && partnerLock.seatIdx !== (lockIsLeft ? desk.rightIdx : desk.leftIdx)) {
-                                        currentSeatPenalty += 9999999; 
-                                    }
-                                }
-
-                                tempDesks.splice(deskIndex, 1);
-                                if(s1) placedStudents.add(s1.name);
-                                if(s2) placedStudents.add(s2.name);
-                            } else {
-                                let singleIndex = tempSingles.findIndex(s => s.idx === lock.seatIdx);
-                                if (singleIndex !== -1) {
-                                    tempSeats[lock.seatIdx] = (s1?.name === lock.student) ? s1 : s2;
-                                    tempSingles.splice(singleIndex, 1);
-                                    let placedStudent = tempSeats[lock.seatIdx];
-                                    if(placedStudent) placedStudents.add(placedStudent.name);
-                                }
-                            }
-                        }
-
-                        // 나머지 짝꿍 배치
-                        let remainingPairs = currentPairs.filter(p => !placedStudents.has(p[0]?.name) && !placedStudents.has(p[1]?.name));
-                        remainingPairs.sort((a, b) => {
-                            let aDist = this.separationPairs.some(sep => sep.student1 === a[0]?.name || sep.student2 === a[0]?.name || sep.student1 === a[1]?.name || sep.student2 === a[1]?.name);
-                            let bDist = this.separationPairs.some(sep => sep.student1 === b[0]?.name || sep.student2 === b[0]?.name || sep.student1 === b[1]?.name || sep.student2 === b[1]?.name);
-                            if (aDist && !bDist) return -1;
-                            if (!aDist && bDist) return 1;
-                            return Math.random() - 0.5; 
-                        });
-                        
-                        tempDesks.sort(() => Math.random() - 0.5);
-
-                        const getSeatDistPenalty = (student, seatIdx) => {
-                            if (!student) return 0;
-                            let pen = 0;
-                            if (this.separationPairs.length > 0) {
-                                const gridPos = this.getGridXY(seatIdx);
-                                for (let p of this.separationPairs) {
-                                    if (p.student1 === student.name || p.student2 === student.name) {
-                                        const targetName = p.student1 === student.name ? p.student2 : p.student1;
-                                        const targetIdx = tempSeats.findIndex(s => s && s.name === targetName);
-                                        if (targetIdx !== -1) {
-                                            const tPos = this.getGridXY(targetIdx);
-                                            const dist = Math.max(Math.abs(gridPos.x - tPos.x), Math.abs(gridPos.y - tPos.y));
-                                            if (dist <= 1) pen += 9999999; 
-                                            else if (dist === 2) pen += 50000;
-                                            else if (dist === 3) pen += 10000;
-                                            else if (dist === 4) pen += 5000;
-                                        }
-                                    }
-                                }
-                            }
-                            const isFixed = this.manualLocks.some(l => l.student === student.name);
-                            if (this.avoidPreviousSeat && !isFixed) {
-                                const hist = seatHistoryMap.get(student.name);
-                                if (hist) {
-                                    if (hist[0] === seatIdx) pen += 100000; 
-                                    if (hist[1] === seatIdx) pen += 50000;  
-                                    if (hist[2] === seatIdx) pen += 20000;  
-                                }
-                            }
-                            return pen;
-                        };
-
-                        for (let p of remainingPairs) {
-                            let s1 = p[0]; let s2 = p[1];
-                            if (!s1 || !s2) {
-    let student = s1 || s2;
-    let bestSeatIndex = -1; let minPen = Infinity;
-    for (let i = 0; i < tempSingles.length; i++) {
-        let seat = tempSingles[i];
-        let pen = canSitPenalty(student, seat.config);
-        tempSeats[seat.idx] = student;
-        pen += getSeatDistPenalty(student, seat.idx);
-        tempSeats[seat.idx] = null;
-        if (pen < minPen) { minPen = pen; bestSeatIndex = i; }
-    }
-    if (bestSeatIndex !== -1) {
-        tempSeats[tempSingles[bestSeatIndex].idx] = student;
-        currentSeatPenalty += minPen;
-        tempSingles.splice(bestSeatIndex, 1);
-    } else if (tempDesks.length > 0) {
-        // ★ 수정: 남은 짝꿍 책상의 한 자리를 활용
-        const desk = tempDesks[0];
-        const side = canSitPenalty(student, desk.leftConfig) <= canSitPenalty(student, desk.rightConfig)
-            ? { idx: desk.leftIdx, config: desk.leftConfig }
-            : { idx: desk.rightIdx, config: desk.rightConfig };
-        tempSeats[side.idx] = student;
-        currentSeatPenalty += canSitPenalty(student, side.config) + getSeatDistPenalty(student, side.idx);
-        // 사용한 책상은 단일 잔여 자리로 전환
-        const remainIdx = side.idx === desk.leftIdx ? desk.rightIdx : desk.leftIdx;
-        const remainConfig = side.idx === desk.leftIdx ? desk.rightConfig : desk.leftConfig;
-        tempSingles.push({ idx: remainIdx, config: remainConfig });
-        tempDesks.splice(0, 1);
-    } else {
-        const fallbackIdx = tempSeats.findIndex((seat, idx) => !seat && safeSeatConfig[idx] !== 'X');
-        if (fallbackIdx !== -1) { tempSeats[fallbackIdx] = student; currentSeatPenalty += 1000000; }
-    }
-    continue;
-}
-
-                            let bestDeskIndex = -1;
-                            let bestArrangement = null; 
-                            let minDeskPenalty = Infinity;
-
-                            for (let i = 0; i < tempDesks.length; i++) {
-                                const desk = tempDesks[i];
-                                
-                                tempSeats[desk.leftIdx] = s1; tempSeats[desk.rightIdx] = s2;
-                                let pen1 = canSitPenalty(s1, desk.leftConfig) + canSitPenalty(s2, desk.rightConfig) + getSeatDistPenalty(s1, desk.leftIdx) + getSeatDistPenalty(s2, desk.rightIdx);
-                                if (pen1 < minDeskPenalty) { minDeskPenalty = pen1; bestDeskIndex = i; bestArrangement = { left: s1, right: s2 }; }
-                                
-                                tempSeats[desk.leftIdx] = s2; tempSeats[desk.rightIdx] = s1;
-                                let pen2 = canSitPenalty(s2, desk.leftConfig) + canSitPenalty(s1, desk.rightConfig) + getSeatDistPenalty(s2, desk.leftIdx) + getSeatDistPenalty(s1, desk.rightIdx);
-                                if (pen2 < minDeskPenalty) { minDeskPenalty = pen2; bestDeskIndex = i; bestArrangement = { left: s2, right: s1 }; }
-                                
-                                tempSeats[desk.leftIdx] = null; tempSeats[desk.rightIdx] = null;
-                            }
-
-                            if (bestDeskIndex !== -1) {
-                                const desk = tempDesks[bestDeskIndex];
-                                tempSeats[desk.leftIdx] = bestArrangement.left;
-                                tempSeats[desk.rightIdx] = bestArrangement.right;
-                                currentSeatPenalty += minDeskPenalty;
-                                tempDesks.splice(bestDeskIndex, 1); 
-                            }
-                        }
-
-                        if (currentSeatPenalty < minTotalSeatPenalty) {
-                            minTotalSeatPenalty = currentSeatPenalty;
-                            bestFinalSeats = tempSeats;
-                        }
-
-                        if (minTotalSeatPenalty === 0) break;
-                    }
-
-                    if (!bestFinalSeats || minTotalSeatPenalty >= 9000000) {
-                        this.stopSound('making'); 
-                        this.isCurtainDown = false; 
-                        alert("거리두기 또는 고정석 설정이 물리적으로 너무 까다로워 조건을 완벽히 충족하지 못했습니다.\n거리를 조금 좁히거나 고정석을 조정해 보세요.");
-                        this.seats = backupSeats; this.waitingRoom = backupWaiting;
-                        return;
-                    }
-
-                    this.seats = bestFinalSeats;
-                    if(typeof this.runReferee === 'function') await this.runReferee(); 
-
-                    let seatDupCount = 0;
-                    let partnerDupStats = {}; 
-                    
-                    for (let i = 0; i < 30; i++) {
-                        const student = this.seats[i];
-                        if (!student) continue;
-
-                        const isFixed = this.manualLocks.some(l => l.student === student.name);
-
-                        if (this.shuffleHistory.length > 0 && !isFixed) {
-                            const lastSeats = Array.isArray(this.shuffleHistory[0].seats) ? this.shuffleHistory[0].seats : Object.values(this.shuffleHistory[0].seats || {});
-                            if (lastSeats[i] && lastSeats[i].name === student.name) {
-                                seatDupCount++;
-                            }
-                        }
-
-                        if (i % 2 === 0) {
-                            const partner = this.seats[i + 1];
-                            if (partner) {
-                                let pastCount = 0;
-                                this.shuffleHistory.forEach(rec => {
-                                    const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-                                    for (let j = 0; j < 30; j += 2) {
-                                        const hS1 = hSeats[j]; const hS2 = hSeats[j + 1];
-                                        if (hS1 && hS2 && hS1.name && hS2.name) {
-                                            if ((hS1.name === student.name && hS2.name === partner.name) ||
-                                                (hS1.name === partner.name && hS2.name === student.name)) {
-                                                pastCount++;
-                                            }
-                                        }
-                                    }
-                                });
-                                if (pastCount > 0) {
-                                    const dupCount = pastCount + 1; 
-                                    if (!partnerDupStats[dupCount]) partnerDupStats[dupCount] = 0;
-                                    partnerDupStats[dupCount] += 2; 
-                                }
-                            }
-                        }
-                    }
-
-                    const seatedNames = new Set(this.seats.filter(s => s).map(s => s.name));
-                    this.waitingRoom = allStudentsLocal.filter(s => !seatedNames.has(s.name));
-
-                    await this.$nextTick();
-                    const elapsed = Date.now() - shuffleStartTime;
-                    if (elapsed < 4000) await new Promise(r => setTimeout(r, 4000 - elapsed));
-
-                    this.playSound('drum', false, 0.8); 
-                    await new Promise(r => setTimeout(r, 2500)); 
-
-                    this.isCurtainDown = false;
-                    this.stopSound('making'); 
-                    this.playSound('magic', false, 0.8); 
-                    await new Promise(r => setTimeout(r, 800)); 
-
-                    if (!this.avoidPrevious) partnerDupStats = {}; 
-                    if (!this.avoidPreviousSeat) seatDupCount = 0; 
-
-                    let hasDup = false;
-                    let dupMessages = [];
-
-                    if (Object.keys(partnerDupStats).length > 0) {
-                        hasDup = true;
-                        const sortedCounts = Object.keys(partnerDupStats).map(Number).sort((a,b) => b - a);
-                        sortedCounts.forEach(count => {
-                            dupMessages.push(`${count}회 짝꿍 중복 ${partnerDupStats[count]}명`);
-                        });
-                    }
-                    if (seatDupCount > 0) {
-                        hasDup = true;
-                        dupMessages.push(`직전 자리 중복 ${seatDupCount}명 (고정석 제외)`);
-                    }
-
-                    if (hasDup) {
-                        let confirmMsg = "자리 배치가 완료되었습니다.\n";
-                        confirmMsg += `(⚠️ ${dupMessages.join(', ')})\n\n`;
-                        confirmMsg += "이대로 적용하시겠습니까?";
-                        if (!confirm(confirmMsg)) {
-                            this.seats = backupSeats; this.waitingRoom = backupWaiting; return; 
-                        }
-                    }
-
-                    this.showShuffleModal = false;
-
-                    const now = new Date();
-                    const dateStr = `${now.getMonth()+1}/${now.getDate()}`;
-                    const pureLayoutSnapshot = this.seats.map(s => {
-                        if (s && s.name) return { name: s.name, number: s.number, gender: s.gender, activityScore: 0, checked: false, order: null, memo: "", starred: false };
-                        return null;
-                    });
-                    const currentMode = this.shuffleMode === 'mixed' ? '이성' : (this.shuffleMode === 'same' ? '동성' : '랜덤');
-                    this.shuffleHistory.unshift({ id: Date.now(), date: dateStr, mode: currentMode, seats: pureLayoutSnapshot });
-                    if (this.shuffleHistory.length > 30) this.shuffleHistory.pop();
-
-                    this.saveToLocal();
-                    this.saveToFirebase();
-
-                } catch (e) {
-                    alert("오류 발생: " + e.message);
-                    console.error(e);
+        let shortage = allStudents.length - activeSeatCount;
+        if (shortage > 0) {
+            for (let i = 0; i < 30 && shortage > 0; i++) {
+                if (safeSeatConfig[i] === 'X') {
+                    safeSeatConfig[i] = null;
+                    this.seatConfig[i] = null;
+                    shortage--;
                 }
-            },          
+            }
+        }
 
+        const backupSeats   = JSON.parse(JSON.stringify(safeSeats));
+        const backupWaiting = JSON.parse(JSON.stringify(waitingArr));
+
+        const poolM = allStudents.filter(s => s.gender === 'M');
+        const poolF = allStudents.filter(s => s.gender === 'F');
+
+        // ================================================================
+        // 1. 모드별 히스토리 준비
+        // ================================================================
+        const currentModeLabel = this.shuffleMode === 'mixed' ? '이성'
+                               : this.shuffleMode === 'same'  ? '동성' : '랜덤';
+
+        if (!this.shuffleHistoryByMode) this.shuffleHistoryByMode = {};
+        if (!this.shuffleHistoryByMode[currentModeLabel]) {
+            this.shuffleHistoryByMode[currentModeLabel] = {
+                records: [], cycleCount: 0, currentRound: 0
+            };
+        }
+        const modeData = this.shuffleHistoryByMode[currentModeLabel];
+        if (modeData.currentRound === undefined) modeData.currentRound = modeData.records.length;
+
+        // ================================================================
+        // 2. 정렬 기준 (사이클 0=끝글자, 1=두번째글자, 2=첫글자)
+        // ================================================================
+        const sortCycle = modeData.cycleCount % 3;
+
+        const getSortChar = (name, cycle) => {
+            if (cycle === 0) return name.charAt(name.length - 1);
+            if (cycle === 1) return name.length >= 2 ? name.charAt(1) : name.charAt(0);
+            return name.charAt(0);
+        };
+
+        const sortByCycle = (a, b) => {
+            const ca = getSortChar(a.name, sortCycle);
+            const cb = getSortChar(b.name, sortCycle);
+            return ca !== cb ? ca.localeCompare(cb) : a.name.localeCompare(b.name);
+        };
+
+        // ================================================================
+        // 3. 짝꿍 이력 맵 구성 (현재 사이클 records만 참조)
+        // ================================================================
+        const partnerHistoryMap = new Map();
+        allStudents.forEach(s => partnerHistoryMap.set(s.name, new Set()));
+
+        modeData.records.forEach((rec) => {
+            const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            for (let i = 0; i < 30; i += 2) {
+                const s1 = hSeats[i], s2 = hSeats[i + 1];
+                if (s1?.name && s2?.name) {
+                    partnerHistoryMap.get(s1.name)?.add(s2.name);
+                    partnerHistoryMap.get(s2.name)?.add(s1.name);
+                }
+            }
+        });
+
+        const seatHistoryMap = new Map();
+        allStudents.forEach(s => seatHistoryMap.set(s.name, {}));
+        this.shuffleHistory.slice(0, 3).forEach((rec, hIdx) => {
+            const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            for (let i = 0; i < 30; i++) {
+                const s = hSeats[i];
+                if (s?.name && seatHistoryMap.has(s.name)) {
+                    seatHistoryMap.get(s.name)[hIdx] = i;
+                }
+            }
+        });
+
+        // ================================================================
+        // 4. 커튼 내리기
+        // ================================================================
+        const shuffleStartTime = Date.now();
+        this.isCurtainDown = true;
+        this.playSound('slide', false, 0.8);
+        this.playSound('making', true, 1.0);
+        await new Promise(r => setTimeout(r, 800));
+
+        // ================================================================
+        // 5. 공통 유틸
+        // ================================================================
+        const isSeparationPair = (s1, s2) =>
+            this.separationPairs.some(p =>
+                (p.student1 === s1.name && p.student2 === s2.name) ||
+                (p.student1 === s2.name && p.student2 === s1.name)
+            );
+
+        const canPair = (s1, s2) => {
+            if (isSeparationPair(s1, s2)) return false;
+            if (this.shuffleMode === 'mixed' && s1.gender === s2.gender) return false;
+            if (this.shuffleMode === 'same'  && s1.gender !== s2.gender) return false;
+            return true;
+        };
+
+        // ================================================================
+        // 6. 짝꿍 매칭 함수
+        //
+        // [A] matchLineShift (이성)
+        //   ★ 남학생: 사이클 시작 시 sortByCycle로 딱 1번 정렬 후 완전 고정
+        //   ★ 여학생: 사이클 시작 시 sortByCycle로 딱 1번 정렬 후 shift만큼만 회전
+        //   → 남[0]은 shift=0→여[0], shift=1→여[1], ... 순서대로 만남
+        //   → 여학생 수만큼 고유 조합 완전 보장
+        //
+        // [B] matchCircle (동성/랜덤)
+        //   ★ sortByCycle 정렬 후 첫 번째 고정 + 나머지 회전
+        //   → n명이면 (n-1)가지 고유 조합 완전 보장
+        // ================================================================
+
+        // 사이클 내 고정 순서 (한 번만 정렬)
+        const mArrFixed = [...poolM].sort(sortByCycle);
+        const fArrFixed = [...poolF].sort(sortByCycle);
+
+        // [A] 줄 밀기: 남 고정, 여만 shift만큼 회전
+        const matchLineShift = (shift) => {
+            const fLen = fArrFixed.length;
+            const s    = fLen > 0 ? shift % fLen : 0;
+            const shiftedF = s > 0
+                ? [...fArrFixed.slice(fLen - s), ...fArrFixed.slice(0, fLen - s)]
+                : [...fArrFixed];
+            const pairs = [];
+            const maxLen = Math.max(mArrFixed.length, shiftedF.length);
+            for (let i = 0; i < maxLen; i++) {
+                const m = mArrFixed[i] || null;
+                const f = shiftedF[i]  || null;
+                if (m && f)  pairs.push([m, f]);
+                else if (m)  pairs.push([m, null]);
+                else if (f)  pairs.push([f, null]);
+            }
+            return pairs;
+        };
+
+        // [B] 원형 돌리기: 첫 번째 고정, 나머지 회전
+        const matchCircle = (students, round) => {
+            if (students.length === 0) return [];
+            const arr = [...students].sort(sortByCycle);
+            if (arr.length % 2 !== 0) arr.push(null);
+            const rotating = arr.slice(1);
+            const rotLen   = rotating.length;
+            const rotIdx   = rotLen > 0 ? round % rotLen : 0;
+            const rotated  = rotIdx > 0
+                ? [...rotating.slice(rotLen - rotIdx), ...rotating.slice(0, rotLen - rotIdx)]
+                : [...rotating];
+            const pairs = [[arr[0], rotated[0]]];
+            let left = 1, right = rotated.length - 1;
+            while (left < right) {
+                pairs.push([rotated[left], rotated[right]]);
+                left++; right--;
+            }
+            return pairs.map(p => p.filter(s => s !== null));
+        };
+
+        // ================================================================
+        // 7. 짝꿍 조합 결정
+        //    baseRound = modeData.currentRound (records.length 사용 안 함)
+        // ================================================================
+        let finalPairs  = null;
+        let isFullCycle = false;
+
+        const maxCombos = this.shuffleMode === 'mixed'
+            ? Math.max(poolF.length, 1)
+            : Math.max(
+                allStudents.length % 2 === 0 ? allStudents.length - 1 : allStudents.length, 1
+              );
+
+        const baseRound = modeData.currentRound;
+
+        if (this.avoidPrevious) {
+            for (let t = 0; t < maxCombos && !finalPairs; t++) {
+                const round = baseRound + t;
+                let candidate = [];
+
+                if (this.shuffleMode === 'mixed') {
+                    candidate = matchLineShift(round);
+                } else if (this.shuffleMode === 'same') {
+                    const szM = poolM.length > 1 ? (poolM.length % 2 === 0 ? poolM.length - 1 : poolM.length) : 1;
+                    const szF = poolF.length > 1 ? (poolF.length % 2 === 0 ? poolF.length - 1 : poolF.length) : 1;
+                    candidate = [...matchCircle(poolM, round % szM), ...matchCircle(poolF, round % szF)];
+                } else {
+                    const sz = allStudents.length > 1
+                        ? (allStudents.length % 2 === 0 ? allStudents.length - 1 : allStudents.length) : 1;
+                    candidate = matchCircle(allStudents, round % sz);
+                }
+
+                const hasSepConflict = candidate.some(p => p[0] && p[1] && isSeparationPair(p[0], p[1]));
+                if (!hasSepConflict) finalPairs = candidate;
+            }
+
+            if (!finalPairs) {
+                isFullCycle = true;
+                if (this.shuffleMode === 'mixed') finalPairs = matchLineShift(0);
+                else if (this.shuffleMode === 'same') finalPairs = [...matchCircle(poolM, 0), ...matchCircle(poolF, 0)];
+                else finalPairs = matchCircle(allStudents, 0);
+            }
+        } else {
+            if (this.shuffleMode === 'mixed') finalPairs = matchLineShift(0);
+            else if (this.shuffleMode === 'same') finalPairs = [...matchCircle(poolM, 0), ...matchCircle(poolF, 0)];
+            else finalPairs = matchCircle(allStudents, 0);
+        }
+
+        if (!finalPairs || finalPairs.length === 0) {
+            finalPairs = [];
+            const temp = [...allStudents];
+            while (temp.length > 1) finalPairs.push([temp.shift(), temp.shift()]);
+            if (temp.length === 1) finalPairs.push([temp[0], null]);
+        }
+
+        // ================================================================
+        // 8. 좌석 구조 분석
+        // ================================================================
+        const baseDesks   = [];
+        const baseSingles = [];
+        for (let i = 0; i < 30; i += 2) {
+            const lX = safeSeatConfig[i]     === 'X';
+            const rX = safeSeatConfig[i + 1] === 'X';
+            if (!lX && !rX) {
+                baseDesks.push({ leftIdx: i, rightIdx: i + 1, leftConfig: safeSeatConfig[i], rightConfig: safeSeatConfig[i + 1] });
+            } else {
+                if (!lX) baseSingles.push({ idx: i,     config: safeSeatConfig[i]     });
+                if (!rX) baseSingles.push({ idx: i + 1, config: safeSeatConfig[i + 1] });
+            }
+        }
+
+        // ================================================================
+        // 9. 패널티 함수들
+        // ================================================================
+        const genderPen = (student, seatIdx) => {
+            if (!student) return 0;
+            const config = safeSeatConfig[seatIdx];
+            if (!config || this.shuffleMode === 'random') return 0;
+            return student.gender === config ? 0 : 10_000_000;
+        };
+
+        const prevSeatPen = (student, seatIdx) => {
+            if (!student || !this.avoidPreviousSeat) return 0;
+            if (this.manualLocks.some(l => l.student === student.name)) return 0;
+            const hist = seatHistoryMap.get(student.name);
+            if (!hist) return 0;
+            if (hist[0] === seatIdx) return 400_000;
+            if (hist[1] === seatIdx) return 200_000;
+            if (hist[2] === seatIdx) return  80_000;
+            return 0;
+        };
+
+        const gridDist = (idxA, idxB) => {
+            const a = this.getGridXY(idxA);
+            const b = this.getGridXY(idxB);
+            return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+        };
+
+        const distancePen = (student, seatIdx, tempSeats) => {
+            if (!student || this.separationPairs.length === 0) return 0;
+            let pen = 0;
+            for (const sep of this.separationPairs) {
+                if (sep.student1 !== student.name && sep.student2 !== student.name) continue;
+                const targetName = sep.student1 === student.name ? sep.student2 : sep.student1;
+                const targetIdx  = tempSeats.findIndex(s => s?.name === targetName);
+                if (targetIdx === -1) continue;
+                const dist = gridDist(seatIdx, targetIdx);
+                if (dist <= 1) pen += 9_999_999;
+                else if (dist === 2) pen +=  100_000;
+                else if (dist === 3) pen +=   20_000;
+                else if (dist === 4) pen +=    5_000;
+            }
+            return pen;
+        };
+
+        const totalSeatPen = (student, seatIdx, tempSeats) =>
+            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats);
+
+        // ================================================================
+        // 10. 자리 배치 함수
+        // ================================================================
+        const placeStudents = (pairs) => {
+            const tempSeats   = Array(30).fill(null);
+            let   seatPenalty = 0;
+            let   tempDesks   = [...baseDesks];
+            let   tempSingles = [...baseSingles];
+            const placed      = new Set();
+
+            // 고정석 먼저
+            for (const lock of this.manualLocks) {
+                if (safeSeatConfig[lock.seatIdx] === 'X') continue;
+                const targetPair = pairs.find(p => p[0]?.name === lock.student || p[1]?.name === lock.student);
+                if (!targetPair) continue;
+                if (placed.has(targetPair[0]?.name) || placed.has(targetPair[1]?.name)) continue;
+
+                const s1 = targetPair[0], s2 = targetPair[1];
+                const lockIsLeft  = lock.seatIdx % 2 === 0;
+                const deskLeftIdx = lockIsLeft ? lock.seatIdx : lock.seatIdx - 1;
+                const deskPos     = tempDesks.findIndex(d => d.leftIdx === deskLeftIdx);
+
+                if (deskPos !== -1) {
+                    const desk   = tempDesks[deskPos];
+                    const locked = s1?.name === lock.student ? s1 : s2;
+                    const other  = s1?.name === lock.student ? s2 : s1;
+                    tempSeats[desk.leftIdx]  = lockIsLeft ? locked : other;
+                    tempSeats[desk.rightIdx] = lockIsLeft ? other  : locked;
+                    if (other) {
+                        const pLock = this.manualLocks.find(l => l.student === other.name);
+                        if (pLock && pLock.seatIdx !== (lockIsLeft ? desk.rightIdx : desk.leftIdx))
+                            seatPenalty += 9_999_999;
+                    }
+                    tempDesks.splice(deskPos, 1);
+                    if (s1) placed.add(s1.name);
+                    if (s2) placed.add(s2.name);
+                } else {
+                    const sPos = tempSingles.findIndex(s => s.idx === lock.seatIdx);
+                    if (sPos !== -1) {
+                        const student = s1?.name === lock.student ? s1 : s2;
+                        tempSeats[lock.seatIdx] = student;
+                        if (student) placed.add(student.name);
+                        tempSingles.splice(sPos, 1);
+                    }
+                }
+            }
+
+            // 나머지 짝꿍 (거리두기 대상 먼저)
+            const remaining = pairs.filter(p => !placed.has(p[0]?.name) && !(p[1] && placed.has(p[1].name)));
+            remaining.sort((a, b) => {
+                const aS = this.separationPairs.some(sep =>
+                    a[0]?.name===sep.student1||a[0]?.name===sep.student2||a[1]?.name===sep.student1||a[1]?.name===sep.student2);
+                const bS = this.separationPairs.some(sep =>
+                    b[0]?.name===sep.student1||b[0]?.name===sep.student2||b[1]?.name===sep.student1||b[1]?.name===sep.student2);
+                if (aS && !bS) return -1;
+                if (!aS && bS)  return  1;
+                return 0;
+            });
+
+            if (this.separationPairs.length === 0 && !this.avoidPreviousSeat) {
+                tempDesks.sort(() => Math.random() - 0.5);
+            }
+
+            for (const pair of remaining) {
+                const s1 = pair[0], s2 = pair[1];
+
+                if (!s2) {
+                    const student = s1;
+                    let bestIdx = -1, minPen = Infinity;
+                    for (let i = 0; i < tempSingles.length; i++) {
+                        tempSeats[tempSingles[i].idx] = student;
+                        const pen = totalSeatPen(student, tempSingles[i].idx, tempSeats);
+                        tempSeats[tempSingles[i].idx] = null;
+                        if (pen < minPen) { minPen = pen; bestIdx = i; }
+                    }
+                    if (bestIdx !== -1) {
+                        tempSeats[tempSingles[bestIdx].idx] = student;
+                        seatPenalty += minPen;
+                        tempSingles.splice(bestIdx, 1);
+                    } else if (tempDesks.length > 0) {
+                        const desk    = tempDesks[0];
+                        const useLeft = genderPen(student, desk.leftIdx) <= genderPen(student, desk.rightIdx);
+                        const useIdx  = useLeft ? desk.leftIdx  : desk.rightIdx;
+                        const remIdx  = useLeft ? desk.rightIdx : desk.leftIdx;
+                        const remConf = useLeft ? desk.rightConfig : desk.leftConfig;
+                        tempSeats[useIdx] = student;
+                        seatPenalty += totalSeatPen(student, useIdx, tempSeats);
+                        tempSingles.push({ idx: remIdx, config: remConf });
+                        tempDesks.splice(0, 1);
+                    } else {
+                        const fb = tempSeats.findIndex((v, i) => !v && safeSeatConfig[i] !== 'X');
+                        if (fb !== -1) { tempSeats[fb] = student; seatPenalty += 1_000_000; }
+                    }
+                    continue;
+                }
+
+                const isDistTarget = (s) => this.separationPairs.some(sep => sep.student1===s.name||sep.student2===s.name);
+                const targetPlaced = (s) => this.separationPairs.some(sep => {
+                    if (sep.student1!==s.name && sep.student2!==s.name) return false;
+                    const opp = sep.student1===s.name?sep.student2:sep.student1;
+                    return tempSeats.findIndex(seat=>seat?.name===opp) !== -1;
+                });
+
+                const useFarthest = (isDistTarget(s1)||isDistTarget(s2)) &&
+                    (targetPlaced(s1)||targetPlaced(s2)) && !this.avoidPreviousSeat;
+
+                if (useFarthest) {
+                    const main = targetPlaced(s1) ? s1 : s2;
+                    let farthestIdx = -1, maxD = -1;
+                    for (let i = 0; i < tempDesks.length; i++) {
+                        const desk = tempDesks[i];
+                        let minD = Infinity;
+                        for (const sep of this.separationPairs) {
+                            if (sep.student1!==main.name && sep.student2!==main.name) continue;
+                            const opp  = sep.student1===main.name?sep.student2:sep.student1;
+                            const tIdx = tempSeats.findIndex(s=>s?.name===opp);
+                            if (tIdx===-1) continue;
+                            const d = Math.min(gridDist(desk.leftIdx,tIdx), gridDist(desk.rightIdx,tIdx));
+                            if (d < minD) minD = d;
+                        }
+                        if (minD !== Infinity && minD > maxD) { maxD = minD; farthestIdx = i; }
+                    }
+                    if (farthestIdx !== -1) {
+                        const desk = tempDesks[farthestIdx];
+                        tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
+                        const pen1 = totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
+                        tempSeats[desk.leftIdx]=s2; tempSeats[desk.rightIdx]=s1;
+                        const pen2 = totalSeatPen(s2,desk.leftIdx,tempSeats)+totalSeatPen(s1,desk.rightIdx,tempSeats);
+                        if (pen1<=pen2) { tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2; seatPenalty+=pen1; }
+                        else            { tempSeats[desk.leftIdx]=s2; tempSeats[desk.rightIdx]=s1; seatPenalty+=pen2; }
+                        tempDesks.splice(farthestIdx,1);
+                        continue;
+                    }
+                }
+
+                let bestDeskIdx=-1, bestArrang=null, minPen=Infinity;
+                for (let i = 0; i < tempDesks.length; i++) {
+                    const desk = tempDesks[i];
+                    tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
+                    const pen1=totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
+                    if (pen1<minPen) { minPen=pen1; bestDeskIdx=i; bestArrang={left:s1,right:s2}; }
+                    tempSeats[desk.leftIdx]=s2; tempSeats[desk.rightIdx]=s1;
+                    const pen2=totalSeatPen(s2,desk.leftIdx,tempSeats)+totalSeatPen(s1,desk.rightIdx,tempSeats);
+                    if (pen2<minPen) { minPen=pen2; bestDeskIdx=i; bestArrang={left:s2,right:s1}; }
+                    tempSeats[desk.leftIdx]=null; tempSeats[desk.rightIdx]=null;
+                }
+                if (bestDeskIdx !== -1) {
+                    const desk = tempDesks[bestDeskIdx];
+                    tempSeats[desk.leftIdx]  = bestArrang.left;
+                    tempSeats[desk.rightIdx] = bestArrang.right;
+                    seatPenalty += minPen;
+                    tempDesks.splice(bestDeskIdx,1);
+                }
+            }
+
+            // Swap 후처리
+            if (this.avoidPreviousSeat) {
+                for (let i = 0; i < 30; i++) {
+                    const student = tempSeats[i];
+                    if (!student) continue;
+                    if (this.manualLocks.some(l=>l.student===student.name)) continue;
+                    const hist = seatHistoryMap.get(student.name);
+                    if (!hist || hist[0]!==i) continue;
+                    const cands = Array.from({length:30},(_,k)=>k).sort(()=>Math.random()-0.5);
+                    for (const j of cands) {
+                        if (j===i||safeSeatConfig[j]==='X') continue;
+                        if (this.manualLocks.some(l=>l.seatIdx===j)) continue;
+                        const other = tempSeats[j];
+                        if (genderPen(student,j)>0) continue;
+                        if (other && genderPen(other,i)>0) continue;
+                        const histO = seatHistoryMap.get(other?.name);
+                        if (histO && histO[0]===i) continue;
+                        if (hist[0]===j) continue;
+                        const t2=[...tempSeats]; t2[i]=other; t2[j]=student;
+                        const pI=i%2===0?i+1:i-1, pJ=j%2===0?j+1:j-1;
+                        const atI=t2[pI], atJ=t2[pJ];
+                        if (other&&atI&&isSeparationPair(other,atI)) continue;
+                        if (atJ&&isSeparationPair(student,atJ)) continue;
+                        if (this.shuffleMode==='mixed') {
+                            if (other&&atI&&other.gender===atI.gender) continue;
+                            if (atJ&&student.gender===atJ.gender) continue;
+                        }
+                        if (this.shuffleMode==='same') {
+                            if (other&&atI&&other.gender!==atI.gender) continue;
+                            if (atJ&&student.gender!==atJ.gender) continue;
+                        }
+                        // ★ Swap 후 새로 생긴 짝꿍이 이전에 만난 적 있으면 Swap 안 함
+                        if (this.avoidPrevious) {
+                            if (other&&atI&&partnerHistoryMap.get(other.name)?.has(atI.name)) continue;
+                            if (atJ&&partnerHistoryMap.get(student.name)?.has(atJ.name)) continue;
+                        }
+                        tempSeats[i]=other; tempSeats[j]=student;
+                        break;
+                    }
+                }
+            }
+
+            return { seats: tempSeats, seatPenalty };
+        };
+
+        // ================================================================
+        // 11. 점검단: 1000회 시도
+        // ================================================================
+        let bestSeats=null, bestSeatPen=Infinity;
+        for (let t=0; t<1000; t++) {
+            if (t%50===0) await new Promise(r=>setTimeout(r,2));
+            const result = placeStudents(finalPairs);
+            if (result.seatPenalty < bestSeatPen) { bestSeatPen=result.seatPenalty; bestSeats=[...result.seats]; }
+            if (bestSeatPen===0) break;
+        }
+
+        // ================================================================
+        // 12. 실패 판정
+        // ================================================================
+        const hasPhysical = this.separationPairs.length>0||this.manualLocks.length>0;
+        if (!bestSeats||(hasPhysical&&bestSeatPen>=9_000_000)) {
+            this.stopSound('making'); this.isCurtainDown=false;
+            alert("거리두기 또는 고정석 설정이 물리적으로 너무 까다로워 조건을 완벽히 충족하지 못했습니다.\n거리를 조금 좁히거나 고정석을 조정해 보세요.");
+            this.seats=backupSeats; this.waitingRoom=backupWaiting;
+            return;
+        }
+
+        // ================================================================
+        // 13. 결과 적용
+        // ================================================================
+        this.seats = bestSeats;
+        if (typeof this.runReferee==='function') await this.runReferee();
+        const seatedNames = new Set(this.seats.filter(s=>s).map(s=>s.name));
+        this.waitingRoom  = allStudents.filter(s=>!seatedNames.has(s.name));
+
+        // ================================================================
+        // 14. 커튼 올리기
+        // ================================================================
+        await this.$nextTick();
+        const elapsed = Date.now()-shuffleStartTime;
+        if (elapsed<4000) await new Promise(r=>setTimeout(r,4000-elapsed));
+        this.playSound('drum',false,0.8);
+        await new Promise(r=>setTimeout(r,2500));
+        this.isCurtainDown=false;
+        this.stopSound('making');
+        this.playSound('magic',false,0.8);
+        await new Promise(r=>setTimeout(r,800));
+
+        // ================================================================
+        // 15. 한 바퀴 완료 확인
+        // ================================================================
+        const tempHistoryMap = new Map();
+        allStudents.forEach(s => tempHistoryMap.set(s.name, new Set(partnerHistoryMap.get(s.name))));
+        for (let i=0;i<30;i+=2) {
+            const s1=this.seats[i], s2=this.seats[i+1];
+            if (s1?.name&&s2?.name) { tempHistoryMap.get(s1.name)?.add(s2.name); tempHistoryMap.get(s2.name)?.add(s1.name); }
+        }
+        const cycleComplete = this.avoidPrevious && (() => {
+            if (this.shuffleMode==='mixed') return poolM.every(m=>poolF.every(f=>tempHistoryMap.get(m.name)?.has(f.name)));
+            return allStudents.every(s=>allStudents.filter(o=>o.name!==s.name).every(o=>tempHistoryMap.get(s.name)?.has(o.name)));
+        })();
+
+        // ================================================================
+        // 16. 중복 안내 수집
+        // ================================================================
+        let seatDupCount=0, partnerDupPairs=[];
+        for (let i=0;i<30;i++) {
+            const student=this.seats[i];
+            if (!student) continue;
+            const isFixed=this.manualLocks.some(l=>l.student===student.name);
+            if (this.avoidPreviousSeat&&!isFixed&&this.shuffleHistory.length>0) {
+                const lastSeats=Array.isArray(this.shuffleHistory[0].seats)?this.shuffleHistory[0].seats:Object.values(this.shuffleHistory[0].seats||{});
+                if (lastSeats[i]?.name===student.name) seatDupCount++;
+            }
+            if (this.avoidPrevious&&i%2===0) {
+                const partner=this.seats[i+1];
+                if (partner) {
+                    let pastCount=0;
+                    modeData.records.forEach(rec=>{
+                        const hSeats=Array.isArray(rec.seats)?rec.seats:Object.values(rec.seats||{});
+                        for (let j=0;j<30;j+=2) {
+                            const h1=hSeats[j],h2=hSeats[j+1];
+                            if (h1?.name&&h2?.name&&((h1.name===student.name&&h2.name===partner.name)||(h1.name===partner.name&&h2.name===student.name))) pastCount++;
+                        }
+                    });
+                    if (pastCount>0) partnerDupPairs.push({name1:student.name,name2:partner.name,count:pastCount+1});
+                }
+            }
+        }
+
+        // ================================================================
+        // 17. 모달 표시
+        // ================================================================
+        const showModal = (html) => new Promise(resolve => {
+            const overlay=document.createElement('div');
+            overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
+            overlay.innerHTML=html;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click',e=>{
+                const btn=e.target.closest('[data-result]');
+                if (btn){document.body.removeChild(overlay);resolve(btn.dataset.result);}
+            });
+        });
+
+        if (cycleComplete||isFullCycle) {
+            const result=await showModal(`
+                <div style="background:#fff;border-radius:20px;padding:32px 28px 24px;max-width:340px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                    <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+                    <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">한 바퀴 완료!</div>
+                    <div style="font-size:14px;color:#555;line-height:1.6;margin-bottom:24px;">${currentModeLabel} 짝꿍 모든 조합을 다 돌았어요.<br>새로운 순서로 다시 시작할까요?</div>
+                    <div style="display:flex;gap:10px;justify-content:center;">
+                        <button data-result="cancel" style="flex:1;padding:12px 0;border-radius:12px;border:1.5px solid #ddd;background:#f7f7f7;color:#555;font-size:14px;font-weight:600;cursor:pointer;">유지하기</button>
+                        <button data-result="reset" style="flex:1;padding:12px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">새로 시작</button>
+                    </div>
+                </div>`);
+            if (result==='reset') { modeData.records=[]; modeData.cycleCount+=1; modeData.currentRound=0; }
+        } else if (partnerDupPairs.length>0||seatDupCount>0) {
+            const dupListHtml=partnerDupPairs.slice(0,5).map(p=>`
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:4px 0;border-radius:10px;background:#fff5f5;border:1px solid #ffe0e0;">
+                    <span style="font-size:13px;color:#333;font-weight:500;">${p.name1} &nbsp;↔&nbsp; ${p.name2}</span>
+                    <span style="font-size:11px;font-weight:700;color:#e53e3e;background:#fed7d7;padding:2px 8px;border-radius:20px;">${p.count}번째</span>
+                </div>`).join('');
+            const moreHtml=partnerDupPairs.length>5?`<div style="font-size:12px;color:#999;text-align:center;margin-top:4px;">외 ${partnerDupPairs.length-5}쌍 더...</div>`:'';
+            const seatDupHtml=seatDupCount>0?`<div style="margin-top:10px;padding:8px 12px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;font-size:13px;color:#92400e;">📍 직전과 같은 자리 ${seatDupCount}명 (고정석 제외)</div>`:'';
+            const result=await showModal(`
+                <div style="background:#fff;border-radius:20px;padding:28px 24px 20px;max-width:360px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                        <div style="font-size:28px;">⚠️</div>
+                        <div><div style="font-size:16px;font-weight:700;color:#1a1a2e;">중복 안내</div><div style="font-size:12px;color:#888;margin-top:2px;">자리 배치가 완료되었습니다</div></div>
+                    </div>
+                    <div style="max-height:200px;overflow-y:auto;">${dupListHtml}${moreHtml}${seatDupHtml}</div>
+                    <div style="display:flex;gap:10px;margin-top:20px;">
+                        <button data-result="cancel" style="flex:1;padding:12px 0;border-radius:12px;border:1.5px solid #ddd;background:#f7f7f7;color:#555;font-size:14px;font-weight:600;cursor:pointer;">다시 뽑기</button>
+                        <button data-result="apply" style="flex:1;padding:12px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#f6d365,#fda085);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">이대로 적용</button>
+                    </div>
+                </div>`);
+            if (result==='cancel') { this.seats=backupSeats; this.waitingRoom=backupWaiting; return; }
+        }
+
+        // ================================================================
+        // 18. 히스토리 저장
+        // ================================================================
+        this.showShuffleModal=false;
+        const now=new Date();
+        const dateStr=`${now.getMonth()+1}/${now.getDate()}`;
+        const snapshot=this.seats.map(s=>s?.name
+            ?{name:s.name,number:s.number,gender:s.gender,activityScore:0,checked:false,order:null,memo:"",starred:false}
+            :null);
+
+        this.shuffleHistory.unshift({id:Date.now(),date:dateStr,mode:currentModeLabel,seats:snapshot});
+        if (this.shuffleHistory.length>30) this.shuffleHistory.pop();
+
+        modeData.records.unshift({id:Date.now(),date:dateStr,mode:currentModeLabel,seats:snapshot});
+        modeData.currentRound=(modeData.currentRound??0)+1;
+
+        this.saveToLocal();
+        this.saveToFirebase();
+
+    } catch (e) {
+        alert("오류 발생: " + e.message);
+        console.error(e);
+    }
+},
 
 
 /* 🪨 [돌 레이스 기능] */

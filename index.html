@@ -1296,11 +1296,19 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
         @keyframes slot-lock-impact { 0% { transform: scale(1); } 40% { transform: scale(1.15) rotate(2deg); } 70% { transform: scale(0.95) rotate(-2deg); } 100% { transform: scale(1) rotate(0); } }
   
         /* [명예의 전당] */
-        .rank-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; }
-        .rank-table th { background-color: #f1f5f9; color: #334155; padding: 12px; position: sticky; top: 0; font-weight: 800; font-size: 0.9rem; cursor: pointer; border-bottom: 2px solid #e2e8f0; z-index: 10; }
-        .rank-table th:hover { background-color: #e2e8f0; }
-        .rank-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; vertical-align: middle; background-color: white; color: #1e293b; }
-        .rank-table tr:hover td { background-color: #f8fafc; }
+        .rank-table { width: 100%; border-collapse: collapse; }
+        .rank-table th { color: #5c3d1e; padding: 10px 12px; position: sticky; top: 0; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: none; border-bottom: 3px solid #fff; z-index: 10; background-color: #c8a97a; }
+        .rank-table th:hover { background-color: #b8955a; }
+        .rank-table td { padding: 9px 12px; font-size: 0.9rem; vertical-align: middle; color: #1e293b; border: 1px solid #fff; }
+        .rank-table tr:nth-child(odd)  td { background-color: #fdf6ed; }
+        .rank-table tr:nth-child(even) td { background-color: #f0e6d3; }
+        .rank-table tr:hover td { filter: brightness(0.95); }
+        /* 총합 색상 (specificity 강제) */
+        .rank-table td.total-plus  { color: #2563eb !important; }
+        .rank-table td.total-minus { color: #dc2626 !important; }
+        .rank-table td.total-zero  { color: #1e293b !important; }
+        /* 좌석배치도 점수 음수 외곽선 - text-shadow 방식(글자 내부 침범 없음) */
+        .score-outline * { text-shadow: -1px -1px 0 rgba(0,0,0,0.75), 1px -1px 0 rgba(0,0,0,0.75), -1px 1px 0 rgba(0,0,0,0.75), 1px 1px 0 rgba(0,0,0,0.75); }
         .rank-badge { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.8rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .badge-1 { background: #ef4444; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4); }
         .badge-2 { background: #f97316; box-shadow: 0 2px 4px rgba(249, 115, 22, 0.4); }
@@ -2651,9 +2659,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
             <div class="relative w-full mb-8 px-2">
                 <div class="flex items-center justify-between cursor-pointer group" @click="showHiddenMenu = !showHiddenMenu">
-                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="상점/키오스크 열기">🏫 우리반 매니저</h1>
+                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메뉴 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">🏫 우리반 매니저</h1>
                     <div class="flex items-center gap-2">
-                        <button @click.stop="openSettings" class="text-slate-300 hover:text-orange-500 transition-all ml-1" title="설정"><i class="fa-solid fa-gear"></i></button>
+                        <button @click.stop="showKioskRequests = !showKioskRequests"
+                                class="relative text-xl transition-all ml-1 leading-none hover:scale-110"
+                                title="키오스크 요청 알림">
+                            🔔
+                            <span v-if="allRequests.length > 0"
+                                  class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
+                        </button>
                     </div>
                 </div>
                 <div v-show="showHiddenMenu" class="absolute top-full left-0 mt-3 w-full bg-white rounded-2xl shadow-xl border-2 border-slate-100 overflow-hidden z-50 animate-fade-in origin-top">
@@ -2663,6 +2677,30 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <button @click="openKiosk" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-3">
                          🖥️ 키오스크
                     </button>
+                </div>
+                <!-- 🔔 클릭 투과 방지 오버레이 -->
+                <div v-if="showKioskRequests" class="fixed inset-0 z-[49]" @click="showKioskRequests = false" @mousedown.stop @touchstart.stop></div>
+                <!-- 🔔 통합 요청 패널 -->
+                <div v-show="showKioskRequests" class="absolute top-full left-0 mt-3 bg-white rounded-2xl shadow-xl border-2 border-slate-100 z-[50] animate-fade-in origin-top" style="min-width:300px;max-height:400px;overflow-y:auto;overflow-x:hidden;" @click.stop @mousedown.stop @touchstart.stop>
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+                        <span class="font-black text-slate-700 text-sm flex items-center gap-1">🔔 요청 목록
+                            <span v-if="allRequests.length > 0" class="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 ml-1">{{ allRequests.length }}</span>
+                        </span>
+                        <button @click.stop="clearAllKioskRequests" v-if="kioskRequests.length > 0" class="text-xs text-slate-400 hover:text-red-500 font-bold">키오스크 요청 삭제</button>
+                    </div>
+                    <div v-if="allRequests.length === 0" class="py-6 text-center text-slate-400 text-sm font-bold">요청이 없습니다</div>
+                    <div v-for="(req, idx) in allRequests" :key="idx"
+                         @click.stop="openUrl(req.url)"
+                         class="flex items-center gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors"
+                         :class="req.url && req.url.includes('store') ? 'hover:bg-orange-50' : 'hover:bg-blue-50'">
+                        <span class="text-xs text-slate-400 font-bold shrink-0 w-10">{{ req.time }}</span>
+                        <span class="font-black text-slate-700 text-sm shrink-0 max-w-[60px] truncate">{{ req.nm }}</span>
+                        <span class="text-xs font-bold ml-1 flex-1 truncate"
+                              :class="req.type==='auc'?'text-purple-600':req.type==='dex'?'text-yellow-600':req.type==='char'?'text-blue-600':req.type==='kiosk_buy'?'text-cyan-600':req.type==='kiosk_use'?'text-teal-600':req.type==='kiosk_req'?'text-indigo-600':'text-orange-600'">
+                            {{ req.type==='auc'?'🔨 경매 요청':req.type==='dex'?'📜 도감 100%':req.type==='char'?'👤 캐릭터 제작':req.type==='kiosk_buy'?'🛒 '+req.label:req.type==='kiosk_use'?'🎒 '+req.label:req.type==='kiosk_req'?'📤 '+req.label:'🎁 승인 요청' }}
+                        </span>
+                        <button v-if="req.reqId" @click.stop="dismissKioskRequest(req.reqId)" class="text-xs bg-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white px-2 py-1 rounded-lg font-black transition-colors shrink-0">완료</button>
+                    </div>
                 </div>
             </div>
 
@@ -2738,7 +2776,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="mt-auto pt-5 border-t border-slate-100 flex justify-between gap-3 shrink-0 pb-1">
                 <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-16 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bomb"></i></button>
                 <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-16 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-gift"></i></button>
-                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl no-default-sound"><i class="fa-solid fa-bell"></i></button>
+                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl no-default-sound"><i class="fa-solid fa-bell"></i></button>
                 <button @click="openBlackboard" title="판서" class="flex-1 h-16 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-chalkboard-user"></i></button>
             </div>
         </aside>
@@ -2804,7 +2842,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
            
 
-<button v-if="view !== 'order'" title="선택 초기화 (우클릭: 선택 반전)" @click="resetCurrentSelection" @contextmenu.prevent="invertCurrentSelection" class="w-14 h-14 bg-yellow-400 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
+<button v-if="view !== 'order'" title="선택 초기화" @click="resetCurrentSelection" class="w-14 h-14 bg-yellow-400 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
 
 
                 <button v-if="view !== 'order'" @click="clearMemos" title="메모 삭제" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
@@ -2843,7 +2881,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center transition-all hover:scale-110 text-xl">
                         ALL
                     </button>
-                    <button @click="handleToolClick('check')" :class="activeTool === 'check' ? 'bg-emerald-500 text-white border-white' : 'bg-white text-emerald-500 border-emerald-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-check"></i></button>
+                    <button @click="handleToolClick('check')" @contextmenu.prevent="invertCurrentSelection" title="우클릭: 선택 반전" :class="activeTool === 'check' ? 'bg-emerald-500 text-white border-white' : 'bg-white text-emerald-500 border-emerald-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-check"></i></button>
                     <button @click="handleToolClick('plus')" :class="activeTool === 'plus' ? 'bg-red-500 text-white border-white' : 'bg-white text-red-500 border-red-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-3xl transition-all">+</button>
                     <button @click="handleToolClick('minus')" :class="activeTool === 'minus' ? 'bg-blue-600 text-white border-white' : 'bg-white text-blue-600 border-blue-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-4xl transition-all leading-none pb-1">-</button>
                     <button @click="isMemoVisible = !isMemoVisible" :class="isMemoVisible ? 'bg-indigo-600 text-white border-white' : 'bg-white text-indigo-600 border-indigo-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-clipboard-list"></i></button>
@@ -2862,8 +2900,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </div>
 
-            <div id="classroom-floor" 
-                 class="classroom-floor shadow-2xl flex flex-col items-center justify-center" 
+            <div class="flex flex-row items-start">
+            <div id="classroom-floor"
+                 class="classroom-floor shadow-2xl flex flex-col items-center justify-center"
                  :class="[
                     {'rotate-180': isRotated}, 
                     isInitialLoad ? 'no-transition !duration-0' : 'transition-all duration-500' 
@@ -2872,17 +2911,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="flex justify-center mb-12">
                     <div class="content-reverse"><span class="bg-[#9c734f] text-white px-28 py-4 rounded-full text-2xl font-black inline-block shadow-xl">교 탁</span></div>
                 </div>
+
                 <div v-if="view === 'group'" class="grid grid-cols-3 gap-12">
                  
               
 
                     <div v-for="(g, idx) in groups" :key="idx" @click="handleGroupClick(idx)"
                          class="w-[280px] h-[220px] shadow-2xl rounded-[3rem] border-4 flex flex-col items-center justify-center relative transition-all cursor-pointer overflow-hidden"
-                        :class="[ (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), g.checked ? 'ring-4 ring-[#8f6a49] ring-offset-2 !border-[#8f6a49] shadow-[0_0_15px_rgba(143,106,73,0.8)]' : '', { 'aura-gold': allMode } ]">
-                        <div v-if="g.checked" class="check-icon-wrapper w-12 h-12 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-lg"><i class="fa-solid fa-check text-2xl"></i></div>
+                        :class="[ g.checked ? 'bg-[#8f6a49] border-[#5c3d1e] ring-4 ring-[#5c3d1e] ring-offset-2 shadow-[0_0_15px_rgba(92,61,30,0.8)]' : (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), { 'aura-gold': allMode } ]">
                         <div class="content-reverse card-container">
-                           <div class="font-black text-2xl mb-2" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ idx + 1 }}모둠</div>
-                            <div class="font-black text-7xl" :class="(g.checked || g.score !== 0) ? 'text-inherit' : 'text-slate-800'">{{ g.score > 0 ? '+' : '' }}{{ g.score }}</div>
+                           <div class="font-black text-2xl mb-2" :class="(g.checked || g.score !== 0) ? 'text-white' : 'text-slate-800'">{{ idx + 1 }}모둠</div>
+                            <div class="font-black text-7xl" :class="(g.checked || g.score !== 0) ? 'text-white' : 'text-slate-800'">{{ g.checked ? '✓' : (g.score !== 0 ? (g.score > 0 ? '+' : '') + g.score : '') }}</div>
                            <div v-if="isMemoVisible" class="memo-container" @click.stop>
                                 <textarea v-model="g.memo" 
                                        rows="2"
@@ -2896,8 +2935,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         </div>
                 </div>
 </div>
-                <div v-else class="flex gap-12">
-                    <div v-for="bIdx in 3" :key="bIdx" class="grid grid-rows-5 gap-4">
+
+<div v-if="view !== 'group'" class="flex gap-12">                    <div v-for="bIdx in 3" :key="bIdx" class="grid grid-rows-5 gap-4">
                         <div v-for="rIdx in 5" :key="rIdx" class="flex gap-4">
                             <div v-for="pIdx in 2" :key="pIdx" class="w-[140px] h-[115px] rounded-2xl relative empty-slot" @dragover.prevent @drop="onDropSeat($event, getIndex(bIdx, rIdx, pIdx))">
                                 <div v-if="seats[getIndex(bIdx, rIdx, pIdx)]" 
@@ -2907,21 +2946,33 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                      @click="handleCardClick(getIndex(bIdx, rIdx, pIdx))" 
                                      :class="[
                                          (view === 'order') ? (isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)]) ? 'bg-red-600 scale-110 shadow-2xl z-50 text-white' : (seats[getIndex(bIdx, rIdx, pIdx)].order ? 'bg-yellow-400 text-black' : 'bg-white text-black')) : '',
-                                         (view !== 'order' ? (seats[getIndex(bIdx, rIdx, pIdx)].activityScore >= 7 ? 'score-rainbow' : getScoreBg(seats[getIndex(bIdx, rIdx, pIdx)].activityScore)) : ''),
-                                         (view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked) ? 'ring-4 ring-[#8f6a49] ring-offset-2 !border-[#8f6a49] shadow-[0_0_15px_rgba(143,106,73,0.8)]' : '',
+                                         (view !== 'order' && currentTabId !== 'summary') ? (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked ? 'bg-[#8f6a49] border-[#5c3d1e]' : ((((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) >= 7 ? 'score-rainbow' : getScoreBg((((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0)))) : (view !== 'order' && currentTabId === 'summary' ? getTotalGrayBg(seats[getIndex(bIdx, rIdx, pIdx)]) : ''),
+
+(view !== 'order' && ((currentTabId !== 'summary' && ((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked) || (currentTabId === 'summary' && getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0))) ? 'ring-4 ring-[#5c3d1e] ring-offset-2 !border-[#5c3d1e] shadow-[0_0_15px_rgba(92,61,30,0.8)]' : '',
+
                                          { 'aura-gold': allMode && view !== 'order' }
                                      ]">
-<div v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number" 
-     class="student-number-wrapper text-[22px] font-black opacity-90 pointer-events-none tracking-tighter"
-     style="color: #9e8268;">
-    {{ seats[getIndex(bIdx, rIdx, pIdx)].number }}
-</div>                                    <div v-if="view !== 'order' && seats[getIndex(bIdx, rIdx, pIdx)].checked" class="check-icon-wrapper w-8 h-8 bg-[#8f6a49] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md"><i class="fa-solid fa-check text-lg"></i></div>                                    <div class="content-reverse card-container">
-                                        <div class="font-black text-xl leading-none mb-3" 
-     :class="[ (view !== 'order' && (seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
+                                    <div class="content-reverse card-container">
+                                        <div class="font-black text-xl leading-none mb-3 flex items-center justify-center gap-1"
+     :class="[ (view !== 'order' && currentTabId !== 'summary' && (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked || (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
+    <span v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number"
+          class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black shrink-0 pointer-events-none leading-none"
+          style="background:#9c734f;color:white;">{{ seats[getIndex(bIdx, rIdx, pIdx)].number }}</span>
      {{ seats[getIndex(bIdx, rIdx, pIdx)].name }}
 </div>
 
-                                        <div v-if="view === 'main'" class="text-2xl font-black leading-none mb-1" :class="(seats[getIndex(bIdx, rIdx, pIdx)].checked || seats[getIndex(bIdx, rIdx, pIdx)].activityScore !== 0) ? 'text-inherit' : ''">{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore > 0 ? '+' : '' }}{{ seats[getIndex(bIdx, rIdx, pIdx)].activityScore }}</div>
+                                        <div v-if="view === 'main'" class="leading-none mb-1">
+    <div v-if="currentTabId === 'summary'" style="display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;">
+        <span v-if="getCheckedTabsOrdered(seats[getIndex(bIdx,rIdx,pIdx)].name).length > 0"
+              style="font-size:14px;font-weight:900;color:inherit;line-height:1.3;">{{ getCheckedTabsOrdered(seats[getIndex(bIdx,rIdx,pIdx)].name).map(item => item.tab.name).join(' / ') }}</span>
+        <span v-if="getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0"
+              style="font-size:16px;font-weight:900;color:inherit;line-height:1.3;margin-top:1px;opacity:0.85;">{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) }}</span>
+    </div>
+    <div v-else class="text-2xl font-black"
+    :class="((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked?'text-[#eaddca]':'text-inherit'">
+    {{ ((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked?'✓':'' }}{{ (((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)!==0?((((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)>0?'+':'')+((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score:'' }}
+</div>
+</div>
                                         <div v-if="view === 'order' && seats[getIndex(bIdx, rIdx, pIdx)].order" class="w-8 h-8 bg-black/10 rounded-full flex items-center justify-center font-black text-sm text-black">{{ seats[getIndex(bIdx, rIdx, pIdx)].order }}</div>
                                       <div v-if="isMemoVisible && view !== 'order'" class="memo-container" @click.stop>
                                             <input v-model="seats[getIndex(bIdx, rIdx, pIdx)].memo" 
@@ -2939,8 +2990,48 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </div>
   
-         </div> <div v-if="view === 'order'" 
-                 class="fixed right-10 top-10 w-[220px] h-[80vh] bg-white/90 backdrop-blur rounded-[2.5rem] flex flex-col items-center py-8 px-4 gap-5 shadow-2xl border-4 border-slate-200 z-30" 
+         </div>
+
+            <!-- ★ 상단 인덱스 탭 패널 (floor 위에 부착) -->
+            <div v-if="view === 'main'" class="flex flex-col gap-1 items-start z-10" style="margin-left:-12px;margin-top:calc(12px + 4rem);">
+                <template v-for="tab in activityTabs" :key="tab.id">
+                    <div class="relative group"
+                         draggable="true"
+                         @dragstart="draggingTabId = tab.id"
+                         @dragover.prevent
+                         @drop.prevent="dropTab(tab.id)"
+                         :class="draggingTabId === tab.id ? 'opacity-40' : ''">
+                        <input v-if="editingTabId === tab.id"
+                            v-model="editingTabName"
+                            @blur="saveTabName(tab.id, editingTabName)"
+                            @keydown.enter.prevent.stop="saveTabName(tab.id, editingTabName)"
+                            @keydown.stop
+                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;"
+                            class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
+                            autoFocus>
+                        <button v-else
+                            @click="currentTabId = tab.id"
+                            @dblclick="editingTabId = tab.id; editingTabName = tab.name"
+                            :style="currentTabId === tab.id
+                                ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
+                                : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'"
+                            style="cursor:grab;"
+                            class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">{{ tab.name }}</button>
+                        <button v-if="activityTabs.length > 1" @click.stop="removeActivityTab(tab.id)"
+                            class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] hidden group-hover:flex items-center justify-center font-black leading-none z-10">×</button>
+                    </div>
+                </template>
+                <button @click="currentTabId = 'summary'"
+                    :style="getSummaryTabStyle()"
+                    class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">종합</button>
+                <button @click="addActivityTab"
+                    style="background:rgba(255,255,255,0.45);color:#9c734f;border-color:rgba(156,115,79,0.5);font-size:20px;"
+                    class="flex items-center justify-center px-3 py-2 rounded-r-2xl border-2 border-l-0 border-dashed font-black transition-all hover:opacity-70 min-w-[44px]">+</button>
+            </div>
+            </div><!-- end floor+tab wrapper -->
+
+         <div v-if="view === 'order'"
+                 class="fixed right-10 top-10 w-[220px] h-[80vh] bg-white/90 backdrop-blur rounded-[2.5rem] flex flex-col items-center py-8 px-4 gap-5 shadow-2xl border-4 border-slate-200 z-30"
                  @dragover.prevent @drop="onDropToBottom">
                  <div class="shrink-0 w-full text-center border-b-2 border-slate-200 pb-4 mb-1">
                     <span class="text-slate-700 font-black text-3xl flex items-center justify-center gap-2">
@@ -3127,32 +3218,36 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <h2 class="text-3xl font-black text-yellow-600 text-center flex-1"><i class="fa-solid fa-trophy mr-2"></i>명예의 전당</h2>
                     <button @click="showRankModal = false" class="text-slate-400 hover:text-slate-600 text-2xl absolute right-0"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div class="flex-1 overflow-y-auto">
+                <div class="flex-1 overflow-auto">
                     <table class="rank-table">
                         <thead>
                             <tr>
-                                <th @click="sortRank('number')" class="rounded-tl-xl w-16 text-center cursor-pointer">번호</th>
-                                <th @click="sortRank('name')" class="text-center cursor-pointer">이름</th>
-                                <th @click="sortRank('gender')" class="text-center w-16 cursor-pointer">성별</th>
-                                <th @click="sortRank('activityScore')" class="text-center w-24 cursor-pointer">점수</th>
-<th @click="sortRank('checked')" @contextmenu.prevent="defaultCheckMode = defaultCheckMode === 'O' ? 'X' : 'O'; saveToLocal();" class="text-center w-32 cursor-pointer select-none group" title="좌클릭: 정렬 / 우클릭: O/X 모드 변경">
-                                    {{ defaultCheckMode === 'X' ? '✅제출 확인' : '❎미제출' }}<br>
-                                                                    </th>
-                                <th @click="sortRank('memo')" class="rounded-tr-xl w-1/3 text-center cursor-pointer">메모</th>
+                                <th @click="sortRank('number')" :class="rankColClass(0)" class="rounded-tl-xl w-12 text-center cursor-pointer select-none whitespace-nowrap">번호</th>
+                                <th @click="sortRank('name')" :class="rankColClass(1)" class="text-center cursor-pointer select-none whitespace-nowrap">이름</th>
+                                <th @click="sortRank('gender')" :class="rankColClass(2)" class="text-center w-12 cursor-pointer select-none whitespace-nowrap">성별</th>
+                                <th v-for="(tab, tIdx) in activityTabs" :key="tab.id" @click="sortRank('tab_'+tab.id)" :class="rankColClass(3+tIdx)" class="text-center cursor-pointer select-none whitespace-nowrap text-slate-700">{{ tab.name }}</th>
+                                <th @click="sortRank('total')" :class="rankColClass(3+activityTabs.length)" class="text-center cursor-pointer select-none whitespace-nowrap text-slate-700">총합</th>
+                                <th @click="sortRank('memo')" :class="rankColClass(4+activityTabs.length)" class="rounded-tr-xl text-center cursor-pointer select-none whitespace-nowrap min-w-[120px]">메모</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(s, idx) in sortedRankStudents" :key="s.name">
-                                <td class="text-center font-bold text-gray-500">{{ s.number || '-' }}</td>
-                                <td class="font-bold text-slate-700 text-center">{{ s.name }}</td>
-                                <td class="text-center font-bold opacity-70">{{ s.gender === 'M' ? '남' : (s.gender === 'F' ? '여' : '-') }}</td>
-                                <td class="font-black text-center text-blue-600">{{ s.activityScore }}</td>
-                               <td class="text-center cursor-pointer font-black text-lg select-none" 
-                                    @click="toggleCheck(s)" 
-                                    :class="(defaultCheckMode === 'O' ? (s.checked ? 'text-red-400' : 'text-emerald-500') : (s.checked ? 'text-emerald-500' : 'text-red-400'))">
-                                    {{ defaultCheckMode === 'O' ? (s.checked ? 'X' : 'O') : (s.checked ? 'O' : 'X') }}
+                            <tr v-for="(s, idx) in mergedRankData" :key="s.name">
+                                <td :class="rankColClass(0)" class="text-center font-bold text-gray-500">{{ s.number || '-' }}</td>
+                                <td :class="rankColClass(1)" class="font-bold text-slate-700 text-center whitespace-nowrap">{{ s.name }}</td>
+                                <td :class="rankColClass(2)" class="text-center font-bold opacity-70">{{ s.gender === 'M' ? '남' : (s.gender === 'F' ? '여' : '-') }}</td>
+                                <td v-for="(tab, tIdx) in s.perTab" :key="tab.tabId" :class="rankColClass(3+tIdx)" class="text-center">
+                                    <span v-if="tab.checked" class="text-amber-500 font-black">✓</span>
+                                    <span v-if="tab.score!==0" class="font-black ml-0.5" :class="tab.score>0?'text-blue-600':'text-red-500'">{{ tab.score>0?'+':'' }}{{ tab.score }}</span>
+                                    <span v-if="!tab.checked && tab.score===0" class="text-slate-300 text-xs">-</span>
                                 </td>
-                                <td><input v-model="s.memo" @change="saveToLocal" class="rank-input-white" placeholder="내용 입력..."></td>
+                                <td :class="[rankColClass(3+s.perTab.length), s.totalScore>0?'total-plus':s.totalScore<0?'total-minus':'total-zero']" class="font-black text-center">{{ s.totalScore>0?'+':'' }}{{ s.totalScore }}</td>
+                                <td :class="rankColClass(4+s.perTab.length)" class="p-1">
+                                    <input :value="s.memo || s.autoMemo"
+                                           @input="updateStudentMemo(s.name, $event.target.value)"
+                                           @change="saveToLocal"
+                                           class="rank-input-white w-full text-xs"
+                                           :placeholder="s.autoMemo || ''">
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -4569,7 +4664,6 @@ tabindex="0">
     <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
 
 <!-- 폭탄 타이머 활동 메시지 -->
-<!-- 폭탄 타이머 활동 메시지 -->
 <div v-if="isTimerMaximized" @click.stop
     :style="{
         position: 'absolute',
@@ -4803,7 +4897,7 @@ tabindex="0">
             
             <div class="grid grid-cols-4 items-center justify-items-center w-full h-full"
                  style="gap: 2cqmin; padding: 3cqmin;">
-                <button @click.stop="triggerSoundEffect('ding', $event); playCustomSound('./ding dong.mp3')" 
+                <button @click.stop="playCustomSound('./ding dong.mp3')"
                         class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🔔</span>
@@ -4811,7 +4905,7 @@ tabindex="0">
                     <span class="font-black text-slate-400 group-hover:text-yellow-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-yellow-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">주 목</span>
                 </button>
 
-                <button @click.stop="triggerSoundEffect('schoolbell', $event); playCustomSound('./school bell.mp3')" 
+                <button @click.stop="playCustomSound('./school bell.mp3')"
                         class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🏫</span>
@@ -4835,7 +4929,7 @@ tabindex="0">
                     <span class="font-black text-slate-400 group-hover:text-teal-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-teal-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">청소(3분)</span>
                 </button>
 
-                <button @click.stop="triggerSoundEffect('magic', $event); playCustomSound('./correct.mp3')" 
+                <button @click.stop="playCustomSound('./correct.mp3')"
                         class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:rotate-3">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🙆🏻‍♀️</span>
@@ -4843,7 +4937,7 @@ tabindex="0">
                     <span class="font-black text-slate-400 group-hover:text-emerald-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-emerald-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">정 답</span>
                 </button>
 
-                <button @click.stop="triggerSoundEffect('fail', $event); playCustomSound('./wrong.mp3')" 
+                <button @click.stop="playCustomSound('./wrong.mp3')"
                         class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-3">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">🙅🏻‍♀</span>
@@ -4851,7 +4945,7 @@ tabindex="0">
                     <span class="font-black text-slate-400 group-hover:text-blue-500 transition-colors font-game tracking-wider bg-white/50 rounded-full border-2 border-transparent group-hover:border-blue-200 whitespace-nowrap" style="margin-top: 1.5cqmin; font-size: 3cqmin; padding: 0.4cqmin 1.5cqmin;">땡!</span>
                 </button>
 
-                <button @click.stop="triggerSoundEffect('news', $event); playCustomSound('./news.mp3')" 
+                <button @click.stop="playCustomSound('./news.mp3')"
                         class="group flex flex-col items-center justify-center outline-none transition-transform active:scale-90 w-full h-full no-default-sound">
                     <div class="relative transition-transform duration-300 group-hover:-translate-y-[1cqmin] group-hover:-rotate-6">
                         <span class="leading-none filter drop-shadow-md group-hover:drop-shadow-xl transition-all select-none" style="font-size: 13cqmin;">📺</span>
@@ -4912,15 +5006,15 @@ tabindex="0">
     import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
     const firebaseConfig = {
-        apiKey: "AIzaSyCzsI9FW3bga1V73lCR7pNgfPLdcqcbsgM",
-        authDomain: "class-manager-bad00.firebaseapp.com",
-        databaseURL: "https://class-manager-bad00-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "class-manager-bad00",
-        storageBucket: "class-manager-bad00.firebasestorage.app",
-        messagingSenderId: "436830301778",
-        appId: "1:436830301778:web:d3da11a5ac0e6c252d798b",
-        measurementId: "G-H95D2Z7MFF"
-    };
+apiKey: "AIzaSyCzsI9FW3bga1V73lCR7pNgfPLdcqcbsgM",
+authDomain: "class-manager-bad00.firebaseapp.com",
+databaseURL: "https://class-manager-bad00-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "class-manager-bad00",
+storageBucket: "class-manager-bad00.firebasestorage.app",
+messagingSenderId: "436830301778",
+appId: "1:436830301778:web:d3da11a5ac0e6c252d798b",
+measurementId: "G-H95D2Z7MFF"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -4959,7 +5053,8 @@ showBombTimer: false,
 showNoiseMeter: false,
 isVideoVisible: false,
                 saveTimeout: null,
-                view: 'main', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
+                view: 'main', subView: 'basic', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
+
 lotteryPools: {
             all: [],   // 전체 모드용 풀
             M:   [],   // 남학생 모드용 풀
@@ -5198,9 +5293,16 @@ bombMsgH: 100,
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
 
-isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
+isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, showKioskRequests: false, kioskRequests: [], kioskHistory: [], storeRequests: [], tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
+                activityTabs: [{ id: 1, name: '활동1' }],
+                currentTabId: 1,
+                nextTabId: 2,
+                tabData: {},
+                editingTabId: null, editingTabName: '',
+                draggingTabId: null,
+                showActivityRecord: false,
                 
                 showTimer: false, timerSeconds: 0, timerInterval: null, timerX: null, timerY: null, timerSize: 400, isExploding: false,
                 isTimerMaximized: true,
@@ -5484,10 +5586,92 @@ currentLotteryPool() {
                 });
             },
 sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.localeCompare(b.name)); },
+mergedRankData() {
+    const mod = this.rankSortOrder === 'asc' ? 1 : -1;
+    return this.allStudents.map(s => {
+        let totalScore = 0;
+        const perTab = this.activityTabs.map(tab => {
+            const d = (this.tabData[tab.id] || {})[s.name] || { score: 0, checked: false };
+            totalScore += d.score || 0;
+            return { tabId: tab.id, tabName: tab.name, score: d.score || 0, checked: d.checked || false };
+        });
+        const autoMemo = perTab.filter(t => t.checked).map(t => t.tabName).join('/');
+        return { name: s.name, number: s.number, gender: s.gender, totalScore, perTab, autoMemo, memo: s.memo || '' };
+    }).sort((a, b) => {
+        const numA = (a.number !== null && a.number !== undefined && a.number !== '') ? parseInt(a.number) : 999999;
+        const numB = (b.number !== null && b.number !== undefined && b.number !== '') ? parseInt(b.number) : 999999;
+        if (this.rankSortKey === 'number') return (numA - numB) * mod;
+        if (this.rankSortKey === 'name') { const d = a.name.localeCompare(b.name) * mod; return d !== 0 ? d : numA - numB; }
+        if (this.rankSortKey === 'gender') { const d = (a.gender||'U').localeCompare(b.gender||'U') * mod; return d !== 0 ? d : numA - numB; }
+        if (this.rankSortKey === 'total') {
+            const aZ = a.totalScore === 0, bZ = b.totalScore === 0;
+            if (aZ && !bZ) return 1; if (!aZ && bZ) return -1; if (aZ && bZ) return numA - numB;
+            const d = (a.totalScore - b.totalScore) * mod; return d !== 0 ? d : numA - numB;
+        }
+        if (this.rankSortKey === 'memo') {
+            const ha = ((a.memo && a.memo.trim()) || (a.autoMemo && a.autoMemo.trim())) ? 1 : 0;
+            const hb = ((b.memo && b.memo.trim()) || (b.autoMemo && b.autoMemo.trim())) ? 1 : 0;
+            if (ha !== hb) return hb - ha; // 메모 있는 것 항상 먼저
+            return numA - numB;
+        }
+        if (this.rankSortKey.startsWith('tab_')) {
+            const tid = parseInt(this.rankSortKey.replace('tab_',''));
+            const tabA = a.perTab.find(t => t.tabId === tid) || {score:0, checked:false};
+            const tabB = b.perTab.find(t => t.tabId === tid) || {score:0, checked:false};
+            const aEmpty = tabA.score === 0 && !tabA.checked;
+            const bEmpty = tabB.score === 0 && !tabB.checked;
+            // 0/없음은 항상 맨 아래 고정
+            if (aEmpty && !bEmpty) return 1;
+            if (!aEmpty && bEmpty) return -1;
+            if (aEmpty && bEmpty) return numA - numB;
+            // 점수 정렬 (방향 적용), 체크는 항상 먼저(방향 무관)
+            const scoreDiff = (tabA.score - tabB.score) * mod;
+            if (scoreDiff !== 0) return scoreDiff;
+            const checkDiff = (tabB.checked?1:0) - (tabA.checked?1:0); // 항상 체크 먼저
+            if (checkDiff !== 0) return checkDiff;
+            return numA - numB;
+        }
+        return numA - numB;
+    });
+},
+allRequests() {
+    const list = [];
+    // 이벤트 상점 요청
+    this.storeRequests.forEach(r => list.push({
+        time: r.time || '', nm: r.nm, label: r.label, type: r.type,
+        ts: r.ts || 0, url: 'https://csgo0404-ai.github.io/class-store/'
+    }));
+    // 키오스크 사용 요청 (선생님 처리 필요)
+    this.kioskRequests.forEach(r => {
+        list.push({
+            time: r.time || '', nm: r.studentName || '', label: r.itemName + ' 사용 요청',
+            type: 'kiosk_req', ts: r.timestamp || 0,
+            url: 'https://csgo0404-ai.github.io/class-koisk/', reqId: r.id
+        });
+    });
+    // 키오스크 구입 내역
+    this.kioskHistory.forEach(r => {
+        const t = new Date(r.timestamp || 0);
+        const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+        const isUse = (r.itemName || '').includes('사용');
+        list.push({
+            time: timeStr, nm: r.studentName || '',
+            label: r.itemName + (isUse ? '' : ' 구입'),
+            type: isUse ? 'kiosk_use' : 'kiosk_buy',
+            ts: r.timestamp || 0, url: 'https://csgo0404-ai.github.io/class-koisk/', histId: r.id
+        });
+    });
+    return list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+},
 
-            topStudents() { 
-                const sorted = [...this.allStudents].sort((a, b) => {
-                    if (b.activityScore !== a.activityScore) return b.activityScore - a.activityScore;
+            topStudents() {
+                const withTotal = this.allStudents.map(s => {
+                    const total = this.activityTabs.reduce((sum, tab) =>
+                        sum + ((this.tabData[tab.id]||{})[s.name]||{score:0}).score, 0);
+                    return { ...s, _totalScore: total };
+                });
+                const sorted = withTotal.sort((a, b) => {
+                    if (b._totalScore !== a._totalScore) return b._totalScore - a._totalScore;
                     const numA = (a.number) ? parseInt(a.number) : 9999;
                     const numB = (b.number) ? parseInt(b.number) : 9999;
                     return numA - numB;
@@ -5500,12 +5684,12 @@ sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.loca
 
                 for (let i = 0; i < sorted.length; i++) {
                     let s = sorted[i];
-                    if (!s || s.activityScore <= 0) break; // 0점 이하는 탈락!
+                    if (!s || s._totalScore <= 0) break; // 0점 이하는 탈락!
 
                     count++;
-                    if (s.activityScore !== currentScore) {
+                    if (s._totalScore !== currentScore) {
                         currentRank = count;
-                        currentScore = s.activityScore;
+                        currentScore = s._totalScore;
                     }
                     
                     if (currentRank > 3 && ranked.length >= 3) break;
@@ -5561,6 +5745,19 @@ sortedStudentsByName() { return [...this.allStudents].sort((a, b) => a.name.loca
                 });
             },
             allMode: { get() { return this.view === 'group' ? this.allModeGroup : this.allModeMain; }, set(val) { if(this.view === 'group') this.allModeGroup = val; else this.allModeMain = val; } },
+            currentTabData() { return this.tabData[this.currentTabId] || {}; },
+            activitySummary() {
+                return this.allStudents.map(s => {
+                    let totalScore = 0, totalChecked = 0;
+                    const perTab = this.activityTabs.map(tab => {
+                        const d = (this.tabData[tab.id] || {})[s.name] || { score: 0, checked: false };
+                        totalScore += d.score || 0;
+                        if (d.checked) totalChecked++;
+                        return { tabId: tab.id, tabName: tab.name, score: d.score || 0, checked: d.checked || false };
+                    });
+                    return { name: s.name, number: s.number, gender: s.gender, totalScore, totalChecked, perTab };
+                }).sort((a, b) => (b.totalScore + b.totalChecked * 10) - (a.totalScore + a.totalChecked * 10));
+            },
             rouletteItems() { return this.rouletteInput.split('\n').filter(item => item.trim() !== ''); },
             rouletteBackground() {
                 const items = this.rouletteItems; 
@@ -5688,6 +5885,9 @@ startBombMsgResize(e) {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
 },
+rankColClass(i) { return i % 2 === 0 ? 'rk-a' : 'rk-b'; },
+openUrl(url) { window.open(url, '_blank'); },
+updateStudentMemo(name, value) { const s = this.allStudents.find(x => x.name === name); if (s) s.memo = value; },
 openStore() {
             // 선생님의 상점 주소로 새 창 열기
             window.open('https://csgo0404-ai.github.io/class-store/', '_blank');
@@ -5712,7 +5912,20 @@ invertCurrentSelection() {
                 if (this.view === 'group') {
                     this.groups.forEach(g => g.checked = !g.checked);
                 } else {
-                    this.allStudents.forEach(s => s.checked = !s.checked);
+                    this.allStudents.forEach(s => {
+                        const d = this.getTabStudent(this.currentTabId, s.name);
+                        if (d.checked) {
+                            d.checked = false;
+                            d.checkOrder = null;
+                        } else {
+                            const maxOrder = this.activityTabs.reduce((m, tab) => {
+                                const td = (this.tabData[tab.id]||{})[s.name]||{};
+                                return (td.checkOrder||0) > m ? (td.checkOrder||0) : m;
+                            }, 0);
+                            d.checkOrder = maxOrder + 1;
+                            d.checked = true;
+                        }
+                    });
                 }
                 this.playSound('magic', false, 0.4);
                 this.saveToLocal();
@@ -6188,28 +6401,34 @@ handleCardClick(idx) {
     const s = this.seats[idx]; 
     if(!s) return; 
 
-    // [1] 대기 번호(Order) 모드일 때
     if(this.view === 'order') { 
         if(!s.order) {
-            // 번호 부여 (선택)
             const maxOrder = Math.max(0, ...this.allStudents.map(x => x.order || 0));
             s.order = maxOrder + 1;
             this.playSound('ding', false, 0.5); 
         } else {
-            // 번호 해제 (취소/완료) 및 남은 번호 앞으로 당기기
             s.order = null; 
-            this.recalculateOrders(); // ★ 순서 앞당기기 실행
+            this.recalculateOrders();
             this.playSound('ding', false, 0.5); 
         }
-    } 
-    // [2] 좌석 배치도(Main) 모드일 때 -> 도구 적용
-    else {
-        this.applyTool(s, false); 
+    } else {
+        // 종합 탭이 아닐 때만 tabData에 적용
+        if (this.currentTabId !== 'summary') {
+            if (this.activeTool === 'check') {
+                this.tabToggleCheck(s.name);
+                this.playSound('ding', false, 0.5);
+            } else if (this.activeTool === 'plus') {
+                this.tabScorePlus(s.name);
+                this.playSound('ding', false, 0.5);
+            } else if (this.activeTool === 'minus') {
+                this.tabScoreMinus(s.name);
+                this.playSound('warning', false, 0.4);
+            }
+        }
+        // ★ applyTool은 모둠(group)일 때만 사용, 좌석 카드엔 호출 안 함
     }
-    
     this.saveToLocal(); 
 },
-
 // ★ [신규] 중간 번호가 빠지면 남은 번호들을 1번부터 차례대로 다시 맞추는 함수
 recalculateOrders() {
     // 번호가 있는 학생들만 모아서 현재 번호순으로 정렬
@@ -6229,24 +6448,22 @@ removeOrder(s) {
 },
 
 applyTool(t, fromAll = false) {
-    const key = t.hasOwnProperty('score') ? 'score' : 'activityScore';
-    
-    // [체크 모드]
+    // 모둠 카드(group)일 때만 사용
+    const isGroup = t.hasOwnProperty('score');
+    if (!isGroup) return; // 학생 카드는 handleCardClick에서 tabData로 처리
+
     if (this.activeTool === 'check') {
         if(!fromAll) t.checked = !t.checked;
-        this.playSound('ding', false, 0.5); // [소리 추가] 띠링~
-    } 
-    // [점수 올리기 (+)]
-    else if (this.activeTool === 'plus') {
-        t[key]++;
-        this.playSound('ding', false, 0.5); // 띠링~
-    } 
-    // [점수 내리기 (-)]
-    else if (this.activeTool === 'minus') {
-        t[key]--;
-        this.playSound('warning', false, 0.4); // 삑!
+        this.playSound('ding', false, 0.5);
+    } else if (this.activeTool === 'plus') {
+        t.score++;
+        this.playSound('ding', false, 0.5);
+    } else if (this.activeTool === 'minus') {
+        t.score--;
+        this.playSound('warning', false, 0.4);
     }
 },
+
 resetLadderSettings() {
         this.showLadderGame = false; // 게임 화면 닫기 (설정 화면 보이기)
         
@@ -9029,7 +9246,8 @@ this.playSound('finish', false, 0.5);
         if (s && s.name) {
             return {
                 name: s.name, number: s.number, gender: s.gender,
-                activityScore: 0, checked: false, order: null, memo: "", starred: false
+                activityScore: 0, checked: false, activityScore2: 0, checked2: false, order: null, memo: "", starred: false
+
             };
         }
         return null;
@@ -9119,6 +9337,10 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         shuffleMode: this.shuffleMode,
                         avoidPrevious: this.avoidPrevious,
                         avoidPreviousSeat: this.avoidPreviousSeat,
+                        activityTabs: this.activityTabs,
+                        currentTabId: this.currentTabId,
+                        nextTabId: this.nextTabId,
+                        tabData: this.tabData,
                         uiState: {
                             timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
                             board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
@@ -9255,7 +9477,8 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             const rawSeats = parsed.seats || {};
                             this.seats = Array.from({length: 30}, (_, i) => {
                                 const s = rawSeats[i] || null; 
-                                if (s && s.name) return { ...s, activityScore: s.activityScore || 0, checked: s.checked || false, memo: s.memo || "", starred: s.starred || false, order: s.order || null };
+                                if (s && s.name) return { ...s, activityScore: s.activityScore || 0, checked: s.checked || false, activityScore2: s.activityScore2 || 0, checked2: s.checked2 || false, memo: s.memo || "", starred: s.starred || false, order: s.order || null };
+
                                 return null;
                             });
                             this.seatConfig = parsed.seatConfig || Array(30).fill(null);
@@ -9298,6 +9521,10 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.sameOrder) this.sameOrder = parsed.sameOrder;
                             if (parsed.avoidPrevious !== undefined) this.avoidPrevious = parsed.avoidPrevious;
                             if (parsed.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = parsed.avoidPreviousSeat;
+                            if (parsed.activityTabs) this.activityTabs = toArray(parsed.activityTabs);
+                            if (parsed.currentTabId !== undefined) this.currentTabId = parsed.currentTabId;
+                            if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
+                            if (parsed.tabData) this.tabData = parsed.tabData;
 
                             // [4. 판서 실시간 동기화] (내가 지금 타이핑 중이 아닐 때만 덮어씀)
                             const editor = document.getElementById('board-editor');
@@ -9352,29 +9579,174 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     });
                 }
             },
+            loadKioskRequests() {
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                let isFirstLoad = true;
+                const kioskRef = ref(db, 'kiosk_requests');
+                const poll = async () => {
+                    try {
+                        const snap = await get(kioskRef);
+                        const raw = snap.val() || {};
+                        const newRequests = Object.values(raw).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                        if (!isFirstLoad && newRequests.length > this.kioskRequests.length) {
+                            this.playSound('ding', false, 1.0);
+                            this.showToast('🛒 키오스크 구입 요청이 있습니다!');
+                        }
+                        isFirstLoad = false;
+                        this.kioskRequests = newRequests;
+                    } catch(e) {}
+                };
+                poll();
+                setInterval(() => poll(), 1000);
+            },
+            async dismissKioskRequest(reqId) {
+                if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
+                    await update(ref(db, 'kiosk_requests'), { [reqId]: null });
+                }
+            },
+            async clearAllKioskRequests() {
+                if (typeof db !== 'undefined' && typeof ref !== 'undefined') {
+                    const { set } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+                    await set(ref(db, 'kiosk_requests'), null);
+                }
+            },
+            async loadStoreRequests() {
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                if (!this._reqTimes) this._reqTimes = {};
+                const storeRef = ref(db, 'ClassData/EventShop');
+                const toArr = v => Array.isArray(v) ? v : Object.values(v || {});
+                const nowStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; };
+                const seenAt = (key) => { if (!this._reqTimes[key]) this._reqTimes[key] = { time: nowStr(), ts: Date.now() }; return this._reqTimes[key]; };
+                const poll = async () => {
+                    try {
+                        const snap = await get(storeRef);
+                        const raw = snap.val() || {};
+                        const list = [];
+                        // 경매 요청
+                        toArr(raw.auc).forEach(a => {
+                            if (!a || a.st !== 'req') return;
+                            const t = new Date(a.id || Date.now());
+                            const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                            list.push({ time: timeStr, nm: a.reqNm || '?', label: '경매 요청', type: 'auc', ts: a.id || 0 });
+                        });
+                        // 아이템 승인 요청 / 캐릭터 제작 요청
+                        toArr(raw.stu).forEach(s => {
+                            if (!s) return;
+                            toArr(s.inv).forEach(item => {
+                                if (!item || item.st !== 'req') return;
+                                const isChar = (item.n || '').startsWith('캐릭터 제작:');
+                                const key = `inv_${s.nm}_${item.n}`;
+                                const seen = seenAt(key);
+                                list.push({
+                                    time: seen.time, nm: s.nm || '?',
+                                    label: isChar ? `캐릭터 제작 (${(item.n || '').replace('캐릭터 제작: ', '')})` : `아이템 승인 (${item.n})`,
+                                    type: isChar ? 'char' : 'item', ts: seen.ts
+                                });
+                            });
+                        });
+                        // 도감 100% 달성
+                        const targetItms = toArr(raw.itm).filter(i => i && i.s === true);
+                        if (targetItms.length > 0) {
+                            toArr(raw.stu).forEach(s => {
+                                if (!s) return;
+                                const col = toArr(s.col);
+                                const myCount = targetItms.filter(i => col.includes(i.n)).length;
+                                if (myCount >= targetItms.length) {
+                                    const key = `dex_${s.nm}`;
+                                    const seen = seenAt(key);
+                                    list.push({ time: seen.time, nm: s.nm || '?', label: '도감 100% 달성', type: 'dex', ts: seen.ts });
+                                }
+                            });
+                        }
+                        this.storeRequests = list;
+                    } catch(e) {}
+                };
+                poll();
+                setInterval(() => poll(), 1000);
+            },
+            async loadKioskHistory() {
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                const histRef = ref(db, 'kiosk_history');
+                let prevCount = -1;
+                const poll = async () => {
+                    try {
+                        const snap = await get(histRef);
+                        const raw = snap.val() || {};
+                        const list = Object.values(raw).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                        if (prevCount >= 0 && list.length > prevCount) {
+                            this.playSound('ding', false, 1.0);
+                            this.showToast('🛒 키오스크 구입 내역이 있습니다!');
+                        }
+                        prevCount = list.length;
+                        this.kioskHistory = list;
+                    } catch(e) {}
+                };
+                poll();
+                setInterval(() => poll(), 1000);
+            },
          getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200 text-slate-800';
                 if (score < 0) {
                     // ★ 마이너스 점수에 따라 점점 진해지도록 그라데이션 적용
-                    if (score === -1) return 'bg-slate-400 border-slate-500 text-white shadow-inner';
-                    if (score === -2) return 'bg-slate-500 border-slate-600 text-white shadow-inner';
-                    if (score === -3) return 'bg-slate-600 border-slate-700 text-white shadow-inner';
-                    if (score === -4) return 'bg-slate-700 border-slate-800 text-white shadow-inner';
-                    if (score === -5) return 'bg-slate-800 border-slate-900 text-white shadow-inner';
-                    return 'bg-slate-900 border-black text-white shadow-inner'; // -6 이하
+                    if (score === -1) return 'bg-slate-400 border-slate-500 text-white shadow-inner score-outline';
+                    if (score === -2) return 'bg-slate-500 border-slate-600 text-white shadow-inner score-outline';
+                    if (score === -3) return 'bg-slate-600 border-slate-700 text-white shadow-inner score-outline';
+                    if (score === -4) return 'bg-slate-700 border-slate-800 text-white shadow-inner score-outline';
+                    if (score === -5) return 'bg-slate-800 border-slate-900 text-white shadow-inner score-outline';
+                    return 'bg-slate-900 border-black text-white shadow-inner score-outline'; // -6 이하
                 }
-                const colors = { 1: 'bg-red-500 border-red-600 text-white', 2: 'bg-orange-500 border-orange-600 text-white', 3: 'bg-yellow-400 border-yellow-500 text-black', 4: 'bg-green-500 border-green-600 text-white', 5: 'bg-blue-500 border-blue-600 text-white', 6: 'bg-purple-500 border-purple-600 text-white' };
+                const colors = { 1: 'bg-red-500 border-red-600 text-black', 2: 'bg-orange-500 border-orange-600 text-black', 3: 'bg-yellow-400 border-yellow-500 text-black', 4: 'bg-green-500 border-green-600 text-black', 5: 'bg-blue-500 border-blue-600 text-black', 6: 'bg-purple-500 border-purple-600 text-black' };
                 return colors[score] || 'bg-white';
             },
+
+getCheckedTabsOrdered(name) {
+    return this.activityTabs
+        .map((tab, i) => ({ tab, i, d: (this.tabData[tab.id]||{})[name]||{} }))
+        .filter(x => x.d.checked)
+        .sort((a, b) => {
+            if (!a.d.checkOrder && !b.d.checkOrder) return a.i - b.i;
+            if (!a.d.checkOrder) return 1;
+            if (!b.d.checkOrder) return -1;
+            return a.d.checkOrder - b.d.checkOrder;
+        });
+},
+getTotalScore(name) {
+    return this.activityTabs.reduce((sum, tab) =>
+        sum + ((this.tabData[tab.id]||{})[name]||{score:0}).score, 0);
+},
+getTotalGrayBg(student) {
+    if (!student) return 'bg-white border-slate-200';
+    const count = this.activityTabs.filter(tab =>
+        ((this.tabData[tab.id] || {})[student.name] || {}).checked
+    ).length;
+    if (count === 0) return 'bg-white border-slate-200 text-slate-800';
+    if (count === 1) return 'bg-slate-400 border-slate-500 text-white shadow-inner score-outline';
+    if (count === 2) return 'bg-slate-500 border-slate-600 text-white shadow-inner score-outline';
+    if (count === 3) return 'bg-slate-600 border-slate-700 text-white shadow-inner score-outline';
+    if (count === 4) return 'bg-slate-700 border-slate-800 text-white shadow-inner score-outline';
+    if (count === 5) return 'bg-slate-800 border-slate-900 text-white shadow-inner score-outline';
+    return 'bg-slate-900 border-black text-white shadow-inner score-outline';
+},
+getSummaryTabStyle() {
+    const isActive = this.currentTabId === 'summary';
+    const base = 'writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;';
+    return isActive
+        ? `background:#b8955a;color:#fff;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;${base}`
+        : `background:#d4bb8a;color:#8f6a49;border-color:#9c734f;${base}`;
+},
 
 openRankModal() { 
     this.rankSortKey = 'number';  // 정렬 기준: 번호
     this.rankSortOrder = 'asc';   // 정렬 순서: 오름차순 (1, 2, 3...)
     this.showRankModal = true; 
 },
-            sortRank(key) { 
-                if (this.rankSortKey === key) { this.rankSortOrder = this.rankSortOrder === 'asc' ? 'desc' : 'asc'; } 
-                else { this.rankSortKey = key; this.rankSortOrder = ['activityScore','checked','memo'].includes(key) ? 'desc' : 'asc'; } 
+            sortRank(key) {
+                if (key === 'memo') {
+                    this.rankSortKey = 'memo'; this.rankSortOrder = 'desc';
+                    return;
+                }
+                if (this.rankSortKey === key) { this.rankSortOrder = this.rankSortOrder === 'asc' ? 'desc' : 'asc'; }
+                else { this.rankSortKey = key; this.rankSortOrder = (key === 'total' || key.startsWith('tab_')) ? 'desc' : 'asc'; }
             },
 // ★ [추가] 브라우저 고유의 되돌리기를 원천 차단하고 판서창 전용 되돌리기만 실행!
             handleBoardKeydown(e) {
@@ -9629,6 +10001,61 @@ openAnimalRaceModal() {
             },
 
             toggleCheck(student) { student.checked = !student.checked; this.saveToLocal(); },
+            addActivityTab() {
+                this.activityTabs.push({ id: this.nextTabId, name: '활동' });
+                this.currentTabId = this.nextTabId; this.nextTabId++; this.saveToLocal();
+            },
+            dropTab(targetId) {
+                if (!this.draggingTabId || this.draggingTabId === targetId) { this.draggingTabId = null; return; }
+                const from = this.activityTabs.findIndex(t => t.id === this.draggingTabId);
+                const to = this.activityTabs.findIndex(t => t.id === targetId);
+                if (from === -1 || to === -1) { this.draggingTabId = null; return; }
+                const tabs = [...this.activityTabs];
+                const [item] = tabs.splice(from, 1);
+                tabs.splice(to, 0, item);
+                this.activityTabs = tabs;
+                this.draggingTabId = null;
+                this.saveToLocal();
+            },
+            removeActivityTab(tabId) {
+                if (this.activityTabs.length <= 1) return alert('탭이 1개 이상 있어야 합니다.');
+                if (!confirm('이 탭의 모든 기록이 삭제됩니다. 계속할까요?')) return;
+                this.activityTabs = this.activityTabs.filter(t => t.id !== tabId);
+                if (this.currentTabId === tabId) this.currentTabId = this.activityTabs[0].id;
+                delete this.tabData[tabId]; this.saveToLocal();
+            },
+            saveTabName(tabId, name) {
+                const tab = this.activityTabs.find(t => t.id === tabId);
+                if (tab && name.trim()) tab.name = name.trim();
+                this.editingTabId = null; this.saveToLocal();
+            },
+            getTabStudent(tabId, name) {
+                if (!this.tabData[tabId]) this.tabData[tabId] = {};
+                if (!this.tabData[tabId][name]) this.tabData[tabId][name] = { score: 0, checked: false, checkOrder: null };
+                return this.tabData[tabId][name];
+            },
+            tabScorePlus(name) { this.getTabStudent(this.currentTabId, name).score++; this.saveToLocal(); },
+            tabScoreMinus(name) { this.getTabStudent(this.currentTabId, name).score--; this.saveToLocal(); },
+            tabToggleCheck(name) {
+                const d = this.getTabStudent(this.currentTabId, name);
+                if (!d.checked) {
+                    const maxOrder = this.activityTabs.reduce((m, tab) => {
+                        const td = (this.tabData[tab.id]||{})[name]||{};
+                        return (td.checkOrder||0) > m ? (td.checkOrder||0) : m;
+                    }, 0);
+                    d.checkOrder = maxOrder + 1;
+                    d.checked = true;
+                } else {
+                    d.checked = false;
+                    d.checkOrder = null;
+                }
+                this.saveToLocal();
+            },
+            resetCurrentTab() {
+                const tab = this.activityTabs.find(t => t.id === this.currentTabId);
+                if (!tab || !confirm('"' + tab.name + '" 탭을 초기화할까요?')) return;
+                this.tabData[this.currentTabId] = {}; this.saveToLocal();
+            },
             isFirstOrder(s) { return this.sortedOrderedStudents[0] === s; },
             onDragStart(e, idx, type) { 
                 if (this.isSortedByNumber) return alert("번호순 정렬 중에는 자리를 이동할 수 없습니다.");
@@ -9637,15 +10064,72 @@ openAnimalRaceModal() {
             onDragEnd(e) { if(e.target.classList) e.target.classList.remove('dragging'); },
             onDropSeat(e, targetIdx) { if (!this.dragInfo || (this.view !== 'main' && this.view !== 'order')) return; const { idx, type } = this.dragInfo; if (type === 'seat') { const temp = this.seats[targetIdx]; this.seats[targetIdx] = this.seats[idx]; this.seats[idx] = temp; } this.saveToLocal(); },
             onDropToBottom() { }, onDropReorder(targetIdx) { if (this.draggedOrderIdx === null) return; const list = this.sortedOrderedStudents; const item = list[this.draggedOrderIdx]; list.splice(this.draggedOrderIdx, 1); list.splice(targetIdx, 0, item); list.forEach((s, i) => s.order = i + 1); this.draggedOrderIdx = null; this.saveToLocal(); },
-            handleToolClick(tool) { this.activeTool = tool; if(this.allMode) { const targets = (this.view === 'group') ? this.groups : this.seats.filter(s => s); if(tool === 'check') { const anyUnchecked = targets.some(i => !i.checked); targets.forEach(i => i.checked = anyUnchecked); } else targets.forEach(i => this.applyTool(i, true)); this.saveToLocal(); } },
-           
+          handleToolClick(tool) { 
+    this.activeTool = tool; 
+if(this.allMode) { 
+    if(this.view === 'group') {
+        const targets = this.groups;
+        if(tool === 'check') {
+            const anyUnchecked = targets.some(i => !i.checked);
+            targets.forEach(i => i.checked = anyUnchecked);
+        } else {
+            targets.forEach(i => this.applyTool(i, true));
+        }
+    } else if(this.view === 'main' && this.currentTabId !== 'summary') {
+        const names = this.seats.filter(s => s).map(s => s.name);
+        if(tool === 'check') {
+            const anyUnchecked = names.some(name => !((this.tabData[this.currentTabId]||{})[name]||{}).checked);
+            names.forEach(name => { this.getTabStudent(this.currentTabId, name).checked = anyUnchecked; });
+        } else if(tool === 'plus') {
+            names.forEach(name => { this.getTabStudent(this.currentTabId, name).score++; });
+        } else if(tool === 'minus') {
+            names.forEach(name => { this.getTabStudent(this.currentTabId, name).score--; });
+        }
+    }
+    this.saveToLocal(); }
+},
+     
             handleGroupClick(idx) { if(!this.groups[idx].showMembers) { this.applyTool(this.groups[idx], false); this.saveToLocal(); } },
-            resetCurrentScores() { if(confirm("점수를 초기화할까요?")) { if(this.view === 'group') this.groups.forEach(g => g.score = 0); else this.allStudents.forEach(s => s.activityScore = 0); this.saveToLocal(); } },
-            resetCurrentSelection() { 
+            resetCurrentScores() {
+                if(confirm("점수를 초기화할까요?")) {
+                    if(this.view === 'group') {
+                        this.groups.forEach(g => g.score = 0);
+                    } else if(this.currentTabId === 'summary') {
+                        const names = this.seats.filter(s => s).map(s => s.name);
+                        this.activityTabs.forEach(tab => {
+                            names.forEach(name => {
+                                if((this.tabData[tab.id]||{})[name]) this.tabData[tab.id][name].score = 0;
+                            });
+                        });
+                    } else {
+                        const names = this.seats.filter(s => s).map(s => s.name);
+                        names.forEach(name => {
+                            if((this.tabData[this.currentTabId]||{})[name]) this.tabData[this.currentTabId][name].score = 0;
+                        });
+                    }
+                    this.saveToLocal();
+                }
+            },
+
+
+            resetCurrentSelection() {
                 if(confirm("선택을 초기화하시겠습니까?")) {
-                    if(this.view === 'group') this.groups.forEach(g => g.checked = false); 
-                    else this.allStudents.forEach(s => s.checked = false); 
-                    this.saveToLocal(); 
+                    if(this.view === 'group') {
+                        this.groups.forEach(g => g.checked = false);
+                    } else if(this.currentTabId === 'summary') {
+                        const names = this.seats.filter(s => s).map(s => s.name);
+                        this.activityTabs.forEach(tab => {
+                            names.forEach(name => {
+                                if((this.tabData[tab.id]||{})[name]) this.tabData[tab.id][name].checked = false;
+                            });
+                        });
+                    } else {
+                        const names = this.seats.filter(s => s).map(s => s.name);
+                        names.forEach(name => {
+                            if((this.tabData[this.currentTabId]||{})[name]) this.tabData[this.currentTabId][name].checked = false;
+                        });
+                    }
+                    this.saveToLocal();
                 }
             },
             clearMemos() { if(confirm("모든 메모를 삭제할까요?")) { if(this.view === 'group') this.groups.forEach(g => { g.memo = ""; g.starred = false; }); else this.allStudents.forEach(s => { s.memo = ""; s.starred = false; }); this.saveToLocal(); } },
@@ -9810,7 +10294,8 @@ saveNameList() {
                 if (name.includes('여') || name.includes('(여)')) gender = 'F';
             }
             
-            let existingData = { activityScore: 0, checked: false, order: null, memo: "", starred: false };
+            let existingData = { activityScore: 0, checked: false, activityScore2: 0, checked2: false, order: null, memo: "", starred: false };
+
             const oldStudent = [...this.seats.filter(s => s), ...this.waitingRoom].find(s => s && s.name === name);
             if (oldStudent) existingData = { ...oldStudent };
 
@@ -10071,6 +10556,10 @@ if (parsed.shuffleHistory) this.shuffleHistory = parsed.shuffleHistory;
                         if (parsed.sameOrder) this.sameOrder = parsed.sameOrder;
                         if (parsed.avoidPrevious !== undefined) this.avoidPrevious = parsed.avoidPrevious;
                         if (parsed.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = parsed.avoidPreviousSeat;                   
+                        if (parsed.activityTabs) this.activityTabs = parsed.activityTabs;
+                        if (parsed.currentTabId !== undefined) this.currentTabId = parsed.currentTabId;
+                        if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
+                        if (parsed.tabData) this.tabData = parsed.tabData;
                         if (parsed.groups) this.groups = parsed.groups;                
       if (data.groupingList) this.groupingList = data.groupingList;
                         if (data.savedGroupings) this.savedGroupings = data.savedGroupings;
@@ -13136,9 +13625,12 @@ startReverseLadderGame(endColIdx) {
 }
 },
 
-       mounted() { 
+       mounted() {
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
+            this.loadKioskRequests();
+            this.loadStoreRequests();
+            this.loadKioskHistory();
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

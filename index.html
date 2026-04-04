@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>우리반 매니저</title>
+    <title>우리 반 매니저</title>
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -1481,20 +1481,36 @@ span[contenteditable="true"] {
 /* [시계 & 저금통 공통 스타일] */
 .sidebar-widget {
     width: 100%;
-    min-height: 125px; /* [수정] 세로 높이를 살짝 줄임 */
+    min-height: 100px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     border-radius: 2rem;
     border-width: 4px;
-    padding: 0.75rem 1.25rem; /* [수정] 위아래 여백 축소 */
+    padding: 0.6rem 1rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s;
     cursor: pointer;
 }
+/* 미션 창 */
+.mission-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    background: white;
+    border-radius: 0.75rem;
+    padding: 5px 8px;
+    border: 1.5px solid #ede9fe;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    margin-bottom: 4px;
+}
+.mission-day-count { color: #7c3aed; font-size: 0.7rem; font-weight: 800; }
+.mission-dday { color: #0891b2; font-size: 0.7rem; font-weight: 800; }
+.mission-dday-done { color: #16a34a; font-size: 0.7rem; font-weight: 800; }
 .sidebar-timer-display {
-    font-size: 3.5rem !important;
+    font-size: 3rem !important;
     letter-spacing: -0.05em !important;
     line-height: 1;
     font-family: 'Quantico', sans-serif !important;
@@ -2549,9 +2565,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </style>
 
     <div class="absolute top-8 right-8 flex items-center gap-4 z-50" @click.stop>
-        <button @click="showAlarmModal = true" 
+        <button @click="showAlarmModal = true"
                 class="w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-lg border-4 border-slate-700 bg-slate-800 text-slate-500 hover:bg-slate-700">
-            <i class="fa-solid fa-bell text-4xl"></i>
+            <svg viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
         </button>
         
         <button @click="isClockMaximized = false" class="w-20 h-20 bg-slate-800 text-slate-500 border-slate-700 border-4 rounded-3xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center">
@@ -2652,23 +2668,19 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
      @click="stopAlarm"
      class="fixed inset-0 z-[200000] bg-black/100 flex flex-col items-center justify-center animate-fade-in cursor-pointer backdrop-blur-sm">
     
-    <i class="fa-solid fa-bell text-[20rem] text-yellow-400 animate-violent drop-shadow-[0_0_100px_rgba(250,204,21,0.9)] pointer-events-none"></i>
+    <p class="text-white text-3xl font-black opacity-50 pointer-events-none">화면을 터치하면 알람이 종료됩니다</p>
     
 </div></div>
 
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
-            <div class="relative w-full mb-8 px-2">
-                <div class="flex items-center justify-between cursor-pointer group" @click="showHiddenMenu = !showHiddenMenu">
-                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메뉴 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">🏫 우리반 매니저</h1>
-                    <div class="flex items-center gap-2">
-                        <button @click.stop="showKioskRequests = !showKioskRequests"
-                                class="relative text-xl transition-all ml-1 leading-none hover:scale-110"
-                                title="키오스크 요청 알림">
-                            🔔
-                            <span v-if="allRequests.length > 0"
-                                  class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
-                        </button>
-                    </div>
+            <div class="relative w-full mb-4 px-2">
+                <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="showHiddenMenu = !showHiddenMenu">
+                    <span @click.stop="showKioskRequests = !showKioskRequests"
+                          class="relative text-3xl leading-none hover:scale-110 transition-transform cursor-pointer"
+                          title="요청 알림">🏫<span v-if="allRequests.length > 0"
+                              class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
+                    </span>
+                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메뉴 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">우리 반 매니저</h1>
                 </div>
                 <div v-show="showHiddenMenu" class="absolute top-full left-0 mt-3 w-full bg-white rounded-2xl shadow-xl border-2 border-slate-100 overflow-hidden z-50 animate-fade-in origin-top">
                     <button @click="openStore" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-orange-50 hover:text-orange-600 border-b border-slate-100 transition-colors flex items-center gap-3">
@@ -2705,12 +2717,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
 
             
-            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-2 space-y-4 flex flex-col"> 
+            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-1 space-y-4 flex flex-col"> 
                 <div @click="view = 'main'; playSound('click')" :class="view === 'main' ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
                 <div @click="view = 'order'; playSound('click')" :class="view === 'order' ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
                 <div @click="view = 'group'; playSound('click')" :class="view === 'group' ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
                 
-               <button @click="openRankModal" class="w-full h-[180px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all mt-4 flex flex-col"> 
+               <button @click="openRankModal" class="w-full h-[150px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col"> 
                     <h3 class="font-black text-emerald-600 mb-2 text-center text-base shrink-0">🏆 명예의 전당</h3>
                    <div class="flex flex-row justify-between gap-2 flex-1 w-full relative px-1">
                         <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 flex flex-col items-center justify-center rank-item-transparent h-full">
@@ -2731,52 +2743,85 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </div>
                                     </button>
 
-                <div @click="handleMiniClockClick" 
-                     class="sidebar-widget bg-blue-50 border-blue-200 hover:border-blue-300 mt-4">
-                    <div class="text-blue-500 font-bold text-base flex items-center gap-2 mb-1">
-    <i class="fa-regular fa-calendar-check"></i> {{ currentDate }}
-</div>
-                    <div class="sidebar-timer-display font-black text-blue-900 flex items-baseline">
-                        <span>{{ miniTime.split(':')[0] }}</span>
-                        <span class="blink-colon mx-1 text-blue-400">:</span>
-                        <span>{{ miniTime.split(':')[1] }}</span>
+                <!-- 우리 반 도전 미션 -->
+                <div class="w-full bg-blue-50 border-4 border-blue-200 rounded-[2rem] cursor-default" style="padding: 0.6rem 0.85rem;">
+                    <div class="w-full flex items-center justify-center mb-1.5">
+                        <h3 @click.stop="openAddMissionModal" class="font-black text-blue-600 text-base flex items-center gap-1.5 cursor-pointer hover:text-blue-800 active:scale-95 transition-all select-none" title="클릭: 미션 추가">🚀 우리 반 미션</h3>
+                    </div>
+                    <div v-for="(m, idx) in missions" :key="m.id" class="mission-card group">
+                        <span @click.stop="openEditMissionModal(idx)" class="font-black text-blue-600 text-xs flex-1 min-w-0 leading-tight cursor-pointer hover:text-blue-800 transition-colors" :title="m.name + ' (클릭: 수정)'">
+                            {{ m.name }}<span class="font-bold ml-1 text-blue-500" style="font-size:0.65rem;">({{ getMissionDayText(m) }})</span>
+                        </span>
+                        <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button @click.stop="resetMission(idx)" class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center font-black leading-none" title="초기화" style="font-size:14px;">↺</button>
+                            <button @click.stop="removeMission(idx)" class="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs" title="삭제"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
                     </div>
                 </div>
 
-                <div @click="showTimeBankHistoryModal = true" 
-                     class="sidebar-widget bg-pink-50 border-pink-200 hover:border-pink-300 mt-4 relative"
-                     :class="{'animate-bank-shake': timeBankEffect === 'shake'}">
-                    
-                    <div class="w-full flex justify-between items-center mb-1">
-                        <button @click.stop="openTimeBankModal('save')" 
-                                class="btn-save-pastel w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 z-10">+</button>
-                        <h3 class="font-black text-pink-600 text-center flex items-center justify-center gap-1.5 text-base z-0">
-    <i class="fa-solid fa-piggy-bank text-pink-400 text-xl"></i> 시간 저금통
-</h3>
-                        <button @click.stop="openTimeBankModal('waste')" 
-                                class="btn-waste-pastel w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 z-10">-</button>
+                <!-- 시간 저금통 -->
+                <div @click="showTimeBankHistoryModal = true"
+                     class="sidebar-widget bg-white mt-4 relative overflow-hidden transition-all duration-700"
+                     :class="[{'animate-bank-shake': timeBankEffect === 'shake'}, timeBankSeconds >= 2400 ? 'border-yellow-400 hover:border-yellow-500 shadow-[0_0_16px_4px_rgba(251,191,36,0.35)]' : 'border-pink-200 hover:border-pink-300']">
+
+                    <!-- 채우기 배경 (물결 효과) -->
+                    <div class="absolute bottom-0 left-0 w-full pointer-events-none"
+                         style="transition: height 0.7s ease-out;"
+                         :style="{height: Math.min(Math.abs(timeBankSeconds) / (timeBankSeconds >= 0 ? 2400 : 600) * 100, 100) + '%'}">
+                        <!-- 하단 솔리드 채우기 -->
+                        <div class="absolute bottom-0 left-0 w-full h-full transition-colors duration-700"
+                             :style="{background: timeBankSeconds >= 2400 ? 'rgba(251,191,36,0.18)' : timeBankSeconds >= 0 ? 'rgba(251,113,133,0.22)' : 'rgba(20,20,20,0.18)'}">
+                        </div>
                     </div>
 
-                    <div class="sidebar-timer-display font-black text-center transition-colors relative" 
-                         :class="timeBankSeconds >= 0 ? 'text-white drop-shadow-[0_2px_4px_rgba(244,114,182,0.6)]' : 'text-red-500 drop-shadow-[0_2px_4px_rgba(239,68,68,0.5)]'">
-                        
+                    <div class="relative z-10 w-full flex justify-between items-center mb-1">
+                        <button @click.stop="openTimeBankModal('save')"
+                                class="w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 text-white transition-colors duration-700"
+                                :style="{background: timeBankSeconds >= 2400 ? '#facc15' : '#fb7185'}">+</button>
+                        <h3 class="font-black text-center flex items-center justify-center gap-1.5 text-base transition-colors duration-700"
+                            :class="timeBankSeconds >= 2400 ? 'text-yellow-500' : 'text-pink-600'">
+                            <i class="fa-solid fa-piggy-bank text-xl transition-colors duration-700"
+                               :class="timeBankSeconds >= 2400 ? 'text-yellow-400' : 'text-pink-400'"></i> 시간 저금통
+                        </h3>
+                        <button @click.stop="openTimeBankModal('waste')"
+                                class="w-9 h-9 rounded-full font-black shadow-sm flex items-center justify-center text-xl active:scale-90 text-white transition-colors duration-700"
+                                :style="{background: timeBankSeconds >= 2400 ? '#facc15' : '#fb7185'}">-</button>
+                    </div>
+
+                    <div class="relative z-10 sidebar-timer-display font-black text-center transition-colors duration-700"
+                         :class="timeBankSeconds >= 2400 ? 'text-yellow-500' : timeBankSeconds < 0 ? 'text-slate-800' : 'text-[#fb7185]'">
                         <div class="flex items-baseline justify-center">
                             <span>{{ timeBankSeconds > 0 ? '+' : (timeBankSeconds < 0 ? '-' : '') }}{{ String(Math.floor(Math.abs(timeBankSeconds) / 60)).padStart(2, '0') }}</span>
-                            <span class="text-xl font-bold mx-0.5 opacity-90">분</span>
+                            <span class="text-xl font-bold mx-0.5">분</span>
                             <span>{{ String(Math.abs(timeBankSeconds) % 60).padStart(2, '0') }}</span>
-                            <span class="text-xl font-bold ml-0.5 opacity-90">초</span>
+                            <span class="text-xl font-bold ml-0.5">초</span>
                         </div>
-                        <div v-if="timeBankEffect === 'float'" class="absolute -top-3 left-1/2 text-white font-black text-2xl animate-float-up pointer-events-none z-50 drop-shadow-[0_2px_4px_rgba(244,114,182,0.6)]">
+                        <div v-if="timeBankEffect === 'float'" class="absolute -top-3 left-1/2 text-[#fb7185] font-black text-2xl animate-float-up pointer-events-none z-50">
                             +{{ lastAddedTime }}
                         </div>
                     </div>
                 </div>
+
+                <!-- 시계 (보라색) -->
+                <div @click="handleMiniClockClick"
+                     class="sidebar-widget bg-violet-50 border-violet-200 hover:border-violet-300 mt-4">
+                    <div class="text-violet-500 font-black text-base flex items-center gap-2 mb-1">
+                        <i class="fa-regular fa-calendar-check"></i> {{ currentDate }}
+                    </div>
+                    <div class="sidebar-timer-display font-black text-violet-900 flex items-baseline">
+                        <span>{{ miniTime.split(':')[0] }}</span>
+                        <span class="blink-colon mx-1 text-violet-400">:</span>
+                        <span>{{ miniTime.split(':')[1] }}</span>
+                    </div>
+                </div>
             </nav>
-            
+
             <div class="mt-auto pt-5 border-t border-slate-100 flex justify-between gap-3 shrink-0 pb-1">
                 <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-16 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bomb"></i></button>
                 <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-16 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-gift"></i></button>
-                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl no-default-sound"><i class="fa-solid fa-bell"></i></button>
+                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center no-default-sound">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                </button>
                 <button @click="openBlackboard" title="판서" class="flex-1 h-16 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-chalkboard-user"></i></button>
             </div>
         </aside>
@@ -2834,6 +2879,44 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <button @click="showTimeBankHistoryModal = false" class="mt-6 w-full py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-slate-700 transition-all">닫기</button>
             </div>
         </div>
+
+        <!-- 미션 추가 모달 -->
+        <div v-if="showMissionModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showMissionModal = false">
+            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 border-blue-400 animate-pop-in flex flex-col gap-4">
+                <h3 class="text-2xl font-black text-center text-blue-600">{{ missionEditIdx !== null ? '✏️ 미션 수정' : '🚀 미션 추가' }}</h3>
+                <input type="text" v-model="missionInputName" @keydown.enter="submitMission" placeholder="미션 이름을 입력하세요" class="w-full p-4 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none" autofocus>
+                <div class="flex gap-2">
+                    <button @click="missionInputType = 'count'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'count' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">📅 도전 N일째</button>
+                    <button @click="missionInputType = 'dday'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'dday' ? 'bg-cyan-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">⏳ 디데이 D-N</button>
+                </div>
+                <div v-if="missionInputType === 'count'" class="flex flex-col gap-1">
+                    <label class="text-xs font-black text-slate-500 pl-1">시작 날짜</label>
+                    <input type="date" v-model="missionInputStartDate" class="w-full p-3 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none">
+                </div>
+                <div v-if="missionInputType === 'dday'" class="flex flex-col gap-1">
+                    <label class="text-xs font-black text-slate-500 pl-1">목표 날짜 (디데이)</label>
+                    <input type="date" v-model="missionInputTargetDate" class="w-full p-3 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none">
+                </div>
+                <div class="flex gap-2">
+                    <button @click="showMissionModal = false" class="flex-1 py-4 bg-slate-200 text-slate-600 font-black rounded-2xl">취소</button>
+                    <button @click="submitMission" class="flex-1 py-4 bg-blue-500 text-white font-black rounded-2xl shadow-lg hover:bg-blue-600 transition-colors">확인</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 미션 초기화 모달 (디데이 타입) -->
+        <div v-if="showMissionResetModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showMissionResetModal = false">
+            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 border-cyan-400 animate-pop-in flex flex-col gap-4">
+                <h3 class="text-2xl font-black text-center text-cyan-600">⏳ 디데이 초기화</h3>
+                <p class="text-sm text-center text-slate-500 font-bold">새 목표 날짜를 선택하세요</p>
+                <input type="date" v-model="resetMissionTargetDate" class="w-full p-3 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none">
+                <div class="flex gap-2">
+                    <button @click="showMissionResetModal = false" class="flex-1 py-4 bg-slate-200 text-slate-600 font-black rounded-2xl">취소</button>
+                    <button @click="confirmResetMission" class="flex-1 py-4 bg-cyan-500 text-white font-black rounded-2xl shadow-lg hover:bg-cyan-600 transition-colors">확인</button>
+                </div>
+            </div>
+        </div>
+
       <main class="flex-1 flex flex-col items-center justify-center p-8 relative transition-all duration-300" 
               :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
             
@@ -5044,6 +5127,16 @@ timeBankSeconds: 0,
         timeBankInputMemo: '',
         timeBankEffect: '',
         lastAddedTime: '',
+missions: [],
+showMissionModal: false,
+missionEditIdx: null,
+missionInputName: '',
+missionInputType: 'count',
+missionInputStartDate: '',
+missionInputTargetDate: '',
+showMissionResetModal: false,
+resetMissionIdx: null,
+resetMissionTargetDate: '',
 gameSpeed: 1.0,
 paths: [],          // 모든 그림 획 데이터를 저장
         currentPath: null,   // 현재 그리고 있는 획
@@ -6025,12 +6118,97 @@ formatTimeBank(secs) {
             // [신규] 일괄 삭제 함수 추가
             clearAllTimeBankHistory() {
                 if(!confirm("모든 저금 내역을 삭제하고 누적 시간을 00:00으로 초기화할까요?")) return;
-                
+
                 this.timeBankSeconds = 0;
                 this.timeBankHistory = [];
                 this.playSound('warning');
                 this.saveToLocal();
             },
+            // [미션 창] ----------------------------------------------------------
+            todayStr() {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            },
+            openAddMissionModal() {
+                this.missionEditIdx = null;
+                this.missionInputName = '';
+                this.missionInputType = 'count';
+                this.missionInputStartDate = this.todayStr();
+                this.missionInputTargetDate = this.todayStr();
+                this.showMissionModal = true;
+            },
+            openEditMissionModal(idx) {
+                const m = this.missions[idx];
+                this.missionEditIdx = idx;
+                this.missionInputName = m.name;
+                this.missionInputType = m.type;
+                this.missionInputStartDate = m.startDate || this.todayStr();
+                this.missionInputTargetDate = m.targetDate || this.todayStr();
+                this.showMissionModal = true;
+            },
+            submitMission() {
+                const name = this.missionInputName.trim();
+                if (!name) return alert('미션 이름을 입력해주세요.');
+                if (this.missionInputType === 'count' && !this.missionInputStartDate) return alert('시작 날짜를 선택해주세요.');
+                if (this.missionInputType === 'dday' && !this.missionInputTargetDate) return alert('목표 날짜를 선택해주세요.');
+                const missionData = {
+                    name,
+                    type: this.missionInputType,
+                    startDate: this.missionInputType === 'count' ? this.missionInputStartDate : this.todayStr(),
+                    targetDate: this.missionInputType === 'dday' ? this.missionInputTargetDate : null,
+                };
+                if (this.missionEditIdx !== null) {
+                    Object.assign(this.missions[this.missionEditIdx], missionData);
+                } else {
+                    this.missions.push({ id: Date.now(), ...missionData });
+                }
+                this.showMissionModal = false;
+                this.saveToLocal();
+            },
+            getMissionDayText(m) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                if (m.type === 'count') {
+                    const start = new Date(m.startDate); start.setHours(0,0,0,0);
+                    const days = Math.floor((today - start) / 86400000) + 1;
+                    return `${days}일째`;
+                } else {
+                    const target = new Date(m.targetDate); target.setHours(0,0,0,0);
+                    const diff = Math.floor((target - today) / 86400000);
+                    if (diff > 0) return `D-${diff}`;
+                    if (diff === 0) return `D-DAY`;
+                    return `D+${Math.abs(diff)}`;
+                }
+            },
+            getMissionDayClass(m) {
+                if (m.type === 'count') return 'mission-day-count';
+                const today = new Date(); today.setHours(0,0,0,0);
+                const target = new Date(m.targetDate); target.setHours(0,0,0,0);
+                const diff = Math.floor((target - today) / 86400000);
+                if (diff <= 0) return 'mission-dday-done';
+                return 'mission-dday';
+            },
+            resetMission(idx) {
+                const m = this.missions[idx];
+                if (m.type === 'count') {
+                    m.startDate = this.todayStr();
+                    this.saveToLocal();
+                } else {
+                    this.resetMissionIdx = idx;
+                    this.resetMissionTargetDate = m.targetDate || this.todayStr();
+                    this.showMissionResetModal = true;
+                }
+            },
+            confirmResetMission() {
+                if (!this.resetMissionTargetDate) return alert('날짜를 선택해주세요.');
+                this.missions[this.resetMissionIdx].targetDate = this.resetMissionTargetDate;
+                this.showMissionResetModal = false;
+                this.saveToLocal();
+            },
+            removeMission(idx) {
+                this.missions.splice(idx, 1);
+                this.saveToLocal();
+            },
+            // -------------------------------------------------------------------
             updateAndScheduleSave(htmlContent) {
                 this.blackboardContent = htmlContent;
                 if (this.historyTimeout) clearTimeout(this.historyTimeout);
@@ -9315,7 +9493,7 @@ bombMsgY: this.bombMsgY,
 bombMsgW: this.bombMsgW,
 bombMsgH: this.bombMsgH,
                         noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
-                        timeBankHistory: this.timeBankHistory, currentView: this.view, isRotated: this.isRotated,
+                        timeBankHistory: this.timeBankHistory, missions: this.missions, currentView: this.view, isRotated: this.isRotated,
                         capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
                         seatConfig: this.seatConfig, manualLocks: this.manualLocks, groups: this.groups, 
                         separationPairs: this.separationPairs, shuffleHistory: this.shuffleHistory, 
@@ -9435,6 +9613,7 @@ if (parsed.bombMsgH !== undefined) this.bombMsgH = parsed.bombMsgH;
                             }
 
                             if (parsed.timeBankSeconds !== undefined) this.timeBankSeconds = Number(parsed.timeBankSeconds);
+                            if (parsed.missions) this.missions = toArray(parsed.missions);
                             if (parsed.isOneMinAlarmOn !== undefined) this.isOneMinAlarmOn = parsed.isOneMinAlarmOn;
                             if (parsed.noiseRecordSeconds !== undefined) {
                                 this.noiseRecordSeconds = Number(parsed.noiseRecordSeconds);

@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>우리 반 매니저</title>
+    <title>우리반 매니저</title>
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -1568,6 +1568,20 @@ body .blackboard-editor u { text-decoration: underline !important; }
     flex-direction: column;
     animation: slideInRight 0.2s ease-out;
 }
+        .board-supplement-panel {
+    position: absolute;
+    top: 128px; /* 64px(헤더) + 64px(툴바) */
+    right: 0;
+    width: 33.333%;
+    bottom: 0;
+    background: white;
+    border-left: 1px solid #e2e8f0;
+    z-index: 20;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.2s ease-out;
+}
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }       /* [좌석 설정 아이콘] */
         .seat-preview { width: 45px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid; cursor: pointer; transition: all 0.1s; position: relative; user-select: none; }
         .seat-active { background-color: #fff; border-color: #cbd5e1; color: #64748b; }
@@ -1764,6 +1778,21 @@ body .blackboard-editor u { text-decoration: underline !important; }
 .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; border: 2px solid #0f172a; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* 대시보드 전용 스크롤바 */
+.dash-scroll::-webkit-scrollbar { width: 5px; }
+.dash-scroll::-webkit-scrollbar-track { background: transparent; }
+.dash-scroll::-webkit-scrollbar-thumb { background: #d7c4b0; border-radius: 10px; }
+.dash-scroll::-webkit-scrollbar-thumb:hover { background: #a1887f; }
+
+/* 알림장 미리보기: 우리반 매니저 제목(30px) 수준으로 고정 */
+.dash-preview { font-size: 50px; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; }
+.dash-preview font[size] { font-size: 50px !important; }
+.dash-preview * { font-size: 50px !important; }
+.dash-preview b, .dash-preview strong { font-weight: 900 !important; }
+.dash-preview i, .dash-preview em { font-style: italic !important; }
+.dash-preview u { text-decoration: underline !important; }
+.dash-preview * { max-width: 100%; }
 
 /* 부모 컨테이너: 내용물을 정중앙에 위치시킴 */
 .scaling-container {
@@ -2629,7 +2658,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <button @click="showAlarmModal = false" class="text-slate-400 hover:text-slate-600 text-4xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div class="flex gap-4 mb-8 items-center justify-center bg-slate-100 p-6 rounded-[2rem] border-4 border-slate-200">
+            <div class="flex gap-4 mb-4 items-center justify-center bg-slate-100 p-6 rounded-[2rem] border-4 border-slate-200">
                 <input type="text" inputmode="numeric" maxlength="2" v-model="alarmHour" @blur="padTime('alarmHour')" @focus="focusInput" @keydown.enter="addAlarm"
                        class="bg-white text-7xl font-black text-slate-800 text-center rounded-2xl w-40 h-32 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
                 <span class="text-6xl font-black text-slate-400 pb-2">:</span>
@@ -2637,58 +2666,82 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                        class="bg-white text-7xl font-black text-slate-800 text-center rounded-2xl w-40 h-32 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
             </div>
 
-            <div class="flex gap-3 mb-6">
-                <button @click="addAlarm" class="flex-1 text-white py-5 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-transform"
+            <!-- 알람 메모 입력 -->
+            <div class="mb-4 px-1">
+                <input type="text" v-model="alarmLabel" @mousedown.stop @focus="focusInput" @keydown.enter="addAlarm"
+                       placeholder="메모 (선택 사항)"
+                       class="w-full bg-slate-100 text-slate-700 font-bold text-xl text-center rounded-2xl px-4 py-3 outline-none border-4 border-transparent focus:border-blue-400 transition-colors placeholder-slate-300">
+            </div>
+
+            <!-- 요일 반복 선택 -->
+            <div class="flex gap-2 justify-center mb-4">
+                <button v-for="(dayLabel, dayIdx) in ['일','월','화','수','목','금','토']" :key="dayIdx"
+                        @click="toggleAlarmDay(dayIdx)"
+                        class="w-11 h-11 rounded-full font-black text-base transition-all active:scale-90"
+                        :class="alarmDays.includes(dayIdx) ? (dayIdx===0 ? 'bg-red-500 text-white shadow-md' : dayIdx===6 ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-600 text-white shadow-md') : 'bg-slate-100 text-slate-400 hover:bg-slate-200'">
+                    {{ dayLabel }}
+                </button>
+            </div>
+
+            <div class="flex gap-3 mb-3">
+                <button @click="addAlarm" class="flex-1 text-white py-4 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-transform"
                         :class="editingAlarmIndex !== null ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'">
                     {{ editingAlarmIndex !== null ? '수정 완료' : '알람 추가' }}
                 </button>
                 <button v-if="editingAlarmIndex !== null" @click="cancelEdit" class="bg-slate-400 text-white w-32 rounded-2xl font-black text-2xl hover:bg-slate-500 shadow-lg active:scale-95 transition-transform">취소</button>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 min-h-[250px] border-t-2 border-slate-100 pt-4">
+            <!-- 시간표에서 알람 추가 -->
+            <button @click="addTimetableAlarms" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-lg hover:bg-emerald-100 transition-all mb-4 border-2 border-emerald-200 active:scale-95">
+                📅 수업 시작 알람 추가
+            </button>
+
+            <div class="overflow-y-auto custom-scrollbar flex flex-col gap-3 max-h-[260px] border-t-2 border-slate-100 pt-4">
                 <div v-if="alarmList.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400 opacity-50 py-4">
                     <i class="fa-regular fa-clock text-6xl mb-4"></i><span class="font-bold text-xl">등록된 알람이 없습니다</span>
                 </div>
-                <div v-for="(alarm, idx) in alarmList" :key="idx" class="flex items-center justify-between p-5 rounded-3xl border-4 transition-all hover:border-blue-300 cursor-pointer group"
+                <div v-for="(alarm, idx) in alarmList" :key="idx" class="flex items-start justify-between p-4 rounded-3xl border-4 transition-all hover:border-blue-300 cursor-pointer group"
                      :class="[alarm.on ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-100 opacity-60', editingAlarmIndex === idx ? 'ring-4 ring-green-400 scale-[1.02] bg-white' : '']"
                      @click="startEditAlarm(idx)">
-                    <span class="text-5xl font-black text-slate-800 font-mono tracking-tighter">{{ alarm.time }}</span>
-                    <div class="flex items-center gap-4" @click.stop>
-                        <button @click="toggleAlarm(idx)" class="w-16 h-10 rounded-full flex items-center transition-colors p-1" :class="alarm.on ? 'bg-green-500' : 'bg-slate-300'">
-                            <div class="w-8 h-8 bg-white rounded-full shadow-sm transition-transform" :class="alarm.on ? 'translate-x-6' : 'translate-x-0'"></div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-4xl font-black text-slate-800 font-mono tracking-tighter">{{ alarm.time }}</span>
+                        <div class="flex gap-1 flex-wrap">
+                            <span v-for="d in (alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6])" :key="d"
+                                  class="text-xs font-black px-2 py-0.5 rounded-full"
+                                  :class="d===0?'bg-red-100 text-red-600':(d===6?'bg-blue-100 text-blue-600':'bg-slate-100 text-slate-600')">
+                                {{ ['일','월','화','수','목','금','토'][d] }}
+                            </span>
+                            <span v-if="alarm.label" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 max-w-[180px] truncate" :title="alarm.label">{{ alarm.label }}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3" @click.stop>
+                        <button @click="toggleAlarm(idx)" class="w-14 h-9 rounded-full flex items-center transition-colors p-1 shrink-0" :class="alarm.on ? 'bg-green-500' : 'bg-slate-300'">
+                            <div class="w-7 h-7 bg-white rounded-full shadow-sm transition-transform" :class="alarm.on ? 'translate-x-5' : 'translate-x-0'"></div>
                         </button>
-                        <button @click="removeAlarm(idx)" class="w-12 h-12 rounded-full bg-red-50 text-red-300 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-xl"><i class="fa-solid fa-trash-can"></i></button>
+                        <button @click="removeAlarm(idx)" class="w-10 h-10 rounded-full bg-red-50 text-red-300 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-lg"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div v-if="isAlarmRinging" 
+    <div v-if="isAlarmRinging"
      @click="stopAlarm"
-     class="fixed inset-0 z-[200000] bg-black/100 flex flex-col items-center justify-center animate-fade-in cursor-pointer backdrop-blur-sm">
-    
-    <p class="text-white text-3xl font-black opacity-50 pointer-events-none">화면을 터치하면 알람이 종료됩니다</p>
-    
+     class="fixed inset-0 z-[200000] bg-black/100 flex flex-col items-center justify-center animate-fade-in cursor-pointer backdrop-blur-sm gap-6 px-8">
+    <p class="text-white font-black pointer-events-none w-full text-center" style="font-size:6rem;font-family:'Quantico',sans-serif;letter-spacing:-0.04em;">{{ ringingAlarmTime }}</p>
+    <p v-if="ringingAlarmLabel" class="text-white text-4xl font-black opacity-80 pointer-events-none max-w-full text-center" style="word-break:keep-all;overflow-wrap:break-word;">{{ ringingAlarmLabel }}</p>
+    <p class="text-white text-2xl font-black opacity-40 pointer-events-none">화면을 터치하면 알람이 종료됩니다</p>
 </div></div>
 
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
             <div class="relative w-full mb-4 px-2">
-                <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="showHiddenMenu = !showHiddenMenu">
+                <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="openMainDashboard()">
                     <span @click.stop="showKioskRequests = !showKioskRequests"
                           class="relative text-3xl leading-none hover:scale-110 transition-transform cursor-pointer"
                           title="요청 알림">🏫<span v-if="allRequests.length > 0"
                               class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
                     </span>
-                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메뉴 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">우리 반 매니저</h1>
-                </div>
-                <div v-show="showHiddenMenu" class="absolute top-full left-0 mt-3 w-full bg-white rounded-2xl shadow-xl border-2 border-slate-100 overflow-hidden z-50 animate-fade-in origin-top">
-                    <button @click="openStore" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-orange-50 hover:text-orange-600 border-b border-slate-100 transition-colors flex items-center gap-3">
-                        🏪 상 점
-                    </button>
-                    <button @click="openKiosk" class="w-full text-left px-5 py-4 font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-3">
-                         🖥️ 키오스크
-                    </button>
+                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메인화면 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">우리반 매니저</h1>
                 </div>
                 <!-- 🔔 클릭 투과 방지 오버레이 -->
                 <div v-if="showKioskRequests" class="fixed inset-0 z-[49]" @click="showKioskRequests = false" @mousedown.stop @touchstart.stop></div>
@@ -2718,9 +2771,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-1 space-y-4 flex flex-col"> 
-                <div @click="view = 'main'; playSound('click')" :class="view === 'main' ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
-                <div @click="view = 'order'; playSound('click')" :class="view === 'order' ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
-                <div @click="view = 'group'; playSound('click')" :class="view === 'group' ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
+                <div @click="view = 'main'; showMainDashboard = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
+                <div @click="view = 'order'; showMainDashboard = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
+                <div @click="view = 'group'; showMainDashboard = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
                 
                <button @click="openRankModal" class="w-full h-[150px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col"> 
                     <h3 class="font-black text-emerald-600 mb-2 text-center text-base shrink-0">🏆 명예의 전당</h3>
@@ -2886,8 +2939,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <h3 class="text-2xl font-black text-center text-blue-600">{{ missionEditIdx !== null ? '✏️ 미션 수정' : '🚀 미션 추가' }}</h3>
                 <input type="text" v-model="missionInputName" @keydown.enter="submitMission" placeholder="미션 이름을 입력하세요" class="w-full p-4 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none" autofocus>
                 <div class="flex gap-2">
-                    <button @click="missionInputType = 'count'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'count' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">📅 도전 N일째</button>
-                    <button @click="missionInputType = 'dday'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'dday' ? 'bg-cyan-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">⏳ 디데이 D-N</button>
+                    <button @click="missionInputType = 'count'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'count' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">📅 도전 모드</button>
+                    <button @click="missionInputType = 'dday'" class="flex-1 py-3 rounded-2xl font-black text-sm transition-all" :class="missionInputType === 'dday' ? 'bg-cyan-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'">⏳ 디데이 모드</button>
                 </div>
                 <div v-if="missionInputType === 'count'" class="flex flex-col gap-1">
                     <label class="text-xs font-black text-slate-500 pl-1">시작 날짜</label>
@@ -2896,6 +2949,16 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div v-if="missionInputType === 'dday'" class="flex flex-col gap-1">
                     <label class="text-xs font-black text-slate-500 pl-1">목표 날짜 (디데이)</label>
                     <input type="date" v-model="missionInputTargetDate" class="w-full p-3 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none">
+                </div>
+                <div class="flex gap-3 bg-slate-50 rounded-2xl px-4 py-3">
+                    <label class="flex items-center gap-2 cursor-pointer flex-1">
+                        <input type="checkbox" v-model="missionInputSkipWeekend" class="w-4 h-4 accent-blue-500">
+                        <span class="text-sm font-black text-slate-600">주말 제외</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer flex-1">
+                        <input type="checkbox" v-model="missionInputSkipHoliday" class="w-4 h-4 accent-blue-500">
+                        <span class="text-sm font-black text-slate-600">공휴일 제외</span>
+                    </label>
                 </div>
                 <div class="flex gap-2">
                     <button @click="showMissionModal = false" class="flex-1 py-4 bg-slate-200 text-slate-600 font-black rounded-2xl">취소</button>
@@ -3021,7 +3084,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 <div v-if="view !== 'group'" class="flex gap-12">                    <div v-for="bIdx in 3" :key="bIdx" class="grid grid-rows-5 gap-4">
                         <div v-for="rIdx in 5" :key="rIdx" class="flex gap-4">
-                            <div v-for="pIdx in 2" :key="pIdx" class="w-[140px] h-[115px] rounded-2xl relative empty-slot" @dragover.prevent @drop="onDropSeat($event, getIndex(bIdx, rIdx, pIdx))">
+                            <div v-for="pIdx in 2" :key="pIdx" class="w-[140px] h-[100px] rounded-2xl relative empty-slot" @dragover.prevent @drop="onDropSeat($event, getIndex(bIdx, rIdx, pIdx))">
                                 <div v-if="seats[getIndex(bIdx, rIdx, pIdx)]" 
                                      class="seat-card-item w-full h-full absolute inset-0 rounded-2xl flex flex-col items-center justify-center shadow-md border-2 cursor-pointer overflow-hidden px-2"
                                      :draggable="view === 'main'" @dragstart="onDragStart($event, getIndex(bIdx, rIdx, pIdx), 'seat')" 
@@ -3045,11 +3108,18 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 </div>
 
                                         <div v-if="view === 'main'" class="leading-none mb-1">
-    <div v-if="currentTabId === 'summary'" style="display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;">
-        <span v-if="getCheckedTabsOrdered(seats[getIndex(bIdx,rIdx,pIdx)].name).length > 0"
-              style="font-size:14px;font-weight:900;color:inherit;line-height:1.3;">{{ getCheckedTabsOrdered(seats[getIndex(bIdx,rIdx,pIdx)].name).map(item => item.tab.name).join(' / ') }}</span>
-        <span v-if="getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0"
-              style="font-size:16px;font-weight:900;color:inherit;line-height:1.3;margin-top:1px;opacity:0.85;">{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) }}</span>
+    <div v-if="currentTabId === 'summary'" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:100%;padding:0 4px;">
+        <template v-for="tab in activityTabs" :key="tab.id">
+            <button v-if="((tabData[tab.id]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked"
+                    @click.stop="toggleSummaryCheck(seats[getIndex(bIdx,rIdx,pIdx)].name, tab.id)"
+                    style="font-size:10px;font-weight:700;padding:2px 4px;border:none;border-radius:4px;background:#fff;color:#111;cursor:pointer;line-height:1.5;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:normal;text-shadow:none;-webkit-text-stroke:0;">
+                {{ tab.name }}
+            </button>
+        </template>
+        <div v-if="getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0"
+             style="grid-column:1/-1;font-size:16px;font-weight:900;text-align:center;line-height:1.4;color:inherit;">
+            {{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) }}
+        </div>
     </div>
     <div v-else class="text-2xl font-black"
     :class="((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked?'text-[#eaddca]':'text-inherit'">
@@ -3188,7 +3258,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95"
                     :class="rememberParticipants ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100'"
                     title="체크 시 이전 경기의 남은 출전 횟수와 선택 상태를 그대로 기억합니다.">
-                <span class="text-xl">🪨</span>
+                <span class="text-xl">🏅</span>
                 <span class="text-xl font-game tracking-tight pt-0.5">선수 기억</span> 
             </button>
 
@@ -3776,7 +3846,285 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
              </button>
         </div>
     </div>
-</div>  <div v-if="showStudentSelectModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showStudentSelectModal = false">
+</div>
+
+<!-- ══════════ 메인 대시보드 ══════════ -->
+<div v-if="showMainDashboard" class="fixed top-0 bottom-0 right-0 z-[8900] flex flex-col" style="left:320px; background:#ffffff; font-family:'Jua',sans-serif; overflow:hidden; font-size:16px;">
+
+    <!-- 설정 패널 -->
+    <div v-if="dashboardShowSettings" class="flex-shrink-0 bg-[#fffdf0] border-b-4 border-[#e7d5b1] px-4 py-3 overflow-y-auto dash-scroll" style="max-height:55vh;">
+        <div class="flex gap-2 mb-3 flex-wrap">
+            <button v-for="t in [{k:'info',l:'기본 정보'},{k:'timetable',l:'시간표'},{k:'schedule',l:'수업 시간'},{k:'links',l:'단축링크'},{k:'plans',l:'교육활동'}]" :key="t.k"
+                    @click="dashboardSettingsTab = t.k"
+                    class="px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all"
+                    :class="dashboardSettingsTab===t.k ? 'bg-[#5d4037] text-white border-[#3e2723]' : 'bg-white text-[#5d4037] border-[#e7d5b1]'">
+                {{ t.l }}
+            </button>
+            <button @click="saveDashboardSettings(); dashboardShowSettings=false" class="ml-auto px-3 py-1.5 rounded-xl font-black text-xs bg-[#ef9a9a] border-b-4 border-[#e57373] text-white hover:bg-[#e57373] transition-all">×</button>
+        </div>
+        <div v-if="dashboardSettingsTab==='info'" class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">NEIS API 키</label><input v-model="dashboardSettings.neisApiKey" type="text" placeholder="나이스 API 키" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">학교 이름</label><input v-model="dashboardSettings.schoolName" type="text" placeholder="예: 남산초등학교" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">위도</label><input v-model="dashboardSettings.lat" type="text" placeholder="37.5665" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">경도</label><input v-model="dashboardSettings.lon" type="text" placeholder="126.9780" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+        </div>
+        <div v-if="dashboardSettingsTab==='timetable'">
+            <p class="text-xs text-[#a1887f] font-bold mb-2">※ 이동 수업은 과목 뒤에 * 를 붙여 주세요 (예: 체육*)</p>
+            <div class="overflow-x-auto"><table class="w-full border-collapse text-xs"><thead><tr class="bg-[#f5e6d0]"><th class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">교시</th><th v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">{{day}}</th></tr></thead><tbody><tr v-for="(_, pIdx) in dashboardSettings.timetable['월']" :key="pIdx" :class="pIdx%2===0?'bg-white':'bg-[#fdf8ef]'"><td class="border border-[#e7d5b1] px-2 py-1 text-center font-black text-[#8d6e63]">{{pIdx+1}}교시</td><td v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-1 py-0.5"><input v-model="dashboardSettings.timetable[day][pIdx]" type="text" placeholder="과목" class="w-full px-1 py-0.5 text-center text-xs font-bold text-[#5d4037] outline-none bg-transparent focus:bg-yellow-50 rounded"></td></tr></tbody></table></div>
+            <div class="flex gap-2 mt-2"><button @click="dashboardAddPeriod()" class="px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 교시 추가</button><button @click="dashboardRemovePeriod()" v-if="(dashboardSettings.timetable['월']||[]).length>1" class="px-3 py-1 rounded-lg bg-[#ffcdd2] border-b-2 border-[#ef9a9a] text-[#c62828] font-black text-xs">- 삭제</button></div>
+        </div>
+        <div v-if="dashboardSettingsTab==='schedule'" class="flex flex-col gap-2">
+            <div class="grid grid-cols-4 gap-2">
+                <div v-for="(item, idx) in dashboardSettings.timeSchedule" :key="idx" class="flex items-center gap-1 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+                    <input v-model="item.label" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="레이블">
+                    <input v-model="item.startTime" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="HH:MM">
+                    <button @click="dashboardSettings.timeSchedule.splice(idx,1)" class="text-[#ef9a9a] font-black text-xs ml-auto">✕</button>
+                </div>
+            </div>
+            <button @click="dashboardSettings.timeSchedule.push({label:'N교시',startTime:'00:00'})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
+        </div>
+        <div v-if="dashboardSettingsTab==='links'" class="flex flex-col gap-2">
+            <div v-for="(link, idx) in dashboardSettings.quickLinks" :key="idx" class="flex items-center gap-2 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+                <input v-model="link.name" type="text" placeholder="이름" class="w-20 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1]">
+                <input v-model="link.url" type="text" placeholder="https://..." class="flex-1 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1]">
+                <button @click="dashboardSettings.quickLinks.splice(idx,1)" class="text-[#ef9a9a] font-black ml-1">✕</button>
+            </div>
+            <button @click="dashboardSettings.quickLinks.push({name:'',url:''})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
+        </div>
+        <div v-if="dashboardSettingsTab==='plans'" class="flex flex-col gap-2">
+            <div v-for="(plan, idx) in dashboardSettings.monthlyPlans" :key="idx" class="flex items-center gap-2 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+                <input v-model.number="plan.month" type="number" min="1" max="12" placeholder="월" class="w-10 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center">
+                <span class="text-[#8d6e63] font-bold text-xs">/</span>
+                <input v-model.number="plan.date" type="number" min="1" max="31" placeholder="일" class="w-10 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center">
+                <input v-model="plan.content" type="text" placeholder="일정 내용" class="flex-1 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1]">
+                <button @click.stop="plan.isHoliday = !plan.isHoliday"
+                        class="text-xs font-black px-1.5 py-0.5 rounded flex-shrink-0 transition-all"
+                        :class="plan.isHoliday ? 'bg-red-100 text-red-500 border border-red-300' : 'bg-slate-100 text-slate-400 border border-slate-200'"
+                        title="공휴일 설정 (미션 날수 계산에서 제외)">휴</button>
+                <button @click="dashboardSettings.monthlyPlans.splice(idx,1)" class="text-[#ef9a9a] font-black ml-1">✕</button>
+            </div>
+            <button @click="dashboardSettings.monthlyPlans.push({month:new Date().getMonth()+1,date:new Date().getDate(),content:''})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
+            <!-- 복붙 일괄 추가 -->
+            <div class="mt-2 bg-[#fdf8ef] rounded-xl border border-[#e7d5b1] p-2">
+                <div class="text-xs font-black text-[#8d6e63] mb-0.5">📋 복붙으로 한번에 추가</div>
+                <div class="text-[10px] text-[#a1887f] font-bold mb-1">한 줄에 하나씩: 4/1 입학식 또는 4월1일 봄소풍</div>
+                <textarea v-model="dashboardBulkPasteText" rows="4" placeholder="4/1 입학식&#10;4/5 봄소풍&#10;5/15 스승의날" class="w-full text-xs font-bold text-[#5d4037] outline-none bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5 resize-none" @mousedown.stop @click.stop></textarea>
+                <button @click="dashboardBulkAddPlans()" class="mt-1 px-3 py-1 rounded-lg bg-[#ffb74d] border-b-2 border-[#ff8f00] text-white font-black text-xs hover:bg-[#ffa726] transition-all">📥 일괄 추가</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <div class="flex-1 grid grid-cols-3 gap-3 p-3 overflow-hidden min-h-0">
+
+        <!-- ─── 왼쪽 컬럼: 지금수업+준비물(flex:2) + 시간표(flex:8) + 급식(22%) ─── -->
+        <div class="flex flex-col gap-2 overflow-hidden min-h-0">
+
+            <!-- 지금 수업 + 준비물 카드 -->
+            <div class="rounded-2xl px-4 border-2 shadow-sm flex flex-col min-h-0" style="flex:3;"
+                 :class="dashboardCurrentClass ? 'bg-[#fff3e0] border-[#ffb74d]' : 'bg-white border-[#e7d5b1]'">
+                <!-- 지금 수업 섹션 -->
+                <div class="flex-1 flex flex-col justify-center py-3">
+                    <div class="text-lg font-black text-[#a1887f] leading-none mb-2">⏰ 지금 수업</div>
+                    <div v-if="dashboardCurrentClass" class="flex items-center gap-2">
+                        <span class="text-5xl font-bold text-[#5d4037]">{{ dashboardCurrentClass.subject.replace('*','') }}</span>
+                        <div class="flex flex-col leading-none">
+                            <span class="text-xl font-black text-[#5d4037]">{{ dashboardCurrentClass.label }}</span>
+                            <span v-if="dashboardCurrentClass.isMoving" class="text-sm text-[#e65100] font-bold">이동🚶</span>
+                        </div>
+                    </div>
+                    <div v-else class="text-3xl font-black text-[#8d6e63]">{{ dashboardNextClass ? '쉬는 시간' : '수업 없음' }}</div>
+                    <div v-if="dashboardNextClass" class="text-lg text-[#a1887f] font-bold mt-1">
+                        다음: <span class="text-[#5d4037]">{{ dashboardNextClass.subject.replace('*','') }}</span> {{ dashboardNextClass.startTime }}~
+                    </div>
+                </div>
+                <!-- 가로 구분선 (중앙) -->
+                <div class="border-t border-[#e7d5b1] flex-shrink-0"></div>
+                <!-- 준비물 섹션 -->
+                <div class="flex-1 flex flex-col justify-center py-3">
+                    <div class="text-lg font-black text-[#a1887f] mb-1">📦 준비물</div>
+                    <div ref="supplyInput"
+                         contenteditable="true"
+                         @blur="saveSupplyContent"
+                         class="text-5xl font-bold text-[#5d4037] outline-none cursor-text w-full leading-tight min-h-[1em]">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주간 시간표 카드 -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden min-h-0 flex flex-col" style="flex:6;">
+                <div class="text-xl font-black text-[#8d6e63] px-3 pt-2 pb-1 flex-shrink-0">📅 시간표</div>
+                <div class="flex-1 overflow-x-auto overflow-y-auto dash-scroll min-h-0 py-3">
+                    <table class="border-collapse text-center" style="width:92%; margin-left:20px;">
+                        <thead class="sticky top-0 z-10 bg-[#f5e6d0]">
+                            <tr>
+                                <th class="border border-[#e7d5b1] px-1 py-2 text-sm font-black text-[#8d6e63] w-12">교시</th>
+                                <th v-for="day in dashboardWeeklySchedule.days" :key="day"
+                                    class="border border-[#e7d5b1] px-1 py-2 text-sm font-black"
+                                    :class="day === dashboardWeeklySchedule.todayName ? 'bg-[#ff8f00] text-white' : 'text-[#5d4037]'">
+                                    {{ day }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(sch, pIdx) in dashboardWeeklySchedule.schedule" :key="pIdx">
+                                <td class="border border-[#e7d5b1] px-1 py-2 text-sm font-black text-[#a1887f] bg-[#fdf8ef]">
+                                    {{ sch.label }}<br><span class="font-normal text-xs">{{ sch.startTime }}</span>
+                                </td>
+                                <td v-for="day in dashboardWeeklySchedule.days" :key="day"
+                                    class="border border-[#e7d5b1] px-1 py-2 text-sm font-bold transition-all"
+                                    :class="day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.currentIdx ? 'bg-[#ff8f00] text-white font-black' : day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.currentIdx + 1 ? 'bg-[#fff3e0] text-[#e65100]' : day === dashboardWeeklySchedule.todayName ? 'bg-[#fffdf0] text-[#5d4037]' : 'text-[#5d4037]'">
+                                    <span :class="dashboardWeeklySchedule.getSubject(day, pIdx).includes('*') ? 'text-[#e65100]' : ''">
+                                        {{ dashboardWeeklySchedule.getSubject(day, pIdx).replace('*','') }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr v-if="dashboardWeeklySchedule.schedule.length === 0">
+                                <td colspan="6" class="py-4 text-[#a1887f] text-sm font-bold">⚙️ 설정에서 시간표를 입력해 주세요</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 급식 카드 (고정 높이, 과제보충과 동일) -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col" style="flex: 0 0 22%; min-height: 80px;">
+                <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
+                    <div class="text-xl font-black text-[#8d6e63]">🍱 급식</div>
+                    <button @click="fetchDashboardMeal()" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold">↻</button>
+                </div>
+                <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
+                    <div v-if="dashboardMeal.length > 0">
+                        <div v-for="(meal, idx) in dashboardMeal" :key="idx" class="mb-2" :class="idx < dashboardMeal.length-1 ? 'pb-2 border-b border-[#f5e6d0]' : ''">
+                            <div class="text-sm font-black text-[#e65100]">{{ dashboardFormatMealDate(meal.date) }}</div>
+                            <div class="text-sm font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ meal.menu }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center text-[#a1887f] font-bold text-sm py-2">
+                        {{ dashboardSettings.neisApiKey ? '급식 정보가 없습니다' : '⚙️ NEIS API 키를 설정해 주세요' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 가운데 컬럼: 알림장(60%) + 과제 보충(40%) ─── -->
+        <div class="flex flex-col gap-2 overflow-hidden min-h-0">
+            <!-- 알림장 카드 (flex-1) -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+                <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
+                    <div class="text-xl font-black text-[#8d6e63]">📋 알림장</div>
+                    <button @click="showMainDashboard=false; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
+                </div>
+                <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
+                    <div v-if="dashboardBlackboardPreview" class="dash-preview text-[#5d4037]" v-html="dashboardBlackboardPreview"></div>
+                    <div v-else-if="savedBoards && savedBoards.length > 0">
+                        <div v-for="(board, idx) in savedBoards.slice(0,3)" :key="idx" class="mb-2 pb-2 border-b border-[#f5e6d0] last:border-0">
+                            <div class="text-xs font-black text-[#a1887f] mb-0.5">{{ board.name || board.title || '판서 '+(idx+1) }}</div>
+                            <div class="dash-preview text-[#5d4037]" v-html="dashboardTrimBoardContent(board.content || '')"></div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center text-[#a1887f] font-bold text-sm py-4">판서 내용이 없습니다</div>
+                </div>
+            </div>
+
+            <!-- 과제 보충 카드 (고정 높이, 급식과 동일) -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm px-3 py-2 overflow-hidden flex flex-col" style="flex: 0 0 22%; min-height: 80px;">
+                <div class="text-xl font-black text-[#8d6e63] mb-1.5 flex-shrink-0">🌱 과제 보충</div>
+                <div class="flex-1 overflow-y-auto dash-scroll min-h-0">
+                    <div v-if="dashboardCheckedStudents.length === 0" class="text-center text-[#a1887f] text-sm font-bold py-1">체크된 학생이 없습니다</div>
+                    <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-1.5">
+                        <span class="text-sm font-black text-[#8d6e63] mr-1">{{ group.tabName }}:</span>
+                        <button v-for="name in group.names" :key="name"
+                                @click="toggleSummaryCheck(name, group.tabId)"
+                                class="inline-flex items-center text-sm font-bold bg-[#fff3e0] border border-[#ffcc80] text-[#e65100] rounded-lg px-2 py-0.5 mr-1 mb-0.5 hover:bg-[#ffcdd2] hover:text-red-600 transition-colors cursor-pointer">
+                            {{ name }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── 오른쪽 컬럼: 교육활동(60%) + 단축링크(40%) ─── -->
+        <div class="flex flex-col gap-2 overflow-hidden min-h-0">
+            <!-- 교육활동 카드 (80%) -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0" style="flex:8;">
+                <!-- 날씨 (상단) -->
+                <div class="flex-shrink-0 bg-[#fdf8ef] border-b border-[#e7d5b1] px-3 py-2 cursor-pointer hover:bg-[#fff3e0] transition-colors"
+                     @click="openUrl('https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EC%B2%AD%EC%A3%BC+%EB%82%A0%EC%94%A8&ackey=g95jjj0g')">
+                    <div v-if="dashboardWeather && !dashboardWeather.error" class="flex items-center justify-center flex-wrap gap-3 text-sm font-bold text-[#5d4037]">
+                        <span class="text-2xl">{{ dashboardWeather.icon }}</span>
+                        <span class="text-[#e65100] font-black text-base">{{ dashboardWeather.temp }}℃</span>
+                        <span class="text-[#8d6e63]">{{ dashboardWeather.minTemp }}↓ {{ dashboardWeather.maxTemp }}↑</span>
+                        <span :style="{color: dashboardWeather.pm10Level.color}">😷{{ dashboardWeather.pm10Level.label }}</span>
+                    </div>
+                    <div v-else-if="!dashboardSettings.lat" class="text-xs text-[#a1887f] font-bold text-center">⚙️ 위도/경도를 설정하면 날씨가 표시됩니다</div>
+                    <div v-else class="text-xs text-[#a1887f] font-bold text-center">날씨 불러오는 중...</div>
+                </div>
+                <!-- 달력 + 행사 -->
+                <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0" style="padding-top:24px;">
+                    <!-- 월 네비게이션 -->
+                    <div class="flex items-center justify-between mb-4 py-2">
+                        <button @click="dashboardChangeMonth(-1)" class="text-[#8d6e63] hover:text-[#5d4037] font-black text-base px-1">◀</button>
+                        <span class="text-xl font-black text-[#5d4037]">{{ dashboardCalendarMonth.month + 1 }}월</span>
+                        <button @click="dashboardChangeMonth(1)" class="text-[#8d6e63] hover:text-[#5d4037] font-black text-base px-1">▶</button>
+                    </div>
+                    <!-- 미니 달력 -->
+                    <div class="grid grid-cols-7 gap-1 text-center mb-5">
+                        <div class="text-sm font-black text-red-400 py-0.5">일</div><div class="text-sm font-black text-[#8d6e63] py-0.5">월</div><div class="text-sm font-black text-[#8d6e63] py-0.5">화</div><div class="text-sm font-black text-[#8d6e63] py-0.5">수</div><div class="text-sm font-black text-[#8d6e63] py-0.5">목</div><div class="text-sm font-black text-[#8d6e63] py-0.5">금</div><div class="text-sm font-black text-blue-400 py-0.5">토</div>
+                        <template v-for="cell in dashboardCalendarCells" :key="cell.key">
+                            <div class="aspect-square flex items-center justify-center rounded text-base transition-all cursor-pointer hover:ring-2 hover:ring-[#ffb74d]"
+                                 :class="cell.isEmpty ? 'pointer-events-none' : cell.isToday ? 'bg-[#ff8f00] text-white font-black' : cell.hasEvent ? 'bg-[#fff3e0] font-black text-[#e65100]' : cell.isWeekend ? 'text-red-300' : 'text-[#5d4037]'"
+                                 @click="!cell.isEmpty && openCalendarEdit(cell.date)">
+                                {{ cell.isEmpty ? '' : cell.date }}
+                            </div>
+                        </template>
+                    </div>
+                    <!-- 날짜 클릭 편집 팝업 -->
+                    <div v-if="dashboardEditingDate" class="bg-[#fff8f0] border-2 border-[#ffb74d] rounded-xl px-3 py-2 mb-1.5 flex flex-col gap-1.5">
+                        <div class="text-sm font-black text-[#e65100]">{{ dashboardCalendarMonth.month + 1 }}/{{ dashboardEditingDate }} 행사</div>
+                        <div v-for="(plan, idx) in dashboardEditingPlans" :key="idx" class="flex items-center gap-1">
+                            <input v-model="plan.content" type="text" placeholder="행사 내용" @mousedown.stop @click.stop
+                                   class="flex-1 text-sm font-bold text-[#5d4037] outline-none bg-white rounded-lg border border-[#e7d5b1] px-2 py-1">
+                            <button @click.stop="dashboardEditingPlans.splice(idx,1)" class="text-[#ef9a9a] font-black text-base px-1">✕</button>
+                        </div>
+                        <div class="flex gap-1">
+                            <button @click.stop="dashboardEditingPlans.push({content:''})" class="text-xs font-black text-[#8d6e63] bg-[#f5e6d0] rounded-lg px-2 py-1 hover:bg-[#e7d5b1] transition-colors">+ 추가</button>
+                            <button @click.stop="saveCalendarEdit()" class="text-xs font-black text-white bg-[#ff8f00] rounded-lg px-3 py-1 hover:bg-[#e65100] transition-colors ml-auto">저장</button>
+                            <button @click.stop="dashboardEditingDate=null" class="text-xs font-black text-[#a1887f] bg-white border border-[#e7d5b1] rounded-lg px-2 py-1 hover:bg-[#f5e6d0] transition-colors">취소</button>
+                        </div>
+                    </div>
+                    <!-- 행사 목록 -->
+                    <div class="flex flex-col gap-0.5">
+                        <div v-for="(plan, idx) in dashboardUpcomingPlans" :key="idx" class="flex items-start gap-1.5 py-1 border-b border-[#f5e6d0] last:border-0">
+                            <span class="text-base font-black text-[#e65100] flex-shrink-0 w-14 text-center pt-0.5">{{ plan.month }}/{{ plan.date }}</span>
+                            <span class="text-base font-bold text-[#5d4037] flex-1">{{ plan.content }}</span>
+                        </div>
+                        <div v-if="dashboardUpcomingPlans.length === 0" class="text-center text-[#a1887f] font-bold text-base py-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 단축링크 카드 (20%) -->
+            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm px-3 py-2 overflow-hidden flex flex-col min-h-0" style="flex:2;">
+                <div class="text-xl font-black text-[#8d6e63] mb-2 flex-shrink-0 cursor-pointer hover:text-[#5d4037] transition-colors select-none"
+                     @click="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'links'">⚙ 설정</div>
+                <div class="flex-1 overflow-y-auto dash-scroll min-h-0">
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button v-for="link in dashboardSettings.quickLinks" :key="link.url"
+                                @click="openUrl(link.url)"
+                                class="px-2 py-2 rounded-xl font-black text-base bg-[#fdf8ef] border border-[#e7d5b1] text-[#5d4037] hover:bg-[#fff3e0] hover:border-[#ffb74d] transition-all text-center truncate">
+                            {{ link.name }}
+                        </button>
+                        <div v-if="dashboardSettings.quickLinks.length === 0" class="col-span-2 text-center text-[#a1887f] text-base font-bold py-1">⚙️ 설정에서 링크를 추가해 주세요</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ══════════ /메인 대시보드 ══════════ -->
+
+<div v-if="showStudentSelectModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showStudentSelectModal = false">
             <div class="bg-white w-full max-w-3xl rounded-[2.5rem] p-8 shadow-xl max-h-[85vh] flex flex-col">
                 <h3 class="text-2xl font-black text-center mb-6 text-slate-800 font-game"><i class="fa-solid fa-chair text-blue-500 mr-2"></i>누구를 앉힐까요?</h3>
                 <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -3852,42 +4200,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
     </div>
 
-   <div class="relative">
-        <button @mousedown.stop.prevent="toggleDatePalette" class="toolbar-btn text-slate-600 hover:text-blue-600" title="날짜/요일 일정 넣기">
-            <i class="fa-solid fa-calendar-day text-2xl"></i>
-        </button>
-        <div v-show="showDatePalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-4 rounded-xl shadow-2xl z-[9999] flex flex-col gap-3 w-72" @mousedown.stop>
-            <div class="text-sm font-bold text-slate-700 mb-1 border-b pb-2">기본 삽입</div>
-            <button @mousedown.stop.prevent="insertDynamicDate" class="w-full text-left px-3 py-2 bg-slate-50 hover:bg-blue-50 text-slate-700 font-bold rounded-lg transition-colors text-sm">
-                📅 오늘 날짜 (자동 갱신)
-            </button>
-            <button @mousedown.stop.prevent="insertDaySchedule" class="w-full text-left px-3 py-2 bg-slate-50 hover:bg-blue-50 text-slate-700 font-bold rounded-lg transition-colors text-sm">
-                📝 오늘 요일 일정 넣기 (현재 버전)
-            </button>
-            
-            <div class="flex justify-between items-center mt-2 border-b pb-2">
-                <div class="text-sm font-bold text-slate-700">요일별 일정 설정</div>
-                <select v-model="currentScheduleVersion" @change="saveToLocal" class="bg-slate-100 text-xs font-bold p-1 rounded outline-none border border-slate-200">
-                    <option v-for="(ver, idx) in scheduleVersions" :key="idx" :value="idx">{{ ver.name }}</option>
-                </select>
-            </div>
-            
-            <div class="flex gap-1 mb-1">
-                <input type="text" v-model="scheduleVersions[currentScheduleVersion].name" @mousedown.stop @change="saveToLocal" class="flex-1 text-xs border border-slate-200 rounded p-1 outline-none focus:border-blue-400" placeholder="버전 이름 (예: 단축수업)">
-                <button @mousedown.stop.prevent="addScheduleVersion" class="px-2 py-1 bg-emerald-100 text-emerald-600 rounded text-xs font-bold hover:bg-emerald-200">+</button>
-                <button @mousedown.stop.prevent="deleteScheduleVersion" v-if="scheduleVersions.length > 1" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold hover:bg-red-200">-</button>
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <div v-for="(dayName, idx) in ['일', '월', '화', '수', '목', '금', '토']" :key="idx" class="flex items-center gap-2">
-                    <span class="text-xs font-bold w-4 text-center" :class="idx===0?'text-red-500':(idx===6?'text-blue-500':'text-slate-600')">{{dayName}}</span>
-                    <input type="text" v-model="scheduleVersions[currentScheduleVersion].data[idx]" @mousedown.stop @change="saveToLocal" class="flex-1 text-xs border border-slate-200 rounded p-1 outline-none focus:border-blue-400" :placeholder="`(${dayName}) 일정...`">
-                </div>
-            </div>
-        </div>
-    </div>
-
-<div class="w-px h-10 bg-slate-200 mx-1"></div>
     <div class="relative">
         <button @mousedown.stop.prevent="toggleForeColorPalette" class="toolbar-btn"><i class="fa-solid fa-font"></i></button>
         <div v-show="showForeColorPalette" class="color-palette" @mousedown.stop.prevent>
@@ -3926,6 +4238,52 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     <button @mousedown.stop.prevent="setDrawTool('eraser')" class="toolbar-btn" :class="{'bg-slate-200 text-pink-600': isDrawMode && drawTool === 'eraser'}" title="부분 지우개"><i class="fa-solid fa-eraser"></i></button>
     <button @mousedown.stop.prevent="clearOnlyDrawings" class="toolbar-btn text-slate-600 hover:text-red-500" title="그림만 지우기"><i class="fa-solid fa-broom"></i></button>
     <button @mousedown.stop.prevent="setDrawTool('move')" class="toolbar-btn" :class="{'bg-slate-200 text-emerald-600': isDrawMode && drawTool === 'move'}" title="그림 이동"><i class="fa-solid fa-arrows-up-down-left-right"></i></button>
+
+    <div class="w-px h-10 bg-slate-200 mx-1"></div>
+
+    <div class="relative">
+        <button @mousedown.stop.prevent="toggleDatePalette" class="toolbar-btn text-slate-600 hover:text-blue-600" title="날짜/요일 일정 넣기">
+            <i class="fa-solid fa-calendar-day text-2xl"></i>
+        </button>
+        <div v-show="showDatePalette" class="absolute top-full mt-1 left-0 bg-white border border-slate-200 p-4 rounded-xl shadow-2xl z-[9999] flex flex-col gap-3 w-72" @mousedown.stop>
+            <div class="text-sm font-bold text-slate-700 mb-1 border-b pb-2">기본 삽입</div>
+            <button @mousedown.stop.prevent="insertDynamicDate" class="w-full text-left px-3 py-2 bg-slate-50 hover:bg-blue-50 text-slate-700 font-bold rounded-lg transition-colors text-sm">
+                📅 오늘 날짜 (자동 갱신)
+            </button>
+            <button @mousedown.stop.prevent="insertDaySchedule" class="w-full text-left px-3 py-2 bg-slate-50 hover:bg-blue-50 text-slate-700 font-bold rounded-lg transition-colors text-sm">
+                📝 오늘 요일 일정 넣기 (현재 버전)
+            </button>
+
+            <div class="flex justify-between items-center mt-2 border-b pb-2">
+                <div class="text-sm font-bold text-slate-700">요일별 일정 설정</div>
+                <select v-model="currentScheduleVersion" @change="saveToLocal" class="bg-slate-100 text-xs font-bold p-1 rounded outline-none border border-slate-200">
+                    <option v-for="(ver, idx) in scheduleVersions" :key="idx" :value="idx">{{ ver.name }}</option>
+                </select>
+            </div>
+
+            <div class="flex gap-1 mb-1">
+                <input type="text" v-model="scheduleVersions[currentScheduleVersion].name" @mousedown.stop @change="saveToLocal" class="flex-1 text-xs border border-slate-200 rounded p-1 outline-none focus:border-blue-400" placeholder="버전 이름 (예: 단축수업)">
+                <button @mousedown.stop.prevent="addScheduleVersion" class="px-2 py-1 bg-emerald-100 text-emerald-600 rounded text-xs font-bold hover:bg-emerald-200">+</button>
+                <button @mousedown.stop.prevent="deleteScheduleVersion" v-if="scheduleVersions.length > 1" class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold hover:bg-red-200">-</button>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <div v-for="(dayName, idx) in ['일', '월', '화', '수', '목', '금', '토']" :key="idx" class="flex items-center gap-2">
+                    <span class="text-xs font-bold w-4 text-center" :class="idx===0?'text-red-500':(idx===6?'text-blue-500':'text-slate-600')">{{dayName}}</span>
+                    <input type="text" v-model="scheduleVersions[currentScheduleVersion].data[idx]" @mousedown.stop @change="saveToLocal" class="flex-1 text-xs border border-slate-200 rounded p-1 outline-none focus:border-blue-400" :placeholder="`(${dayName}) 일정...`">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 과제 보충 학생 버튼 -->
+    <button @mousedown.prevent.stop="showCheckedStudentPanel = true"
+            class="toolbar-btn text-slate-600 hover:text-slate-900"
+            :class="{'bg-slate-200 text-slate-900': showCheckedStudentPanel}"
+            title="과제 보충 학생 입력">
+        <i class="fa-solid fa-user-check text-xl"></i>
+    </button>
+
     <div class="flex-1"></div>
 
     <button @mousedown.prevent="undo" class="toolbar-btn text-slate-600 hover:text-blue-600 disabled:opacity-30" title="되돌리기 (Ctrl+Z)" :disabled="historyIndex <= 0">
@@ -3946,7 +4304,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <i class="fa-solid fa-list-ul text-2xl"></i>
     </button>
 </div>
-    <div v-show="isDrawMode && drawTool === 'eraser' && isMouseOverCanvas" 
+
+    <div v-show="isDrawMode && drawTool === 'eraser' && isMouseOverCanvas"
      class="custom-eraser-cursor"
      :style="{ 
         width: eraserSize + 'px', 
@@ -3969,21 +4328,46 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             <div class="w-full h-full absolute inset-0 z-0 p-4" :class="{'disable-text-events': isDrawMode}" @mousedown="closePalettes">
                 
-                <div v-show="!isCornellMode" ref="boardEditor" id="board-editor" contenteditable="true" 
-                     class="w-full h-full outline-none px-4 py-2" 
-                     @input="handleBoardInput" 
+                <div v-show="!isCornellMode" ref="boardEditor" id="board-editor" contenteditable="true"
+                     class="w-full h-full outline-none px-4 py-2"
+                     @input="handleBoardInput"
                      @compositionstart="isComposing = true"
                      @compositionend="handleCompositionEnd"
                      @blur="handleBoardBlur"
                      @paste="handlePaste"
                      @mouseup="saveSelection"
                      @keyup="handleBoardKeyup"
-                     @keydown="handleBoardKeydown"> </div>
+                     @keydown="handleBoardKeydown"
+                     @click="handleBoardStudentBadgeClick"> </div>
                             </div>
         </div>
     </div>
     
     <div v-if="!isMaximized" class="resize-handle" @mousedown="startBoardResize"></div>
+
+    <!-- 과제 보충 우측 패널 -->
+    <div v-show="showCheckedStudentPanel" class="board-supplement-panel" @mousedown.stop>
+        <div class="h-14 bg-slate-100 flex items-center justify-between px-4 border-b shrink-0">
+            <button @mousedown.prevent.stop="insertCheckedStudentsToBoard()"
+                    class="font-black text-slate-700 text-xl hover:text-emerald-600 transition-colors" title="클릭: 판서에 입력">
+                🌱 과제 보충
+            </button>
+            <button @mousedown.prevent="showCheckedStudentPanel = false" class="text-slate-400 hover:text-red-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div v-if="dashboardCheckedStudents.length === 0" class="text-base text-slate-400 font-bold text-center py-8">체크된 학생이 없습니다</div>
+            <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-5">
+                <div class="text-lg font-black text-slate-700 mb-2 pb-1 border-b border-slate-200">{{ group.tabName }}</div>
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="name in group.names" :key="name"
+                            @mousedown.prevent.stop="toggleSummaryCheck(name, group.tabId)"
+                            class="inline-flex items-center text-lg font-bold rounded-xl px-4 py-1.5 transition-colors cursor-pointer bg-slate-100 border border-slate-300 text-slate-800 hover:bg-red-50 hover:border-red-300 hover:text-red-600">
+                        {{ name }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div v-if="showBoardList" class="board-list-mini">
     <div class="h-10 bg-slate-100 flex items-center justify-between px-3 border-b shrink-0">
@@ -4595,6 +4979,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <option value="male16">👦 16강 (남학생)</option>
                 <option value="female16">👧 16강 (여학생)</option>
                 <option value="random32">🎲 32강 (전체 랜덤)</option>
+                <option value="free">🎯 자유 모드</option>
             </select>
             <button @click="generateBracket" :disabled="isGenerating" class="bg-yellow-500 text-slate-900 px-5 py-2 rounded-lg font-black hover:bg-yellow-400 shadow-md active:scale-95 transition-all text-sm flex items-center gap-2 disabled:opacity-50">
                 <i class="fa-solid fa-play"></i> {{ isGenerating ? '생성 중...' : '생성' }}
@@ -4605,8 +4990,26 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
     </div>
 
+    <!-- 자유 모드 참가자 선택 패널 -->
+    <div v-if="selectedBracketMode === 'free'" class="shrink-0 bg-slate-800 border-b border-slate-600 px-5 py-3">
+        <div class="flex items-center gap-3 mb-2">
+            <span class="text-white font-black text-sm">참가 학생 선택</span>
+            <span class="text-slate-400 text-xs">({{ freeParticipants.length }}명 선택됨)</span>
+            <button @click="freeParticipants = allStudents.map(s=>s.name)" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-0.5 rounded font-bold transition-all">전체</button>
+            <button @click="freeParticipants = []" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-0.5 rounded font-bold transition-all">초기화</button>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+            <button v-for="s in allStudents" :key="s.name"
+                    @click="freeParticipants.includes(s.name) ? freeParticipants.splice(freeParticipants.indexOf(s.name),1) : freeParticipants.push(s.name)"
+                    :class="freeParticipants.includes(s.name) ? 'bg-yellow-400 text-slate-900 border-yellow-300' : 'bg-slate-700 text-slate-300 border-slate-500'"
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold border transition-all hover:scale-105 active:scale-95 cursor-pointer select-none">
+                {{ s.name }}
+            </button>
+        </div>
+    </div>
+
     <div class="flex-1 relative overflow-auto custom-scrollbar bg-slate-900">
-        
+
         <div v-if="isGenerating" class="absolute top-10 left-0 right-0 z-[100] flex justify-center pointer-events-none">
             <div class="bg-blue-600/90 px-8 py-4 rounded-full text-white font-black animate-bounce shadow-2xl border-2 border-blue-400 flex items-center gap-3">
                 <i class="fa-solid fa-spinner animate-spin text-xl"></i> 
@@ -4849,7 +5252,7 @@ tabindex="0">
         </h2>
         <div class="flex items-center gap-3">
             <button @mousedown.prevent.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-            <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
+            <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement(); stopCamera();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
         </div>
     </div>
 
@@ -4867,112 +5270,155 @@ tabindex="0">
     </div>
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
-        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full bg-slate-50 flex flex-col p-6 relative" style="container-type: size;">
-    
-   <div class="absolute top-6 left-6 flex items-center z-30">
-             <button v-if="isNoiseTimeHidden" @click="isNoiseTimeHidden = false; saveToLocal();" 
+        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full relative overflow-hidden bg-slate-50">
+
+            <!-- 카메라 전체화면 비디오 -->
+            <video v-if="isCameraOn" ref="cameraVideo" autoplay playsinline muted
+                   class="absolute inset-0 w-full h-full object-cover" style="z-index:1;"></video>
+
+            <!-- 타이머 + 카메라 버튼 -->
+            <div class="absolute flex items-center gap-2" style="top:1.5rem;left:1.5rem;z-index:30;">
+                <button v-if="isNoiseTimeHidden" @click="isNoiseTimeHidden = false; saveToLocal();"
                         class="relative flex items-center justify-center w-14 h-14 bg-white/90 backdrop-blur-md rounded-full shadow-sm border-2 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
                         :class="isMeasuring && noiseGauge < 100 ? 'border-[#fbbf24] shadow-[0_4px_15px_rgba(251,191,36,0.3)]' : 'border-slate-200'"
                         title="클릭하여 타이머 보기">
                     <div v-if="isMeasuring && noiseGauge < 100" class="absolute w-full h-full bg-yellow-400 rounded-full animate-ping opacity-20"></div>
-                    <i class="fa-solid fa-hourglass-half text-lg relative z-10 transition-colors" 
+                    <i class="fa-solid fa-hourglass-half text-lg relative z-10 transition-colors"
                        :class="isMeasuring && noiseGauge < 100 ? 'text-yellow-500 fa-spin' : 'text-slate-400'"></i>
                 </button>
-
                 <div v-else @click="isNoiseTimeHidden = true; saveToLocal();"
                      class="cursor-pointer transition-all duration-300 ease-in-out hover:scale-105 active:scale-95" title="클릭하여 시계로 숨기기">
                     <div class="bg-white/90 backdrop-blur-md px-5 py-2 rounded-2xl flex flex-col items-center justify-center min-w-[140px] transition-all duration-300 border-2"
                          :class="isMeasuring && noiseGauge < 100 ? 'noise-running-aura' : 'border-slate-200 shadow-sm'">
-                        <span class="text-[11px] font-black text-slate-400 leading-none uppercase tracking-[0.15em] mb-0.5">
-                            {{ isMeasuring && noiseGauge < 100 ? 'Peace Time' : 'Peace Time' }}
-                        </span>
-                        <span class="font-black text-slate-700 text-3xl leading-none tabular-nums drop-shadow-sm" style="font-family: 'Quantico', sans-serif !important; letter-spacing: -0.02em;">
+                        <span class="text-[11px] font-black text-slate-400 leading-none uppercase tracking-[0.15em] mb-0.5">Peace Time</span>
+                        <span class="font-black text-slate-700 text-3xl leading-none tabular-nums drop-shadow-sm" style="font-family:'Quantico',sans-serif!important;letter-spacing:-0.02em;">
                             {{ formatNoiseTime(noiseRecordSeconds) }}
                         </span>
                     </div>
                 </div>
-            </div>
-            <div class="w-full flex justify-end mb-4 shrink-0 relative z-20">
-                <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div @click.stop.prevent="setSensitivity('reading')" 
-                         class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
-                         :class="currentNoisePreset === 'reading' ? 'bg-rose-50 border border-rose-200 shadow-inner' : ''">
-                         <span class="text-lg font-black transition-colors"
-                               :class="currentNoisePreset === 'reading' ? 'text-rose-500' : 'text-slate-400 group-hover:text-rose-400'">📖 독서</span>
-                    </div>
-
-                    <div class="relative w-48 flex items-center">
-                        <input type="range" v-model.number="noiseThreshold" @input="onThresholdChange" min="30" max="100" 
-                               class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all border border-slate-200">
-                    </div>
-
-                    <div @click.stop.prevent="setSensitivity('discussion')" 
-                         class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
-                         :class="currentNoisePreset === 'discussion' ? 'bg-blue-50 border border-blue-200 shadow-inner' : ''">
-                         <span class="text-lg font-black transition-colors"
-                               :class="currentNoisePreset === 'discussion' ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-400'">🗣️ 토론</span>
-                    </div>
-
-                    <div class="w-px h-8 bg-slate-200 mx-1"></div>
-                    <span class="font-mono font-black text-teal-600 text-3xl w-14 text-center">{{ noiseThreshold }}</span>
-
-                    <div class="ml-2 flex gap-2">
-                        <button v-if="!isMeasuring" @click="startNoiseMeasurement" 
-                                class="w-12 h-12 bg-teal-500 text-white rounded-xl shadow-md hover:bg-teal-600 transition-all flex items-center justify-center active:scale-95" title="측정 시작">
-                            <i class="fa-solid fa-play text-xl pl-1"></i>
-                        </button>
-                        <button v-else @click="pauseNoiseMeasurement"
-                                class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95" title="일시 정지">
-                            <i class="fa-solid fa-pause text-xl"></i>
-                        </button>
-                        <button @click="stopAndReset" 
-                                class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300" title="중지 및 초기화">
-                            <i class="fa-solid fa-stop text-xl"></i>
-                        </button>
-                    </div>
+                <button @click="isCameraOn ? stopCamera() : startCamera()"
+                        class="relative flex items-center justify-center w-14 h-14 bg-white/90 backdrop-blur-md rounded-full shadow-sm border-2 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+                        :class="isCameraOn ? 'border-[#fbbf24] shadow-[0_4px_15px_rgba(251,191,36,0.5)]' : 'border-slate-200'"
+                        title="카메라 켜기/끄기">
+                    <div v-if="isCameraOn" class="absolute w-full h-full bg-yellow-300 rounded-full animate-ping opacity-20"></div>
+                    <svg class="relative z-10 transition-colors" :class="isCameraOn ? 'text-yellow-500' : 'text-slate-400'" width="26" height="22" viewBox="0 0 26 22" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 2 L7 5 H2 C1.45 5 1 5.45 1 6 V19 C1 19.55 1.45 20 2 20 H24 C24.55 20 25 19.55 25 19 V6 C25 5.45 24.55 5 24 5 H19 L17 2 Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <circle cx="13" cy="12.5" r="4.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <circle cx="13" cy="12.5" r="2" fill="currentColor"/>
+                        <rect x="4" y="8" width="3" height="2" rx="0.5" fill="currentColor"/>
+                    </svg>
+                </button>
+                <!-- 녹화 버튼 (카메라 ON일 때만 표시) -->
+                <button v-if="isCameraOn" @click="isNoiseRecording ? stopNoiseRecording() : startNoiseRecording()"
+                        class="relative flex items-center justify-center w-14 h-14 bg-white/90 backdrop-blur-md rounded-full shadow-sm border-2 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+                        :class="isNoiseRecording ? 'border-red-500 shadow-[0_4px_15px_rgba(239,68,68,0.5)]' : 'border-slate-200'"
+                        title="녹화 시작/저장">
+                    <div v-if="isNoiseRecording" class="absolute w-full h-full bg-red-400 rounded-full animate-ping opacity-20"></div>
+                    <i class="fa-solid relative z-10 text-xl transition-colors" :class="isNoiseRecording ? 'fa-stop text-red-500' : 'fa-circle text-slate-400'"></i>
+                </button>
+                <!-- 녹화 경과 시간 표시 -->
+                <div v-if="isNoiseRecording" class="flex items-center bg-red-500/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border-2 border-red-400">
+                    <span class="text-white font-black text-sm font-mono">⏺ {{ noiseRecordingTime }}</span>
                 </div>
             </div>
 
-            <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden pt-4">
-                <div class="flex flex-row items-center justify-center w-full" style="gap: 8cqmin;">
-                    <div class="transition-transform duration-1000 ease-out origin-center" 
-                         :style="{ transform: `scale(${1 + noiseGauge/300})` }">
-                        <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
-                             :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= 100 }"
-                             style="font-size: 40cqmin;"> 
-                            <span v-if="noiseGauge < 30">😊</span>
-                            <span v-else-if="noiseGauge < 60">😐</span>
-                            <span v-else-if="noiseGauge < 90">😠</span>
-                            <span v-else>👿</span>
+            <!-- 일반 모드 (카메라 OFF) -->
+            <div v-if="!isCameraOn" class="w-full h-full flex flex-col p-6 relative" style="container-type:size;">
+                <div class="w-full flex justify-end mb-4 shrink-0 relative" style="z-index:20;">
+                    <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+                        <div @click.stop.prevent="setSensitivity('reading')"
+                             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
+                             :class="currentNoisePreset === 'reading' ? 'bg-rose-50 border border-rose-200 shadow-inner' : ''">
+                            <span class="text-lg font-black transition-colors"
+                                  :class="currentNoisePreset === 'reading' ? 'text-rose-500' : 'text-slate-400 group-hover:text-rose-400'">📖 독서</span>
+                        </div>
+                        <div class="relative w-48 flex items-center">
+                            <input type="range" v-model.number="noiseThreshold" @input="onThresholdChange" min="10" max="120"
+                                   class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all border border-slate-200">
+                        </div>
+                        <div @click.stop.prevent="setSensitivity('discussion')"
+                             class="flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all group select-none px-3 py-2 rounded-xl"
+                             :class="currentNoisePreset === 'discussion' ? 'bg-blue-50 border border-blue-200 shadow-inner' : ''">
+                            <span class="text-lg font-black transition-colors"
+                                  :class="currentNoisePreset === 'discussion' ? 'text-blue-500' : 'text-slate-400 group-hover:text-blue-400'">🗣️ 토론</span>
+                        </div>
+                        <div class="w-px h-8 bg-slate-200 mx-1"></div>
+                        <span class="font-mono font-black text-teal-600 text-3xl w-14 text-center">{{ noiseThreshold }}</span>
+                        <div class="ml-2 flex gap-2">
+                            <button v-if="!isMeasuring" @click="startNoiseMeasurement"
+                                    class="w-12 h-12 bg-teal-500 text-white rounded-xl shadow-md hover:bg-teal-600 transition-all flex items-center justify-center active:scale-95" title="측정 시작">
+                                <i class="fa-solid fa-play text-xl pl-1"></i>
+                            </button>
+                            <button v-else @click="pauseNoiseMeasurement"
+                                    class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95" title="일시 정지">
+                                <i class="fa-solid fa-pause text-xl"></i>
+                            </button>
+                            <button @click="stopAndReset"
+                                    class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300" title="중지 및 초기화">
+                                <i class="fa-solid fa-stop text-xl"></i>
+                            </button>
                         </div>
                     </div>
-
-                    <div class="flex items-baseline font-mono font-black text-slate-700 transition-colors duration-500 leading-none"
-                         :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
-                         style="font-size: 30cqmin; gap: 20px;"> 
-                        <span>{{ displayedDb }}</span>
-                        <span class="ml-4 tracking-widest" style="font-family: 'Dongle', sans-serif !important; font-weight: 700; font-size: 10cqmin; color: #475569; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">와글</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden pt-4">
+                    <div class="flex flex-row items-center justify-center w-full" style="gap:8cqmin;">
+                        <div class="transition-transform duration-1000 ease-out origin-center"
+                             :style="{ transform: `scale(${1 + noiseGauge/300})` }">
+                            <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
+                                 :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= 100 }"
+                                 style="font-size:40cqmin;">
+                                <span v-if="noiseGauge < 30">😊</span>
+                                <span v-else-if="noiseGauge < 60">😐</span>
+                                <span v-else-if="noiseGauge < 90">😠</span>
+                                <span v-else>👿</span>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline font-mono font-black transition-colors duration-500 leading-none"
+                             :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
+                             style="font-size:30cqmin;gap:20px;">
+                            <span>{{ displayedDb }}</span>
+                            <span class="ml-4 tracking-widest" style="font-family:'Dongle',sans-serif!important;font-weight:700;font-size:10cqmin;color:#475569;text-shadow:0 2px 4px rgba(0,0,0,0.1);">와글</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 shrink-0 pb-6">
+                    <div class="flex justify-between items-end mb-2 px-2">
+                        <span class="font-black text-slate-600 text-lg">⚠️ 소음 경보</span>
+                        <span class="font-mono font-bold text-xl" :class="noiseGauge > 80 ? 'text-red-500' : (noiseGauge > 50 ? 'text-orange-500' : 'text-teal-600')">{{ noiseGauge.toFixed(0) }}%</span>
+                    </div>
+                    <div class="w-full h-20 bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner border-4 border-slate-300 relative">
+                        <div class="h-full transition-all duration-500 ease-linear flex items-center justify-end px-4"
+                             :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-400'), { 'animate-pulse': noiseGauge > 90 }]"
+                             :style="{ width: noiseGauge + '%' }">
+                            <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
+                            <span v-if="noiseGauge > 10" class="text-white font-black text-2xl opacity-50 tracking-widest">///</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4 shrink-0 pb-6">
-                <div class="flex justify-between items-end mb-2 px-2">
-                    <span class="font-black text-slate-600 text-lg">⚠️ 소음 경보</span>
-                    <span class="font-mono font-bold text-xl" :class="noiseGauge > 80 ? 'text-red-500' : (noiseGauge > 50 ? 'text-orange-500' : 'text-teal-600')">
-                        {{ noiseGauge.toFixed(0) }}%
-                    </span>
+            <!-- 카메라 ON: 하단 소음 경보 오버레이 -->
+            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-6 py-4 bg-black/60 backdrop-blur-md" style="z-index:20;">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="font-black text-white text-lg">⚠️ 소음 경보</span>
+                    <div class="flex items-baseline gap-3">
+                        <span class="font-mono font-black leading-none transition-colors duration-500"
+                              :class="displayedDb > noiseThreshold ? 'text-red-400' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-300' : 'text-white')"
+                              style="font-size:3rem;">{{ displayedDb }}</span>
+                        <span class="font-black text-slate-200 text-2xl" style="font-family:'Dongle',sans-serif!important;">와글</span>
+                        <span class="font-mono font-bold text-xl text-white/70">{{ noiseGauge.toFixed(0) }}%</span>
+                    </div>
                 </div>
-                <div class="w-full h-20 bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner border-4 border-slate-300 relative">
-                    <div class="h-full transition-all duration-500 ease-linear flex items-center justify-end px-4"
-                         :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-400'), { 'animate-pulse': noiseGauge > 90 }]"
+                <div class="w-full h-16 bg-white/20 rounded-2xl overflow-hidden shadow-inner border-2 border-white/30 relative">
+                    <div class="h-full transition-all duration-500 ease-linear"
+                         :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-500'), { 'animate-pulse': noiseGauge > 90 }]"
                          :style="{ width: noiseGauge + '%' }">
-                         <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
-                         <span v-if="noiseGauge > 10" class="text-white font-black text-2xl opacity-50 tracking-widest">///</span>
+                        <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
+                        <span v-if="noiseGauge > 10" class="absolute right-4 top-1/2 -translate-y-1/2 text-white font-black text-2xl opacity-50 tracking-widest">///</span>
                     </div>
                 </div>
             </div>
-        </div>
+        </div><!-- end meter -->
 
         <div v-else-if="noiseMode === 'sound'" 
              class="flex-1 w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden"
@@ -5134,11 +5580,14 @@ missionInputName: '',
 missionInputType: 'count',
 missionInputStartDate: '',
 missionInputTargetDate: '',
+missionInputSkipWeekend: false,
+missionInputSkipHoliday: false,
 showMissionResetModal: false,
 resetMissionIdx: null,
 resetMissionTargetDate: '',
 gameSpeed: 1.0,
 paths: [],          // 모든 그림 획 데이터를 저장
+tabBoardContents: {},  // 탭별 판서 내용 저장 (tabId → {content, paths})
         currentPath: null,   // 현재 그리고 있는 획
         selectedPath: null,
 isInitialLoad: true,
@@ -5146,7 +5595,7 @@ showBombTimer: false,
 showNoiseMeter: false,
 isVideoVisible: false,
                 saveTimeout: null,
-                view: 'main', subView: 'basic', activeTool: 'plus', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
+                view: 'main', subView: 'basic', activeTool: 'check', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
 
 lotteryPools: {
             all: [],   // 전체 모드용 풀
@@ -5175,6 +5624,7 @@ winW: window.innerWidth,
 winH: window.innerHeight,
 bracketMode: 'random32',
 selectedBracketMode: 'random32',
+freeParticipants: [],
                 ballPos: { x: 0, y: 0, visible: false },  
                 activePolyline: '',
                 lotteryMode: 'all',
@@ -5265,13 +5715,19 @@ bombMsgY: 500,
 bombMsgW: 700,
 bombMsgH: 80,
 isEditingMessage: false,
-alarmTime: "", 
+alarmTime: "",
 alarmHour: "08",   // 기본 시 (24시간제)
-alarmMinute: "00", // 기본 분      
+alarmMinute: "00", // 기본 분
+alarmDays: [1,2,3,4,5], // 기본: 평일(월~금)
+alarmLabel: '',
 alarmList: [],
-        isAlarmOn: false,    
+        isAlarmOn: false,
         showAlarmModal: false,
 editingAlarmIndex: null,
+alarmWorker: null,
+alarmWorkerLastTriggered: {},
+ringingAlarmTime: '',
+ringingAlarmLabel: '',
 resumeState: {
             audio: null,       // 듣던 음악
             timerRunning: false, // 타이머 돌고 있었는지
@@ -5324,6 +5780,44 @@ making: new Audio('./making.mp3'),
     bgm_animal: new Audio('./Animal race.mp3')
 },
 
+        // ── 메인 대시보드 ──
+        showMainDashboard: false,
+        dashboardShowSettings: false,
+        dashboardTime: '',
+        dashboardInterval: null,
+        dashboardWeather: null,
+        dashboardMeal: [],
+        dashboardSettingsTab: 'info', // 'info' | 'timetable' | 'schedule' | 'links' | 'plans'
+        dashboardCalendarMonth: { year: new Date().getFullYear(), month: new Date().getMonth() },
+        dashboardBulkPasteText: '',
+        dashboardEditingDate: null,
+        dashboardEditingPlans: [],
+        dashboardSettings: {
+            neisApiKey: '',
+            schoolName: '',
+            lat: '',
+            lon: '',
+            grade: '4',
+            classNum: '1',
+            timetable: { 월: ['','','','','',''], 화: ['','','','','',''], 수: ['','','','','',''], 목: ['','','','','',''], 금: ['','','','','',''] },
+            timeSchedule: [
+                { label: '1교시', startTime: '09:00' },
+                { label: '2교시', startTime: '09:50' },
+                { label: '3교시', startTime: '10:50' },
+                { label: '4교시', startTime: '11:40' },
+                { label: '5교시', startTime: '13:30' },
+                { label: '6교시', startTime: '14:20' },
+            ],
+            quickLinks: [
+                { name: '에듀넷', url: 'https://www.edunet.net' },
+                { name: 'e학습터', url: 'https://cls.edunet.net' },
+                { name: '나이스', url: 'https://www.neis.go.kr' },
+                { name: '학교알리미', url: 'https://www.schoolinfo.go.kr' },
+            ],
+            monthlyPlans: [],
+            supplies: {},
+        },
+
         // 캡슐 뽑기 (아직 미구현 - 나중에 사용할 변수들 미리 선언)
         capsuleCount: 0,
         capsules: [],
@@ -5366,9 +5860,19 @@ fullBracketTree: [],
         noiseW: 900,
         noiseH: 700,
         noiseZ: 5004,
-        noiseAnalyzer: null,   
-        noiseStream: null,     
+        noiseAnalyzer: null,
+        noiseStream: null,
         noiseInterval: null,
+        cameraStream: null,
+        cameraDevices: [],
+        selectedCameraId: '',
+        isCameraOn: false,
+        isNoiseRecording: false,
+        noiseMediaRecorder: null,
+        noiseRecordedChunks: [],
+        noiseRecordingTime: '00:00',
+        noiseRecordingInterval: null,
+        noiseRecordingSeconds: 0,
 noiseMode: 'sound',
         isWarningCooldown: false,
         isPenaltyShock: false,
@@ -5421,7 +5925,7 @@ userSelectedMode: null,
                 animalRunners: Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 })), 
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
-                showBlackboard: false, blackboardContent: '', boardX: 350, boardY: 50, boardW: 900, boardH: 700, showBoardList: false, savedBoards: [], 
+                showBlackboard: false, blackboardContent: '', boardX: 350, boardY: 50, boardW: 900, boardH: 700, showBoardList: false, savedBoards: [], showCheckedStudentPanel: false, 
 currentBoardId: null,
 showSymbolPalette: false, history: [], historyIndex: -1,
                 historyTimeout: null, isRestoringHistory: false, isComposing: false, isSyncing: false,
@@ -5510,6 +6014,166 @@ soundSettings: {
             }
         },
 computed: {
+// ── 공휴일 세트 ──
+allHolidaySet() {
+    // 한국 법정 공휴일 (고정 + 음력/대체, 2025~2026)
+    const fixed = new Set([
+        // 2025 고정
+        '2025-01-01','2025-03-01','2025-05-05','2025-06-06',
+        '2025-08-15','2025-10-03','2025-10-09','2025-12-25',
+        // 2025 음력/대체
+        '2025-01-28','2025-01-29','2025-01-30', // 설날 연휴
+        '2025-05-06',                            // 부처님오신날 대체
+        '2025-10-05','2025-10-06','2025-10-07','2025-10-08', // 추석+대체
+        // 2026 고정
+        '2026-01-01','2026-03-01','2026-05-05','2026-06-06',
+        '2026-08-15','2026-10-03','2026-10-09','2026-12-25',
+        // 2026 음력/대체
+        '2026-02-16','2026-02-17','2026-02-18', // 설날 연휴
+        '2026-05-24',                            // 부처님오신날
+        '2026-09-24','2026-09-25','2026-09-26', // 추석 연휴
+    ]);
+    // 교육활동 설정에서 isHoliday 체크된 항목 추가 (해당 연도)
+    const curY = new Date().getFullYear();
+    (this.dashboardSettings.monthlyPlans || [])
+        .filter(p => p.isHoliday && p.month && p.date)
+        .forEach(p => {
+            const mm = String(p.month).padStart(2,'0');
+            const dd = String(p.date).padStart(2,'0');
+            fixed.add(`${curY}-${mm}-${dd}`);
+            fixed.add(`${curY+1}-${mm}-${dd}`);
+        });
+    return fixed;
+},
+// ── 대시보드 computed ──
+dashboardTodaySchedule() {
+    const now = new Date();
+    const dayIdx = now.getDay(); // 0=일,1=월,...,6=토
+    if (dayIdx === 0 || dayIdx === 6) return [];
+    const dayName = ['월','화','수','목','금'][dayIdx - 1];
+    const timetable = (this.dashboardSettings.timetable || {})[dayName] || [];
+    const schedule = this.dashboardSettings.timeSchedule || [];
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    let currentIdx = -1;
+    for (let i = 0; i < schedule.length; i++) {
+        if (timeStr >= schedule[i].startTime) currentIdx = i;
+        else break;
+    }
+
+    const all = schedule.map((item, idx) => {
+        const subject = timetable[idx] || '';
+        return {
+            label: item.label,
+            startTime: item.startTime,
+            subject,
+            isCurrent: idx === currentIdx,
+            isNext: idx === currentIdx + 1,
+            isMoving: subject.includes('*'),
+        };
+    });
+
+    // 뒤에서부터 과목 없는 교시 제거
+    let lastNonEmpty = -1;
+    for (let i = all.length - 1; i >= 0; i--) {
+        if (all[i].subject) { lastNonEmpty = i; break; }
+    }
+    return lastNonEmpty >= 0 ? all.slice(0, lastNonEmpty + 1) : all;
+},
+dashboardBlackboardPreview() {
+    const html = this.blackboardContent || '';
+    if (!html.trim()) return '';
+    const normalized = html
+        .replace(/<div[^>]*>/gi, '')
+        .replace(/<\/div>/gi, '<br>')
+        .replace(/<p[^>]*>/gi, '')
+        .replace(/<\/p>/gi, '<br>');
+    const parts = normalized.split(/<br\s*\/?>/i);
+    // 앞 1줄 건너뛰고 2번째부터 출력
+    return parts.slice(1).join('<br>');
+},
+dashboardCurrentClass() {
+    const items = this.dashboardTodaySchedule;
+    return items.find(i => i.isCurrent) || null;
+},
+dashboardNextClass() {
+    const items = this.dashboardTodaySchedule;
+    return items.find(i => i.isNext) || null;
+},
+dashboardWeeklySchedule() {
+    const now = new Date();
+    const todayDow = now.getDay(); // 0=일,1=월,...
+    const days = ['월','화','수','목','금'];
+    const todayName = days[todayDow - 1] || null;
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const schedule = this.dashboardSettings.timeSchedule || [];
+    let currentIdx = -1;
+    for (let i = 0; i < schedule.length; i++) {
+        if (timeStr >= schedule[i].startTime) currentIdx = i;
+        else break;
+    }
+    // 최대 교시 수
+    const tt = this.dashboardSettings.timetable || {};
+    const maxPeriods = Math.max(...days.map(d => (tt[d] || []).length), schedule.length, 1);
+    return {
+        days, todayName, schedule, currentIdx, maxPeriods,
+        getSubject: (day, pIdx) => (tt[day] || [])[pIdx] || '',
+    };
+},
+dashboardCurrentSupplyKey() {
+    const sc = this.dashboardWeeklySchedule;
+    if (!sc.todayName || sc.currentIdx < 0) return null;
+    return `${sc.todayName}_${sc.currentIdx}`;
+},
+dashboardCalendarCells() {
+    const { year, month } = this.dashboardCalendarMonth;
+    const now = new Date();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const today = isCurrentMonth ? now.getDate() : -1;
+    const plans = this.dashboardSettings.monthlyPlans || [];
+    const eventDates = new Set(plans.filter(p => p.month === month + 1).map(p => p.date));
+
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push({ key: 'e'+i, isEmpty: true });
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dow = new Date(year, month, d).getDay();
+        cells.push({
+            key: d, isEmpty: false, date: d,
+            isToday: d === today,
+            hasEvent: eventDates.has(d),
+            isWeekend: dow === 0 || dow === 6,
+        });
+    }
+    return cells;
+},
+dashboardUpcomingPlans() {
+    const { year, month } = this.dashboardCalendarMonth;
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const todayDate = now.getDate();
+    return (this.dashboardSettings.monthlyPlans || [])
+        .filter(p => {
+            if (p.month !== month + 1 || !p.content) return false;
+            // 현재 달이면 오늘 이전 일정 숨김
+            if (isCurrentMonth && p.date < todayDate) return false;
+            return true;
+        })
+        .sort((a, b) => a.date - b.date);
+},
+dashboardCheckedStudents() {
+    const result = [];
+    for (const tab of (this.activityTabs || [])) {
+        const tabD = this.tabData[tab.id] || {};
+        const names = Object.entries(tabD)
+            .filter(([, v]) => v && v.checked)
+            .map(([name]) => name);
+        if (names.length > 0) result.push({ tabId: tab.id, tabName: tab.name, names });
+    }
+    return result;
+},
+// ── /대시보드 computed ──
 eraserCursorStyle() {
                 const size = this.eraserSize;
                 const half = size / 2;
@@ -5883,6 +6547,19 @@ allRequests() {
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            dashboardSettings: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            showCheckedStudentPanel(val) { if (!this.isSyncing) this.saveToLocal(); },
+            dashboardCurrentSupplyKey: {
+                immediate: true,
+                handler(newKey) {
+                    this.$nextTick(() => {
+                        const el = this.$refs.supplyInput;
+                        if (el && document.activeElement !== el) {
+                            el.innerText = (this.dashboardSettings.supplies || {})[newKey || 'free'] || '';
+                        }
+                    });
+                }
+            },
             'soundSettings.game'(val) {
                 if (!val) {
                     this.stopSound('bgm_race');
@@ -5920,24 +6597,33 @@ allRequests() {
                 }
             },
             showBlackboard(val) {
-                if (val) this.$nextTick(() => {
-                    const editor = document.getElementById('board-editor');
-                    if (editor && !this.isCornellMode) {
-                        editor.innerHTML = this.blackboardContent;
-                    } else if (this.isCornellMode) {
-                        this.populateCornell(); // 창 열 때 글씨 뿌려주기
+                if (val) {
+                    // 판서 창이 열릴 때: 과제보충 패널 상태 복원
+                    if (this._savedSupplementPanel) {
+                        this.showCheckedStudentPanel = true;
                     }
-                    
-                    // 캔버스 그림 복구
-                    const canvas = this.$refs.drawCanvas;
-                    if (canvas && this.canvasStateUrl) {
-                        const ctx = canvas.getContext('2d');
-                        const img = new Image();
-                        img.onload = () => { ctx.drawImage(img, 0, 0); };
-                        img.src = this.canvasStateUrl;
-                    }
-                });
-            }
+                    this.$nextTick(() => {
+                        const editor = document.getElementById('board-editor');
+                        if (editor && !this.isCornellMode) {
+                            editor.innerHTML = this.blackboardContent;
+                        } else if (this.isCornellMode) {
+                            this.populateCornell(); // 창 열 때 글씨 뿌려주기
+                        }
+
+                        // 캔버스 그림 복구
+                        const canvas = this.$refs.drawCanvas;
+                        if (canvas && this.canvasStateUrl) {
+                            const ctx = canvas.getContext('2d');
+                            const img = new Image();
+                            img.onload = () => { ctx.drawImage(img, 0, 0); };
+                            img.src = this.canvasStateUrl;
+                        }
+                    });
+                } else {
+                    // 판서 창이 닫힐 때: 과제보충 패널 상태 저장
+                    this._savedSupplementPanel = this.showCheckedStudentPanel;
+                }
+            },
         },
 
 
@@ -6135,6 +6821,8 @@ formatTimeBank(secs) {
                 this.missionInputType = 'count';
                 this.missionInputStartDate = this.todayStr();
                 this.missionInputTargetDate = this.todayStr();
+                this.missionInputSkipWeekend = false;
+                this.missionInputSkipHoliday = false;
                 this.showMissionModal = true;
             },
             openEditMissionModal(idx) {
@@ -6144,6 +6832,8 @@ formatTimeBank(secs) {
                 this.missionInputType = m.type;
                 this.missionInputStartDate = m.startDate || this.todayStr();
                 this.missionInputTargetDate = m.targetDate || this.todayStr();
+                this.missionInputSkipWeekend = !!m.skipWeekend;
+                this.missionInputSkipHoliday = !!m.skipHoliday;
                 this.showMissionModal = true;
             },
             submitMission() {
@@ -6156,6 +6846,8 @@ formatTimeBank(secs) {
                     type: this.missionInputType,
                     startDate: this.missionInputType === 'count' ? this.missionInputStartDate : this.todayStr(),
                     targetDate: this.missionInputType === 'dday' ? this.missionInputTargetDate : null,
+                    skipWeekend: this.missionInputSkipWeekend,
+                    skipHoliday: this.missionInputSkipHoliday,
                 };
                 if (this.missionEditIdx !== null) {
                     Object.assign(this.missions[this.missionEditIdx], missionData);
@@ -6165,18 +6857,45 @@ formatTimeBank(secs) {
                 this.showMissionModal = false;
                 this.saveToLocal();
             },
+            countMissionDays(from, to, skipWeekend, skipHoliday) {
+                // from, to: Date objects (midnight). Returns count of non-skipped days inclusive.
+                if (from > to) return 0;
+                const holidays = skipHoliday ? this.allHolidaySet : new Set();
+                let count = 0;
+                const d = new Date(from);
+                while (d <= to) {
+                    const dow = d.getDay();
+                    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    const skip = (skipWeekend && (dow === 0 || dow === 6)) || (skipHoliday && holidays.has(key));
+                    if (!skip) count++;
+                    d.setDate(d.getDate() + 1);
+                }
+                return count;
+            },
             getMissionDayText(m) {
                 const today = new Date(); today.setHours(0,0,0,0);
+                const sw = !!m.skipWeekend, sh = !!m.skipHoliday;
                 if (m.type === 'count') {
                     const start = new Date(m.startDate); start.setHours(0,0,0,0);
-                    const days = Math.floor((today - start) / 86400000) + 1;
-                    return `${days}일째`;
+                    if (!sw && !sh) {
+                        return `${Math.floor((today - start) / 86400000) + 1}일째`;
+                    }
+                    return `${this.countMissionDays(start, today, sw, sh)}일째`;
                 } else {
                     const target = new Date(m.targetDate); target.setHours(0,0,0,0);
-                    const diff = Math.floor((target - today) / 86400000);
-                    if (diff > 0) return `D-${diff}`;
-                    if (diff === 0) return `D-DAY`;
-                    return `D+${Math.abs(diff)}`;
+                    if (!sw && !sh) {
+                        const diff = Math.floor((target - today) / 86400000);
+                        if (diff > 0) return `D-${diff}`;
+                        if (diff === 0) return `D-DAY`;
+                        return `D+${Math.abs(diff)}`;
+                    }
+                    if (target.getTime() === today.getTime()) return `D-DAY`;
+                    if (target < today) {
+                        const prev = new Date(today); prev.setDate(prev.getDate() - 1);
+                        return `D+${this.countMissionDays(target, prev, sw, sh)}`;
+                    }
+                    const next = new Date(today); next.setDate(next.getDate() + 1);
+                    return `D-${this.countMissionDays(next, target, sw, sh)}`;
                 }
             },
             getMissionDayClass(m) {
@@ -6218,6 +6937,20 @@ formatTimeBank(secs) {
                 }, 1000); 
             },
 
+// 붙여넣기: 원본 서식 제거, 붙여넣는 위치의 서식 그대로 적용
+            handlePaste(e) {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                if (!text) return;
+                document.execCommand('insertText', false, text);
+                const editor = document.getElementById('board-editor');
+                if (editor) {
+                    this.blackboardContent = editor.innerHTML;
+                    this.saveHistory();
+                    if (this.historyTimeout) clearTimeout(this.historyTimeout);
+                    this.historyTimeout = setTimeout(() => this.saveToLocal(), 300);
+                }
+            },
 // 1. 전체 선택(Ctrl+A) 등 키보드 조작 시에도 선택 영역을 캡처합니다!
             handleBoardKeyup(e) {
                 this.saveSelection(); 
@@ -7399,37 +8132,140 @@ startGroupShuffle() {
                 }
             },
 
+            async loadCameraDevices() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    this.cameraDevices = devices.filter(d => d.kind === 'videoinput');
+                } catch (e) {
+                    console.warn('카메라 장치 목록 불러오기 실패', e);
+                }
+            },
+            async startCamera() {
+                this.stopCamera();
+                try {
+                    const constraints = { video: this.selectedCameraId ? { deviceId: { exact: this.selectedCameraId } } : true };
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.cameraStream = stream;
+                    this.isCameraOn = true;
+                    // 권한 허용 후 장치 목록 갱신 (label 채우기)
+                    await this.loadCameraDevices();
+                    this.$nextTick(() => {
+                        const vid = this.$refs.cameraVideo;
+                        if (vid) { vid.srcObject = stream; }
+                    });
+                } catch (e) {
+                    alert('카메라 권한이 필요합니다.');
+                    this.isCameraOn = false;
+                }
+            },
+            stopCamera() {
+                if (this.isNoiseRecording) this.stopNoiseRecording();
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(t => t.stop());
+                    this.cameraStream = null;
+                }
+                const vid = this.$refs.cameraVideo;
+                if (vid) vid.srcObject = null;
+                this.isCameraOn = false;
+            },
+            async startNoiseRecording() {
+                if (!this.cameraStream) return;
+                this.noiseRecordedChunks = [];
+                try {
+                    // 카메라 영상 트랙 가져오기
+                    const tracks = [...this.cameraStream.getVideoTracks()];
+                    // 오디오: 기존 측정 스트림 사용, 없으면 새로 요청
+                    let audioStream = this.noiseStream;
+                    if (!audioStream) {
+                        try {
+                            audioStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+                            this._recordingAudioStream = audioStream; // 별도 정리용
+                        } catch(e) { /* 오디오 없이 진행 */ }
+                    }
+                    if (audioStream) tracks.push(...audioStream.getAudioTracks());
+                    const combinedStream = new MediaStream(tracks);
+                    const mimeType = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+                    this.noiseMediaRecorder = new MediaRecorder(combinedStream, mimeType ? { mimeType } : {});
+                    this.noiseMediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) this.noiseRecordedChunks.push(e.data); };
+                    this.noiseMediaRecorder.onstop = () => this._saveNoiseRecording();
+                    this.noiseMediaRecorder.start(1000);
+                    this.isNoiseRecording = true;
+                    this.noiseRecordingSeconds = 0;
+                    this.noiseRecordingTime = '00:00';
+                    this.noiseRecordingInterval = setInterval(() => {
+                        this.noiseRecordingSeconds++;
+                        const m = String(Math.floor(this.noiseRecordingSeconds / 60)).padStart(2, '0');
+                        const s = String(this.noiseRecordingSeconds % 60).padStart(2, '0');
+                        this.noiseRecordingTime = `${m}:${s}`;
+                    }, 1000);
+                } catch(e) {
+                    console.error('녹화 시작 오류:', e);
+                    alert('녹화를 시작할 수 없습니다. 브라우저가 지원하지 않을 수 있습니다.');
+                }
+            },
+            stopNoiseRecording() {
+                if (this.noiseMediaRecorder && this.noiseMediaRecorder.state !== 'inactive') {
+                    this.noiseMediaRecorder.stop();
+                }
+                this.isNoiseRecording = false;
+                if (this.noiseRecordingInterval) { clearInterval(this.noiseRecordingInterval); this.noiseRecordingInterval = null; }
+                if (this._recordingAudioStream) { this._recordingAudioStream.getTracks().forEach(t => t.stop()); this._recordingAudioStream = null; }
+            },
+            _saveNoiseRecording() {
+                if (this.noiseRecordedChunks.length === 0) return;
+                const mimeType = this.noiseMediaRecorder && this.noiseMediaRecorder.mimeType || 'video/webm';
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                const blob = new Blob(this.noiseRecordedChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const now = new Date();
+                const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `소음측정_${ts}.${ext}`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                this.noiseRecordedChunks = [];
+            },
+            async onCameraDeviceChange() {
+                if (this.isCameraOn) await this.startCamera();
+            },
+
             async startNoiseMeasurement() {
                 if (this.isMeasuring) return;
-                
+
                 // 일시 정지 후 다시 재생 누를 때
                 if (this.audioContext && this.microphone && this.noiseAnalyzer) {
                     this.isMeasuring = true;
-                    this.startNoiseTimer(); 
+                    this.startNoiseTimer();
                     if (this.audioContext.state === 'suspended') await this.audioContext.resume();
-                    this.updateVolume(); 
-                    return; 
+                    this.updateVolume();
+                    return;
                 }
 
                 // ★ 이 곳에 있던 this.noiseRecordSeconds = 0; 강제 리셋 코드 삭제!
-                
+
                 try {
+                    // getUserMedia 먼저 → 그 다음 AudioContext 생성 (브라우저 정책 대응)
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+                    this.noiseStream = stream;
+
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     this.audioContext = new AudioContext();
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
-                    this.noiseStream = stream;
+                    if (this.audioContext.state === 'suspended') await this.audioContext.resume();
+
                     this.microphone = this.audioContext.createMediaStreamSource(stream);
                     this.noiseAnalyzer = this.audioContext.createAnalyser();
-                    this.noiseAnalyzer.fftSize = 512;
+                    this.noiseAnalyzer.fftSize = 2048;
                     this.noiseAnalyzer.smoothingTimeConstant = 0.8;
                     this.microphone.connect(this.noiseAnalyzer);
-                    this.dataArray = new Uint8Array(this.noiseAnalyzer.frequencyBinCount);
-                    
+                    this.dataArray = new Float32Array(this.noiseAnalyzer.fftSize);
+
                     this.isMeasuring = true;
-                    this.startNoiseTimer(); 
-                    this.updateVolume(); 
+                    this.startNoiseTimer();
+                    this.updateVolume();
                 } catch (err) {
-                    alert("마이크 권한이 필요합니다.");
+                    console.error('소음측정 오류:', err);
+                    alert("마이크 권한이 필요합니다. 브라우저 주소창 옆 자물쇠 아이콘을 클릭해 마이크를 허용해주세요.");
                     this.isMeasuring = false;
                 }
             },
@@ -7480,30 +8316,24 @@ startGroupShuffle() {
             updateVolume() {
                 if (!this.isMeasuring || !this.noiseAnalyzer) return;
 
-                this.noiseAnalyzer.getByteTimeDomainData(this.dataArray);
+                this.noiseAnalyzer.getFloatTimeDomainData(this.dataArray);
                 let sumSquares = 0;
                 for (let i = 0; i < this.dataArray.length; i++) {
-                    let amplitude = (this.dataArray[i] / 128.0) - 1.0;
-                    sumSquares += amplitude * amplitude;
+                    sumSquares += this.dataArray[i] * this.dataArray[i];
                 }
-                let rms = Math.sqrt(sumSquares / this.dataArray.length);
-                let rawDb = 0; 
-                
-                if (rms > 0.02) {
-                    // ★ [수정] 1000 -> 1222로 1.22배 증폭시켜 기존 90 크기의 소리가 110까지 닿게 합니다.
-                    rawDb = (rms - 0.02) * 1400; 
+                const rms = Math.sqrt(sumSquares / this.dataArray.length);
+                // 확장된 dB 스케일: 조용할 때 ~10, 떠들 때 ~110
+                const rawDb = rms > 0.000001 ? Math.max(0, 61 * Math.log10(rms) + 192) : 0;
+
+                // 급격한 변화 완화 (올라갈 때 빠르게, 내려갈 때 천천히)
+                if (rawDb > this.currentVolume) {
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.3;
+                } else {
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.1;
                 }
 
-                if (rawDb > this.currentVolume) {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.07; 
-                } else {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.05; 
-                }
-                
-                if (this.currentVolume < 1) { this.currentVolume = 0; }
-                let calcVol = Math.floor(this.currentVolume);
-                // ★ [수정] 화면 숫자가 100 이상으로 올라갈 수 있도록 최대 제한을 150으로 풀어줍니다.
-                calcVol = Math.max(0, Math.min(150, calcVol));
+                let calcVol = Math.round(this.currentVolume);
+                calcVol = Math.max(0, Math.min(120, calcVol));
 
                 const now = Date.now();
                 if (now - (this.lastDbUpdate || 0) > 500) { 
@@ -7861,6 +8691,15 @@ async makeBracketLogic() {
         participants = this.allStudents.filter(s => s.gender === gender);
         targetSize = 16;
     } 
+    else if (this.bracketMode === 'free') {
+        if (this.freeParticipants.length < 2) {
+            alert("자유 모드: 최소 2명 이상 선택해 주세요.");
+            return [];
+        }
+        participants = this.freeParticipants.map(name => ({ name }));
+        const n = participants.length;
+        targetSize = n <= 2 ? 2 : n <= 4 ? 4 : n <= 8 ? 8 : n <= 16 ? 16 : 32;
+    }
     else {
         participants = [...this.allStudents];
         targetSize = 32;
@@ -8749,9 +9588,11 @@ updateClock() {
                 // 알람 리스트 체크 로직
                 if (this.alarmList && this.alarmList.length > 0) {
                     const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    const todayDow = now.getDay();
                     this.alarmList.forEach(alarm => {
                         if (alarm.on && alarm.time === currentHM && s === '00') {
-                            this.triggerAlarm(alarm);
+                            const days = alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6];
+                            if (days.includes(todayDow)) this.triggerAlarm(alarm);
                         }
                     });
                 }
@@ -8808,29 +9649,69 @@ addAlarm() {
     this.padTime('alarmMinute');
 
     const timeString = `${this.alarmHour}:${this.alarmMinute}`;
-    
+    const days = [...this.alarmDays].sort((a,b)=>a-b);
+    const label = this.alarmLabel.trim();
+
     if (this.editingAlarmIndex !== null) {
         // 수정 모드
-        const isDuplicate = this.alarmList.some((a, idx) => a.time === timeString && idx !== this.editingAlarmIndex);
-        if (isDuplicate) return alert("이미 등록된 시간입니다.");
-
         this.alarmList[this.editingAlarmIndex].time = timeString;
+        this.alarmList[this.editingAlarmIndex].days = days;
+        this.alarmList[this.editingAlarmIndex].label = label;
         this.alarmList[this.editingAlarmIndex].on = true;
         this.editingAlarmIndex = null;
         this.showToast("알람이 수정되었습니다.");
     } else {
         // 추가 모드
-        const exists = this.alarmList.some(a => a.time === timeString);
-        if (exists) return alert("이미 등록된 시간입니다.");
-        
-        this.alarmList.push({ time: timeString, on: true });
+        const exists = this.alarmList.some(a => a.time === timeString && JSON.stringify((a.days||[0,1,2,3,4,5,6]).sort()) === JSON.stringify(days.sort()) && (a.label||'') === label);
+        if (exists) return alert("이미 등록된 알람입니다.");
+
+        this.alarmList.push({ time: timeString, on: true, days, label });
         this.showToast("알람이 추가되었습니다.");
     }
 
-    // ★ [핵심] 시간순 오름차순 정렬
     this.alarmList.sort((a, b) => a.time.localeCompare(b.time));
-    
-    this.saveToLocal(); 
+    this.saveToLocal();
+},
+toggleAlarmDay(dayIdx) {
+    const i = this.alarmDays.indexOf(dayIdx);
+    if (i >= 0) {
+        if (this.alarmDays.length === 1) return; // 최소 1개 유지
+        this.alarmDays.splice(i, 1);
+    } else {
+        this.alarmDays.push(dayIdx);
+    }
+},
+addTimetableAlarms() {
+    const schedule = this.dashboardWeeklySchedule && this.dashboardWeeklySchedule.schedule;
+    if (!schedule || schedule.length === 0) {
+        this.showToast('⚠️ 설정에서 시간표를 먼저 입력해주세요.');
+        return;
+    }
+    let added = 0;
+    schedule.forEach(sch => {
+        // 수업 시작 알람
+        if (sch.startTime) {
+            const startKey = sch.startTime + '_start';
+            if (!this.alarmList.some(a => a.time === sch.startTime && a.label === sch.label + ' 시작')) {
+                this.alarmList.push({ time: sch.startTime, on: true, days: [1,2,3,4,5], label: sch.label + ' 시작' });
+                added++;
+            }
+        }
+        // 수업 종료 알람
+        if (sch.endTime) {
+            if (!this.alarmList.some(a => a.time === sch.endTime && a.label === sch.label + ' 종료')) {
+                this.alarmList.push({ time: sch.endTime, on: true, days: [1,2,3,4,5], label: sch.label + ' 종료' });
+                added++;
+            }
+        }
+    });
+    if (added > 0) {
+        this.alarmList.sort((a, b) => a.time.localeCompare(b.time));
+        this.saveToLocal();
+        this.showToast(`🔔 ${added}개 수업 알람이 추가되었습니다.`);
+    } else {
+        this.showToast('이미 모두 등록된 알람입니다.');
+    }
 },
 padTime(key) {
     let val = parseInt(this[key]);
@@ -8841,17 +9722,21 @@ padTime(key) {
 },
 
 startEditAlarm(idx) {
-        this.editingAlarmIndex = idx;
-        const [h, m] = this.alarmList[idx].time.split(':');
-        this.alarmHour = h;
-        this.alarmMinute = m;
-    },
+    this.editingAlarmIndex = idx;
+    const [h, m] = this.alarmList[idx].time.split(':');
+    this.alarmHour = h;
+    this.alarmMinute = m;
+    this.alarmDays = [...(this.alarmList[idx].days !== undefined ? this.alarmList[idx].days : [1,2,3,4,5])];
+    this.alarmLabel = this.alarmList[idx].label || '';
+},
 
 cancelEdit() {
-        this.editingAlarmIndex = null;
-        this.alarmHour = "08";
-        this.alarmMinute = "00";
-    },
+    this.editingAlarmIndex = null;
+    this.alarmHour = "08";
+    this.alarmMinute = "00";
+    this.alarmDays = [1,2,3,4,5];
+    this.alarmLabel = '';
+},
 removeAlarm(index) {
         // 만약 수정 중이던 알람을 삭제하면 수정 모드도 취소
         if (this.editingAlarmIndex === index) {
@@ -8875,13 +9760,15 @@ triggerAlarm(alarm) {
     // 1. 하던 활동 일시 정지 & 상태 저장
     this.pauseActivities();
 
-    // 2. 화면 강제 표시
-    this.isClockMaximized = true; 
+    // 2. 화면 강제 표시 + 알람 정보 저장
+    this.isClockMaximized = true;
     this.isAlarmRinging = true;
+    this.ringingAlarmTime = alarm.time || '';
+    this.ringingAlarmLabel = alarm.label || '';
 
     // 3. 알람 소리 재생
-    this.playSound('alarm', false, 1.0); 
-    
+    this.playSound('alarm', false, 1.0);
+
     // 알람 ON 상태 유지 (매일 반복)
     this.saveToLocal();
 },
@@ -9500,7 +10387,7 @@ bombMsgH: this.bombMsgH,
                         savedBoards: this.savedBoards, savedRoulettes: this.savedRoulettes, 
                         lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode,
                         savedGroupings: this.savedGroupings, rouletteInput: this.rouletteInput,
-                        blackboardContent: this.blackboardContent, paths: this.paths, groupingList: this.groupingList, 
+                        blackboardContent: this.blackboardContent, paths: this.paths, groupingList: this.groupingList,
                         animalRunners: currentAnimalRunners, animalRaceResults: this.animalRaceResults,
                         animalRaceFinished: this.animalRaceFinished, noiseLevels: this.noiseLevels,
                         noiseRecordSeconds: this.noiseRecordSeconds, // ★ 누락되었던 소음 측정기 누적 시간 저장 추가!!
@@ -9519,6 +10406,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         currentTabId: this.currentTabId,
                         nextTabId: this.nextTabId,
                         tabData: this.tabData,
+                        showCheckedStudentPanel: this.showCheckedStudentPanel,
+                        dashboardSettings: this.dashboardSettings,
                         uiState: {
                             timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
                             board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
@@ -9527,7 +10416,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             raceSetup: { w: this.setupW, h: this.setupH }
                         },
                         tournamentData: {
-                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket         
+                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket
                         }
                     };
 
@@ -9701,9 +10590,14 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.avoidPrevious !== undefined) this.avoidPrevious = parsed.avoidPrevious;
                             if (parsed.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = parsed.avoidPreviousSeat;
                             if (parsed.activityTabs) this.activityTabs = toArray(parsed.activityTabs);
-                            if (parsed.currentTabId !== undefined) this.currentTabId = parsed.currentTabId;
+                            // 새로고침(초기 로드) 시에는 항상 첫 번째 탭으로 초기화
+                            if (this.isInitialLoad) {
+                                this.currentTabId = this.activityTabs[0]?.id ?? 1;
+                            }
                             if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
                             if (parsed.tabData) this.tabData = parsed.tabData;
+                            if (parsed.showCheckedStudentPanel !== undefined) this.showCheckedStudentPanel = parsed.showCheckedStudentPanel;
+                            if (parsed.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, parsed.dashboardSettings);
 
                             // [4. 판서 실시간 동기화] (내가 지금 타이핑 중이 아닐 때만 덮어씀)
                             const editor = document.getElementById('board-editor');
@@ -9878,6 +10772,107 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                 return colors[score] || 'bg-white';
             },
 
+saveSupplyContent(e) {
+    const key = this.dashboardCurrentSupplyKey || 'free';
+    if (!this.dashboardSettings.supplies) this.dashboardSettings.supplies = {};
+    this.dashboardSettings.supplies[key] = e.target.innerText.trim();
+    this.saveToLocal();
+},
+syncBoardBadgesForTab(tabId) {
+    const editor = document.getElementById('board-editor');
+    if (!editor) return;
+    // 현재 체크된 학생 목록 (checkOrder 순)
+    const checkedNames = Object.entries(this.tabData[tabId] || {})
+        .filter(([, d]) => d && d.checked)
+        .sort((a, b) => (a[1].checkOrder || 0) - (b[1].checkOrder || 0))
+        .map(([name]) => name);
+    const existingBadges = [...editor.querySelectorAll(`.board-student-badge[data-tabid="${tabId}"]`)];
+    const existingLabel = editor.querySelector(`.board-tab-label[data-tabid="${tabId}"]`);
+    const makeBadge = (name) => {
+        const badge = document.createElement('span');
+        badge.contentEditable = 'false';
+        badge.className = 'board-student-badge';
+        badge.dataset.name = name;
+        badge.dataset.tabid = String(tabId);
+        badge.style.cssText = 'display:inline-flex;align-items:center;background:transparent;border:1.5px solid #facc15;color:#facc15;border-radius:8px;padding:2px 10px;margin:2px 3px;font-weight:700;cursor:pointer;user-select:none;';
+        badge.title = '클릭: 삭제 및 체크 해제';
+        badge.textContent = name;
+        return badge;
+    };
+    if (!existingLabel && existingBadges.length === 0) {
+        // 이 탭이 판서에 없는 경우: 체크 학생이 생기면 새로 추가
+        if (checkedNames.length === 0) return;
+        // 🌱 과제 보충 섹션이 있는지 확인
+        let supplementHeaderEl = null;
+        for (const el of editor.querySelectorAll('span')) {
+            if (el.textContent.includes('🌱')) { supplementHeaderEl = el; break; }
+        }
+        if (!supplementHeaderEl) return;
+        const tab = this.activityTabs.find(t => String(t.id) === String(tabId));
+        if (!tab) return;
+        // querySelectorAll로 중첩 구조에서도 마지막 섹션 요소를 찾음
+        let insertParent, insertBeforeNode;
+        const allSectionEls = editor.querySelectorAll('.board-tab-label, .board-student-badge');
+        if (allSectionEls.length > 0) {
+            const lastEl = allSectionEls[allSectionEls.length - 1];
+            insertParent = lastEl.parentNode;
+            let next = lastEl.nextSibling;
+            while (next && next.nodeName !== 'BR') next = next.nextSibling;
+            insertBeforeNode = next ? next.nextSibling : null;
+        } else {
+            // 기존 탭 섹션 없음 → 🌱 헤더 다음 <br> 뒤에 삽입
+            insertParent = supplementHeaderEl.parentNode;
+            let next = supplementHeaderEl.nextSibling;
+            while (next && next.nodeName !== 'BR') next = next.nextSibling;
+            insertBeforeNode = next ? next.nextSibling : null;
+        }
+        if (!insertParent) return;
+        const labelEl = document.createElement('span');
+        labelEl.className = 'board-tab-label';
+        labelEl.dataset.tabid = String(tabId);
+        labelEl.style.cssText = 'color:#ca8a04;font-weight:900;';
+        labelEl.textContent = tab.name + ':';
+        const space = document.createTextNode(' ');
+        const newBr = document.createElement('br');
+        insertParent.insertBefore(labelEl, insertBeforeNode);
+        insertParent.insertBefore(space, insertBeforeNode);
+        checkedNames.forEach(name => insertParent.insertBefore(makeBadge(name), insertBeforeNode));
+        insertParent.insertBefore(newBr, insertBeforeNode);
+    } else {
+        // 이 탭이 판서에 있는 경우: 기존 배지 제거 후 재삽입 / 0명이면 라벨도 제거
+        const parent = (existingLabel || existingBadges[0]).parentNode;
+        if (!parent) return;
+        // 삽입 기준 위치: 마지막 배지 다음 또는 라벨 다음
+        let anchor = null;
+        if (existingBadges.length > 0) {
+            anchor = existingBadges[existingBadges.length - 1].nextSibling;
+        } else if (existingLabel) {
+            anchor = existingLabel.nextSibling;
+            if (anchor && anchor.nodeType === 3) anchor = anchor.nextSibling; // 공백 텍스트 노드 건너뜀
+        }
+        existingBadges.forEach(b => b.remove());
+        if (checkedNames.length === 0 && existingLabel) {
+            // 체크 학생 0명 → 라벨과 뒤따르는 <br>도 제거
+            let next = existingLabel.nextSibling;
+            if (next && next.nodeType === 3) { const t = next; next = next.nextSibling; t.remove(); }
+            if (next && next.nodeName === 'BR') next.remove();
+            existingLabel.remove();
+        } else if (checkedNames.length > 0) {
+            checkedNames.forEach(name => parent.insertBefore(makeBadge(name), anchor));
+        }
+    }
+    this.blackboardContent = editor.innerHTML;
+    if (typeof this.autoSaveBoardToList === 'function') this.autoSaveBoardToList();
+    this.saveToLocal();
+},
+toggleSummaryCheck(name, tabId) {
+    if (this.tabData[tabId]?.[name]) {
+        this.tabData[tabId][name].checked = false;
+        this.playSound('warning', false, 0.4);
+        this.syncBoardBadgesForTab(tabId);
+        this.saveToLocal();
+    }
+},
 getCheckedTabsOrdered(name) {
     return this.activityTabs
         .map((tab, i) => ({ tab, i, d: (this.tabData[tab.id]||{})[name]||{} }))
@@ -9986,6 +10981,7 @@ openRankModal() {
                         return;
                     }
                     if (this.notificationMsg) { this.notificationMsg = ''; return; }
+                    if (this.showMainDashboard) { this.closeMainDashboard(); return; }
                     if (this.showAlarmModal) { this.showAlarmModal = false; return; }
                     if (this.showSettings) { this.showSettings = false; return; }
                     if (this.showBoardList) { this.showBoardList = false; return; }
@@ -10229,6 +11225,7 @@ openAnimalRaceModal() {
                     d.checkOrder = null;
                 }
                 this.saveToLocal();
+                this.$nextTick(() => this.syncBoardBadgesForTab(this.currentTabId));
             },
             resetCurrentTab() {
                 const tab = this.activityTabs.find(t => t.id === this.currentTabId);
@@ -10383,7 +11380,197 @@ if(this.allMode) {
         }
     }, 75); // ★ 0.075초마다 이름 바뀜 (총 1.5초)
 },
-         openSettings() { 
+        // ── 메인 대시보드 메서드 ──
+        openMainDashboard() {
+            this.showMainDashboard = true;
+            this.updateDashboardTime();
+            if (this.dashboardInterval) clearInterval(this.dashboardInterval);
+            this.dashboardInterval = setInterval(() => this.updateDashboardTime(), 1000);
+            this.fetchDashboardWeather();
+            this.fetchDashboardMeal();
+        },
+        closeMainDashboard() {
+            this.showMainDashboard = false;
+            if (this.dashboardInterval) { clearInterval(this.dashboardInterval); this.dashboardInterval = null; }
+        },
+        updateDashboardTime() {
+            const now = new Date();
+            const days = ['일','월','화','수','목','금','토'];
+            this.dashboardTime = `${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]}) ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        },
+        async fetchDashboardWeather() {
+            const lat = this.dashboardSettings.lat;
+            const lon = this.dashboardSettings.lon;
+            if (!lat || !lon) { this.dashboardWeather = null; return; }
+            try {
+                const [wRes, aRes] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weathercode,temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul`),
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5&timezone=Asia%2FSeoul`)
+                ]);
+                const wData = await wRes.json();
+                const aData = await aRes.json();
+                const code = wData.current.weathercode;
+                let icon = '☀️';
+                if (code >= 1 && code <= 3) icon = '⛅';
+                else if (code >= 45 && code <= 48) icon = '🌫️';
+                else if (code >= 51 && code <= 67) icon = '☔';
+                else if (code >= 71 && code <= 77) icon = '⛄';
+                else if (code >= 80 && code <= 82) icon = '🌧️';
+                else if (code >= 95) icon = '⛈️';
+                const pm10 = Math.round(aData.current.pm10);
+                let pm10Level;
+                if (pm10 <= 30) pm10Level = { label: '좋음', color: '#1565c0' };
+                else if (pm10 <= 80) pm10Level = { label: '보통', color: '#2e7d32' };
+                else if (pm10 <= 150) pm10Level = { label: '나쁨', color: '#e65100' };
+                else pm10Level = { label: '매우나쁨', color: '#c62828' };
+                this.dashboardWeather = {
+                    icon,
+                    temp: Math.round(wData.current.temperature_2m),
+                    maxTemp: Math.round(wData.daily.temperature_2m_max[0]),
+                    minTemp: Math.round(wData.daily.temperature_2m_min[0]),
+                    rainProb: wData.daily.precipitation_probability_max[0],
+                    pm10, pm10Level,
+                    pm25: Math.round(aData.current.pm2_5),
+                    error: false,
+                };
+            } catch (e) { this.dashboardWeather = { error: true, icon: '?', temp: '--', maxTemp: '--', minTemp: '--', rainProb: '--', pm10Level: { label: '오류', color: '#ef4444' } }; }
+        },
+        async fetchDashboardMeal() {
+            const key = this.dashboardSettings.neisApiKey;
+            const name = this.dashboardSettings.schoolName;
+            if (!key || !name) { this.dashboardMeal = []; return; }
+            try {
+                const schoolRes = await fetch(`https://open.neis.go.kr/hub/schoolInfo?KEY=${key}&Type=json&SCHUL_NM=${encodeURIComponent(name)}`);
+                const schoolData = await schoolRes.json();
+                const school = schoolData.schoolInfo?.[1]?.row?.[0];
+                if (!school) { this.dashboardMeal = []; return; }
+                const today = new Date();
+                const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+                const endDate = new Date(today); endDate.setDate(today.getDate() + 7);
+                const mealRes = await fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${key}&Type=json&ATPT_OFCDC_SC_CODE=${school.ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${school.SD_SCHUL_CODE}&MLSV_FROM_YMD=${fmt(today)}&MLSV_TO_YMD=${fmt(endDate)}`);
+                const mealData = await mealRes.json();
+                const rows = mealData.mealServiceDietInfo?.[1]?.row || [];
+                this.dashboardMeal = rows.slice(0, 3).map(m => ({
+                    date: m.MLSV_YMD,
+                    menu: m.DDISH_NM.replace(/\([^)]*\d[^)]*\)/g, '').replace(/<br\/>/g, '\n').trim()
+                }));
+            } catch (e) { this.dashboardMeal = []; }
+        },
+        dashboardChangeMonth(delta) {
+            let { year, month } = this.dashboardCalendarMonth;
+            month += delta;
+            if (month < 0) { month = 11; year--; }
+            if (month > 11) { month = 0; year++; }
+            this.dashboardCalendarMonth = { year, month };
+        },
+        dashboardTrimBoardContent(html) {
+            if (!html) return '';
+            const normalized = html.replace(/<div[^>]*>/gi,'').replace(/<\/div>/gi,'<br>').replace(/<p[^>]*>/gi,'').replace(/<\/p>/gi,'<br>');
+            const parts = normalized.split(/<br\s*\/?>/i);
+            return parts.slice(1).join('<br>');
+        },
+        dashboardFormatMealDate(dateStr) {
+            if (!dateStr || dateStr.length < 8) return dateStr;
+            const m = parseInt(dateStr.substring(4, 6));
+            const d = parseInt(dateStr.substring(6, 8));
+            const dow = new Date(parseInt(dateStr.substring(0,4)), m-1, d).getDay();
+            return `${m}/${d}(${'일월화수목금토'[dow]})`;
+        },
+        saveDashboardSettings() {
+            this.saveToLocal();
+            this.fetchDashboardWeather();
+            this.fetchDashboardMeal();
+        },
+        dashboardAddPeriod() {
+            const days = ['월','화','수','목','금'];
+            const tt = this.dashboardSettings.timetable;
+            days.forEach(day => { if (!tt[day]) tt[day] = []; tt[day].push(''); });
+            this.dashboardSettings.timeSchedule.push({ label: `${this.dashboardSettings.timeSchedule.length+1}교시`, startTime: '00:00' });
+        },
+        dashboardRemovePeriod() {
+            const days = ['월','화','수','목','금'];
+            const tt = this.dashboardSettings.timetable;
+            days.forEach(day => { if (tt[day] && tt[day].length > 0) tt[day].pop(); });
+            if (this.dashboardSettings.timeSchedule.length > 0) this.dashboardSettings.timeSchedule.pop();
+        },
+        openCalendarEdit(date) {
+            this.dashboardEditingDate = date;
+            const { month } = this.dashboardCalendarMonth;
+            const monthNum = month + 1;
+            const existing = (this.dashboardSettings.monthlyPlans || [])
+                .filter(p => p.month === monthNum && p.date === date);
+            this.dashboardEditingPlans = existing.length > 0
+                ? existing.map(p => ({ content: p.content }))
+                : [{ content: '' }];
+        },
+        saveCalendarEdit() {
+            const { month } = this.dashboardCalendarMonth;
+            const monthNum = month + 1;
+            const date = this.dashboardEditingDate;
+            // 기존 해당 날짜의 isHoliday 값 보존
+            const prevIsHoliday = (this.dashboardSettings.monthlyPlans || [])
+                .find(p => p.month === monthNum && p.date === date)?.isHoliday || false;
+            // 기존 해당 날짜 항목 모두 제거
+            this.dashboardSettings.monthlyPlans = (this.dashboardSettings.monthlyPlans || [])
+                .filter(p => !(p.month === monthNum && p.date === date));
+            // 새 내용 추가 (빈 것 제외)
+            this.dashboardEditingPlans.forEach(p => {
+                if (p.content.trim()) {
+                    this.dashboardSettings.monthlyPlans.push({ month: monthNum, date, content: p.content.trim(), isHoliday: prevIsHoliday });
+                }
+            });
+            this.dashboardSettings.monthlyPlans.sort((a, b) => a.month !== b.month ? a.month - b.month : a.date - b.date);
+            this.dashboardEditingDate = null;
+            this.saveToLocal();
+            this.showToast('✅ 행사가 저장되었습니다');
+        },
+        dashboardBulkAddPlans() {
+            const lines = (this.dashboardBulkPasteText || '').split('\n').map(l => l.trim()).filter(Boolean);
+            let added = 0;
+            const daysInMonth = (m, y) => new Date(y || new Date().getFullYear(), m, 0).getDate();
+            lines.forEach(line => {
+                // 연속 날짜 범위: 3/31~4/2 또는 3.31~4.2 행사명
+                const rangeM = line.match(/^(\d{1,2})[\/\.](\d{1,2})\s*[~\-]\s*(\d{1,2})[\/\.](\d{1,2})\s+(.+)/);
+                if (rangeM) {
+                    let sm = parseInt(rangeM[1]), sd = parseInt(rangeM[2]);
+                    let em = parseInt(rangeM[3]), ed = parseInt(rangeM[4]);
+                    const content = rangeM[5].trim();
+                    if (content && sm >= 1 && sm <= 12 && em >= 1 && em <= 12) {
+                        const year = new Date().getFullYear();
+                        let curM = sm, curD = sd;
+                        let safety = 0;
+                        while ((curM < em || (curM === em && curD <= ed)) && safety++ < 100) {
+                            this.dashboardSettings.monthlyPlans.push({ month: curM, date: curD, content });
+                            added++;
+                            curD++;
+                            if (curD > daysInMonth(curM, year)) { curD = 1; curM++; }
+                        }
+                    }
+                    return;
+                }
+                // 단일 날짜: 4/1 내용, 4월1일 내용, 4.1 내용
+                const m = line.match(/^(\d{1,2})[\/월\.\-](\d{1,2})[일\.\-]?\s*(.+)/);
+                if (m) {
+                    const month = parseInt(m[1]);
+                    const date = parseInt(m[2]);
+                    const content = m[3].trim();
+                    if (month >= 1 && month <= 12 && date >= 1 && date <= 31 && content) {
+                        this.dashboardSettings.monthlyPlans.push({ month, date, content });
+                        added++;
+                    }
+                }
+            });
+            if (added > 0) {
+                this.dashboardSettings.monthlyPlans.sort((a, b) => a.month !== b.month ? a.month - b.month : a.date - b.date);
+                this.dashboardBulkPasteText = '';
+                this.saveToLocal();
+                this.showToast(`📅 ${added}개 일정이 추가되었습니다`);
+            } else {
+                this.showToast('⚠️ 추가할 일정이 없습니다. 형식을 확인해 주세요 (예: 4/1 입학식, 3/31~4/2 봄소풍)');
+            }
+        },
+        // ── /메인 대시보드 메서드 ──
+         openSettings() {
                 try {
                     const seats = Array.isArray(this.seats) ? this.seats : [];
                     const waiting = Array.isArray(this.waitingRoom) ? this.waitingRoom : [];
@@ -10685,10 +11872,13 @@ avoidPrevious: this.avoidPrevious,
                         
                         // 8. 토너먼트 상태
                         tournamentData: {
-                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket          
+                            tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket
                         },
 
-                        version: "2.1", 
+                        // 9. 메인 대시보드 설정
+                        dashboardSettings: this.dashboardSettings,
+
+                        version: "2.1",
                         exportDate: new Date().toLocaleString()
                     };
 
@@ -10736,9 +11926,10 @@ if (parsed.shuffleHistory) this.shuffleHistory = parsed.shuffleHistory;
                         if (parsed.avoidPrevious !== undefined) this.avoidPrevious = parsed.avoidPrevious;
                         if (parsed.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = parsed.avoidPreviousSeat;                   
                         if (parsed.activityTabs) this.activityTabs = parsed.activityTabs;
-                        if (parsed.currentTabId !== undefined) this.currentTabId = parsed.currentTabId;
+                        this.currentTabId = this.activityTabs[0]?.id ?? 1;
                         if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
                         if (parsed.tabData) this.tabData = parsed.tabData;
+                        if (parsed.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, parsed.dashboardSettings);
                         if (parsed.groups) this.groups = parsed.groups;                
       if (data.groupingList) this.groupingList = data.groupingList;
                         if (data.savedGroupings) this.savedGroupings = data.savedGroupings;
@@ -10752,12 +11943,12 @@ if (parsed.shuffleHistory) this.shuffleHistory = parsed.shuffleHistory;
                         if (data.rouletteInput !== undefined) this.rouletteInput = data.rouletteInput;
                         if (data.capsules) this.capsules = data.capsules;
                         if (data.showGenderHint !== undefined) this.showGenderHint = data.showGenderHint; // ★ 성별 힌트 복구
-                        if (data.blackboardContent !== undefined) this.blackboardContent = data.blackboardContent;
                         // ★ 아래 3줄 추가
                         if (data.defaultCheckMode) this.defaultCheckMode = data.defaultCheckMode;
                         if (data.scheduleVersions) this.scheduleVersions = data.scheduleVersions;
                         if (data.currentScheduleVersion !== undefined) this.currentScheduleVersion = data.currentScheduleVersion;
                         if (data.paths) this.paths = data.paths;
+                        if (data.blackboardContent !== undefined) this.blackboardContent = data.blackboardContent;
                         if (data.savedBoards) this.savedBoards = data.savedBoards;
                         
                         if (data.timeBankSeconds !== undefined) this.timeBankSeconds = data.timeBankSeconds;
@@ -10789,6 +11980,8 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         if (data.scheduleVersions) this.scheduleVersions = data.scheduleVersions;
                         if (data.currentScheduleVersion !== undefined) this.currentScheduleVersion = data.currentScheduleVersion;
                         }
+
+                        if (data.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, data.dashboardSettings);
 
                         // UI 위치와 크기 복구
                         if (data.uiState) {
@@ -11637,6 +12830,42 @@ toggleForeColorPalette() {
     this.saveToLocal();
 },
            toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
+insertCheckedStudentsToBoard() {
+    if (this.dashboardCheckedStudents.length === 0) {
+        this.showToast('체크된 학생이 없습니다.');
+        return;
+    }
+    this.restoreSelection();
+    let html = '<br><span style="color:#ca8a04;font-weight:900;">🌱 과제 보충</span><br>';
+    this.dashboardCheckedStudents.forEach(group => {
+        html += `<span class="board-tab-label" data-tabid="${group.tabId}" style="color:#ca8a04;font-weight:900;">${group.tabName}:</span> `;
+        group.names.forEach(name => {
+            html += `<span contenteditable="false" class="board-student-badge" data-name="${name}" data-tabid="${group.tabId}" style="display:inline-flex;align-items:center;background:transparent;border:1.5px solid #facc15;color:#facc15;border-radius:8px;padding:2px 10px;margin:2px 3px;font-weight:700;cursor:pointer;user-select:none;" title="클릭: 삭제 및 체크 해제">${name}</span>`;
+        });
+        html += '<br>';
+    });
+    document.execCommand('insertHTML', false, html);
+    this.$nextTick(() => {
+        const editor = document.getElementById('board-editor');
+        if (editor && !this.isCornellMode) this.blackboardContent = editor.innerHTML;
+        this.saveHistory();
+        this.saveToLocal();
+    });
+},
+handleBoardStudentBadgeClick(e) {
+    const badge = e.target.closest('.board-student-badge');
+    if (!badge) return;
+    const name = badge.dataset.name;
+    const tabId = badge.dataset.tabid;
+    badge.remove();
+    this.$nextTick(() => {
+        const editor = document.getElementById('board-editor');
+        if (editor && !this.isCornellMode) this.blackboardContent = editor.innerHTML;
+        this.saveHistory();
+        this.saveToLocal();
+    });
+    if (name && tabId) this.toggleSummaryCheck(name, tabId);
+},
             onDragEndBoard() {
                 this.draggedBoardIdx = null;
                 this.lastDragEndTime = Date.now(); // 드래그가 끝난 시간 기록
@@ -13837,8 +15066,44 @@ startReverseLadderGame(endColIdx) {
                 this.winW = window.innerWidth; 
                 this.winH = window.innerHeight; 
             });
-            this.updateClock(); 
+            this.updateClock();
             this.clockInterval = setInterval(() => this.updateClock(), 1000);
+
+            // ★ Web Worker 알람: 창이 비활성화되어도 알람이 울리도록
+            try {
+                const workerCode = `
+                    let iv = null;
+                    self.onmessage = function(e) {
+                        if (e.data === 'start') {
+                            if (iv) clearInterval(iv);
+                            iv = setInterval(() => {
+                                const d = new Date();
+                                self.postMessage({ h: d.getHours(), m: d.getMinutes(), s: d.getSeconds(), dow: d.getDay() });
+                            }, 500);
+                        } else if (e.data === 'stop') { if (iv) clearInterval(iv); }
+                    };
+                `;
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                this.alarmWorker = new Worker(URL.createObjectURL(blob));
+                this.alarmWorker.onmessage = (e) => {
+                    const { h, m, s, dow } = e.data;
+                    if (s !== 0 || !this.alarmList || this.isAlarmRinging) return;
+                    const hm = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                    const key = hm + '_' + dow;
+                    if (this.alarmWorkerLastTriggered[key]) return;
+                    this.alarmList.forEach(alarm => {
+                        if (!alarm.on || alarm.time !== hm) return;
+                        const days = alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6];
+                        if (days.includes(dow)) {
+                            this.alarmWorkerLastTriggered[key] = true;
+                            setTimeout(() => { delete this.alarmWorkerLastTriggered[key]; }, 65000);
+                            this.triggerAlarm(alarm);
+                        }
+                    });
+                };
+                this.alarmWorker.postMessage('start');
+            } catch(e) { console.warn('알람 Worker 초기화 실패 (폴백 사용):', e); }
+
             this.timerAudio = new Audio('./timer.mp3');
             this.timerAudio.load();
 
@@ -13867,8 +15132,8 @@ startReverseLadderGame(endColIdx) {
                 if (this.timerX === null || isNaN(this.timerX) || this.timerY === null || isNaN(this.timerY)) {
                     this.timerX = (ww / 2) - (boxW / 2);
                     this.timerY = (wh / 2) - (boxH / 2);
-                } 
-                
+                }
+
                 if (this.noiseX === null) this.noiseX = 100;
                 if (this.noiseY === null) this.noiseY = 100;
 
@@ -13876,10 +15141,13 @@ startReverseLadderGame(endColIdx) {
                 if (typeof this.saveHistory === 'function') {
                     this.saveHistory();
                 }
-                
+
                 // [신규] 화면 로딩이 끝나면 애니메이션 기능을 다시 켭니다 (회전 렉 완벽 방지)
                 this.isInitialLoad = false;
-                
+
+                // 새로고침 시 메인화면 자동 열기
+                this.openMainDashboard();
+
             }, 1500);
         }// mounted 끝
     }).mount('#app') // Vue 인스턴스 끝

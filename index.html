@@ -7,6 +7,7 @@
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏫</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet"> 
@@ -2725,13 +2726,32 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
     </div>
 
-    <div v-if="isAlarmRinging"
+    <div v-if="isAlarmRinging && isClockMaximized"
      @click="stopAlarm"
-     class="fixed inset-0 z-[200000] bg-black/100 flex flex-col items-center justify-center animate-fade-in cursor-pointer backdrop-blur-sm gap-6 px-8">
-    <p class="text-white font-black pointer-events-none w-full text-center" style="font-size:6rem;font-family:'Quantico',sans-serif;letter-spacing:-0.04em;">{{ ringingAlarmTime }}</p>
-    <p v-if="ringingAlarmLabel" class="text-white text-4xl font-black opacity-80 pointer-events-none max-w-full text-center" style="word-break:keep-all;overflow-wrap:break-word;">{{ ringingAlarmLabel }}</p>
-    <p class="text-white text-2xl font-black opacity-40 pointer-events-none">화면을 터치하면 알람이 종료됩니다</p>
-</div></div>
+     class="fixed inset-0 bg-[#020617] text-white select-none animate-fade-in cursor-pointer"
+     style="z-index:200000 !important;">
+        <!-- 상단: 벨 애니메이션 -->
+        <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
+            <span class="text-[9rem] animate-violent">🔔</span>
+        </div>
+        <!-- 중앙 시간 (시계 전체화면 스타일) -->
+        <div class="absolute top-[52%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center w-full pointer-events-none">
+            <div class="flex items-baseline justify-center">
+                <div class="font-black tight-spacing leading-none text-white drop-shadow-2xl digital-font tabular-nums" style="font-size:clamp(8rem,22vw,25rem);letter-spacing:-0.04em;">
+                    {{ miniTime }}
+                </div>
+                <div class="font-bold text-gray-400 ml-4 w-[2ch] text-left tabular-nums digital-font tight-spacing" style="font-size:clamp(4rem,11vw,12.5rem);">
+                    {{ currentSeconds }}
+                </div>
+            </div>
+        </div>
+        <!-- 하단 알람 레이블 -->
+        <div class="absolute bottom-12 left-0 w-full flex items-center justify-center pointer-events-none">
+            <div v-if="ringingAlarmLabel" class="text-yellow-400 font-black text-center" style="font-size:clamp(2.5rem,6vw,5.5rem);font-family:'Jua',sans-serif;word-break:keep-all;">
+                {{ ringingAlarmLabel }}
+            </div>
+        </div>
+    </div></div>
 
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
             <div class="relative w-full mb-4 px-2">
@@ -2806,6 +2826,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             {{ m.name }}<span class="font-bold ml-1 text-blue-500" style="font-size:0.65rem;">({{ getMissionDayText(m) }})</span>
                         </span>
                         <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <template v-if="m.type === 'count'">
+                                <button @click.stop="adjustMissionDay(idx, -1)" class="w-6 h-6 rounded-lg bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black leading-none text-sm" title="-1일">−</button>
+                                <button @click.stop="adjustMissionDay(idx, 1)" class="w-6 h-6 rounded-lg bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black leading-none text-sm" title="+1일">+</button>
+                            </template>
                             <button @click.stop="resetMission(idx)" class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center font-black leading-none" title="초기화" style="font-size:14px;">↺</button>
                             <button @click.stop="removeMission(idx)" class="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs" title="삭제"><i class="fa-solid fa-xmark"></i></button>
                         </div>
@@ -3021,8 +3045,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-3 items-end">
                 
+                <div v-if="view === 'main' && currentTabId !== 'summary' && checkedStudentCount > 0"
+                     class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center bg-[#5c3d1e] text-[#eaddca] border-[#3e2a12] pointer-events-none select-none">
+                    <span class="text-2xl font-black leading-none">{{ checkedStudentCount }}</span><span class="text-[10px] font-bold leading-none mt-1">명</span>
+                </div>
                 <template v-if="view === 'main' || view === 'group'">
-                    <button @click="allMode = !allMode" 
+                    <button @click="allMode = !allMode"
                         :class="allMode ? 'bg-yellow-400 text-white border-white' : 'bg-white text-yellow-500 border-yellow-500'"
                         class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center transition-all hover:scale-110 text-xl">
                         ALL
@@ -3860,7 +3888,20 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     :class="dashboardSettingsTab===t.k ? 'bg-[#5d4037] text-white border-[#3e2723]' : 'bg-white text-[#5d4037] border-[#e7d5b1]'">
                 {{ t.l }}
             </button>
-            <button @click="saveDashboardSettings(); dashboardShowSettings=false" class="ml-auto px-3 py-1.5 rounded-xl font-black text-xs bg-[#ef9a9a] border-b-4 border-[#e57373] text-white hover:bg-[#e57373] transition-all">×</button>
+            <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
+                    class="ml-auto px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all"
+                    :class="dashboardSettings.hidePastPlans ? 'bg-[#e0f2f1] border-[#80cbc4] text-[#00796b] hover:bg-[#b2dfdb]' : 'bg-[#fff9c4] border-[#f9a825] text-[#f57f17] hover:bg-[#fff59d]'"
+                    :title="dashboardSettings.hidePastPlans ? '지난 일정 숨기는 중 (클릭 시 모두 표시)' : '지난 일정 표시 중 (클릭 시 숨기기)'">
+                {{ dashboardSettings.hidePastPlans ? '👁 모두 보기' : '🙈 숨기기' }}
+            </button>
+            <button @click="fetchDashboardHolidays()"
+                    :disabled="isFetchingHolidays"
+                    class="px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
+                    :class="isFetchingHolidays ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-wait' : 'bg-[#fff3e0] border-[#ffb74d] text-[#e65100] hover:bg-[#ffe0b2]'">
+                <span v-if="isFetchingHolidays">⏳</span>
+                <span v-else>📅 공휴일 불러오기</span>
+            </button>
+            <button @click="saveDashboardSettings(); dashboardShowSettings=false" class="px-3 py-1.5 rounded-xl font-black text-xs bg-[#ef9a9a] border-b-4 border-[#e57373] text-white hover:bg-[#e57373] transition-all">×</button>
         </div>
         <div v-if="dashboardSettingsTab==='info'" class="grid grid-cols-2 gap-3">
             <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">NEIS API 키</label><input v-model="dashboardSettings.neisApiKey" type="text" placeholder="나이스 API 키" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
@@ -3892,7 +3933,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button @click="dashboardSettings.quickLinks.push({name:'',url:''})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
         </div>
         <div v-if="dashboardSettingsTab==='plans'" class="flex flex-col gap-2">
-            <div v-for="(plan, idx) in dashboardSettings.monthlyPlans" :key="idx" class="flex items-center gap-2 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+            <div v-for="(plan, idx) in dashboardSortedPlans" :key="idx" class="flex items-center gap-1.5 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+                <!-- 내년 1·2월만 년도 뱃지 표시 (읽기전용) -->
+                <span v-if="plan.year && plan.year !== new Date().getFullYear() && plan.month <= 2"
+                      class="text-[10px] font-black text-[#e65100] flex-shrink-0 bg-[#fff3e0] rounded px-1 py-0.5 leading-none">{{ plan.year }}년</span>
                 <input v-model.number="plan.month" type="number" min="1" max="12" placeholder="월" class="w-10 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center">
                 <span class="text-[#8d6e63] font-bold text-xs">/</span>
                 <input v-model.number="plan.date" type="number" min="1" max="31" placeholder="일" class="w-10 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center">
@@ -3901,14 +3945,14 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         class="text-xs font-black px-1.5 py-0.5 rounded flex-shrink-0 transition-all"
                         :class="plan.isHoliday ? 'bg-red-100 text-red-500 border border-red-300' : 'bg-slate-100 text-slate-400 border border-slate-200'"
                         title="공휴일 설정 (미션 날수 계산에서 제외)">휴</button>
-                <button @click="dashboardSettings.monthlyPlans.splice(idx,1)" class="text-[#ef9a9a] font-black ml-1">✕</button>
+                <button @click="dashboardSettings.monthlyPlans.splice(dashboardSettings.monthlyPlans.indexOf(plan),1)" class="text-[#ef9a9a] font-black ml-1">✕</button>
             </div>
             <button @click="dashboardSettings.monthlyPlans.push({month:new Date().getMonth()+1,date:new Date().getDate(),content:''})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
             <!-- 복붙 일괄 추가 -->
             <div class="mt-2 bg-[#fdf8ef] rounded-xl border border-[#e7d5b1] p-2">
                 <div class="text-xs font-black text-[#8d6e63] mb-0.5">📋 복붙으로 한번에 추가</div>
-                <div class="text-[10px] text-[#a1887f] font-bold mb-1">한 줄에 하나씩: 4/1 입학식 또는 4월1일 봄소풍</div>
-                <textarea v-model="dashboardBulkPasteText" rows="4" placeholder="4/1 입학식&#10;4/5 봄소풍&#10;5/15 스승의날" class="w-full text-xs font-bold text-[#5d4037] outline-none bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5 resize-none" @mousedown.stop @click.stop></textarea>
+                <div class="text-[10px] text-[#a1887f] font-bold mb-1">한 줄에 하나씩: 4/1 입학식 · 내년 1,2월: 2027/1/15 졸업식</div>
+                <textarea v-model="dashboardBulkPasteText" rows="4" placeholder="4/1 입학식&#10;5/15 스승의날&#10;2027/1/15 졸업식" class="w-full text-xs font-bold text-[#5d4037] outline-none bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5 resize-none" @mousedown.stop @click.stop></textarea>
                 <button @click="dashboardBulkAddPlans()" class="mt-1 px-3 py-1 rounded-lg bg-[#ffb74d] border-b-2 border-[#ff8f00] text-white font-black text-xs hover:bg-[#ffa726] transition-all">📥 일괄 추가</button>
             </div>
         </div>
@@ -3926,15 +3970,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <!-- 지금 수업 섹션 -->
                 <div class="flex-1 flex flex-col justify-center py-3">
                     <div class="text-lg font-black text-[#a1887f] leading-none mb-2">⏰ 지금 수업</div>
-                    <div v-if="dashboardCurrentClass" class="flex items-center gap-2">
+                    <div v-if="dashboardCurrentClass" class="flex items-baseline gap-2 flex-wrap">
+                        <span class="text-4xl font-black text-[#5d4037]">{{ dashboardCurrentClass.label }}</span>
                         <span class="text-5xl font-bold text-[#5d4037]">{{ dashboardCurrentClass.subject.replace('*','') }}</span>
-                        <div class="flex flex-col leading-none">
-                            <span class="text-xl font-black text-[#5d4037]">{{ dashboardCurrentClass.label }}</span>
-                            <span v-if="dashboardCurrentClass.isMoving" class="text-sm text-[#e65100] font-bold">이동🚶</span>
-                        </div>
+                        <span v-if="dashboardCurrentClass.isMoving" class="text-sm text-[#e65100] font-bold self-end">이동🚶</span>
                     </div>
                     <div v-else class="text-3xl font-black text-[#8d6e63]">{{ dashboardNextClass ? '쉬는 시간' : '수업 없음' }}</div>
-                    <div v-if="dashboardNextClass" class="text-lg text-[#a1887f] font-bold mt-1">
+                    <div v-if="dashboardNextClass && !dashboardCurrentClass" class="text-lg text-[#a1887f] font-bold mt-1">
                         다음: <span class="text-[#5d4037]">{{ dashboardNextClass.subject.replace('*','') }}</span> {{ dashboardNextClass.startTime }}~
                     </div>
                 </div>
@@ -3973,7 +4015,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 </td>
                                 <td v-for="day in dashboardWeeklySchedule.days" :key="day"
                                     class="border border-[#e7d5b1] px-1 py-2 text-sm font-bold transition-all"
-                                    :class="day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.currentIdx ? 'bg-[#ff8f00] text-white font-black' : day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.currentIdx + 1 ? 'bg-[#fff3e0] text-[#e65100]' : day === dashboardWeeklySchedule.todayName ? 'bg-[#fffdf0] text-[#5d4037]' : 'text-[#5d4037]'">
+                                    :class="day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.currentIdx ? 'bg-[#ff8f00] text-white font-black' : day === dashboardWeeklySchedule.todayName && pIdx === dashboardWeeklySchedule.nextIdx ? 'bg-[#fff3e0] text-[#e65100]' : day === dashboardWeeklySchedule.todayName ? 'bg-[#fffdf0] text-[#5d4037]' : 'text-[#5d4037]'">
                                     <span :class="dashboardWeeklySchedule.getSubject(day, pIdx).includes('*') ? 'text-[#e65100]' : ''">
                                         {{ dashboardWeeklySchedule.getSubject(day, pIdx).replace('*','') }}
                                     </span>
@@ -4050,12 +4092,20 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0" style="flex:8;">
                 <!-- 날씨 (상단) -->
                 <div class="flex-shrink-0 bg-[#fdf8ef] border-b border-[#e7d5b1] px-3 py-2 cursor-pointer hover:bg-[#fff3e0] transition-colors"
-                     @click="openUrl('https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EC%B2%AD%EC%A3%BC+%EB%82%A0%EC%94%A8&ackey=g95jjj0g')">
+                     @click="openUrl('https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EB%82%A0%EC%94%A8&ackey=g95jjj0g')">
                     <div v-if="dashboardWeather && !dashboardWeather.error" class="flex items-center justify-center flex-wrap gap-3 text-sm font-bold text-[#5d4037]">
                         <span class="text-2xl">{{ dashboardWeather.icon }}</span>
-                        <span class="text-[#e65100] font-black text-base">{{ dashboardWeather.temp }}℃</span>
-                        <span class="text-[#8d6e63]">{{ dashboardWeather.minTemp }}↓ {{ dashboardWeather.maxTemp }}↑</span>
-                        <span :style="{color: dashboardWeather.pm10Level.color}">😷{{ dashboardWeather.pm10Level.label }}</span>
+                        <span class="flex items-baseline gap-1">
+                            <span class="text-[#8d6e63] text-xs">{{ dashboardWeather.minTemp }}°C ~</span>
+                            <span class="text-[#e65100] font-black text-base">{{ dashboardWeather.temp }}°C</span>
+                            <span class="text-[#8d6e63] text-xs">~ {{ dashboardWeather.maxTemp }}°C</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="text-lg leading-none">{{ dashboardWeather.pm10Level.icon }}</span>
+                            <span class="font-black text-xs" :style="{color: dashboardWeather.pm10Level.color}">미세 {{ dashboardWeather.pm10Level.label }}</span>
+                            <span class="text-[#c8bdb0]">|</span>
+                            <span class="font-black text-xs" :style="{color: dashboardWeather.pm25Level.color}">초미세 {{ dashboardWeather.pm25Level.label }}</span>
+                        </span>
                     </div>
                     <div v-else-if="!dashboardSettings.lat" class="text-xs text-[#a1887f] font-bold text-center">⚙️ 위도/경도를 설정하면 날씨가 표시됩니다</div>
                     <div v-else class="text-xs text-[#a1887f] font-bold text-center">날씨 불러오는 중...</div>
@@ -4065,7 +4115,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <!-- 월 네비게이션 -->
                     <div class="flex items-center justify-between mb-4 py-2">
                         <button @click="dashboardChangeMonth(-1)" class="text-[#8d6e63] hover:text-[#5d4037] font-black text-base px-1">◀</button>
-                        <span class="text-xl font-black text-[#5d4037]">{{ dashboardCalendarMonth.month + 1 }}월</span>
+                        <span class="text-xl font-black text-[#5d4037]">
+                            <span v-if="dashboardCalendarMonth.month < 2 && dashboardCalendarMonth.year !== new Date().getFullYear()" class="text-sm text-[#e65100] mr-0.5">{{ dashboardCalendarMonth.year }}년</span>{{ dashboardCalendarMonth.month + 1 }}월
+                        </span>
                         <button @click="dashboardChangeMonth(1)" class="text-[#8d6e63] hover:text-[#5d4037] font-black text-base px-1">▶</button>
                     </div>
                     <!-- 미니 달력 -->
@@ -4073,7 +4125,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <div class="text-sm font-black text-red-400 py-0.5">일</div><div class="text-sm font-black text-[#8d6e63] py-0.5">월</div><div class="text-sm font-black text-[#8d6e63] py-0.5">화</div><div class="text-sm font-black text-[#8d6e63] py-0.5">수</div><div class="text-sm font-black text-[#8d6e63] py-0.5">목</div><div class="text-sm font-black text-[#8d6e63] py-0.5">금</div><div class="text-sm font-black text-blue-400 py-0.5">토</div>
                         <template v-for="cell in dashboardCalendarCells" :key="cell.key">
                             <div class="aspect-square flex items-center justify-center rounded text-base transition-all cursor-pointer hover:ring-2 hover:ring-[#ffb74d]"
-                                 :class="cell.isEmpty ? 'pointer-events-none' : cell.isToday ? 'bg-[#ff8f00] text-white font-black' : cell.hasEvent ? 'bg-[#fff3e0] font-black text-[#e65100]' : cell.isWeekend ? 'text-red-300' : 'text-[#5d4037]'"
+                                 :class="cell.isEmpty ? 'pointer-events-none' : cell.isToday ? 'bg-[#ff8f00] text-white font-black' : cell.isHolidayDay ? 'text-red-300 font-black' : cell.hasEvent ? 'bg-[#fff3e0] font-black text-[#e65100]' : cell.isWeekend ? 'text-red-300' : 'text-[#5d4037]'"
                                  @click="!cell.isEmpty && openCalendarEdit(cell.date)">
                                 {{ cell.isEmpty ? '' : cell.date }}
                             </div>
@@ -4096,7 +4148,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <!-- 행사 목록 -->
                     <div class="flex flex-col gap-0.5">
                         <div v-for="(plan, idx) in dashboardUpcomingPlans" :key="idx" class="flex items-start gap-1.5 py-1 border-b border-[#f5e6d0] last:border-0">
-                            <span class="text-base font-black text-[#e65100] flex-shrink-0 w-14 text-center pt-0.5">{{ plan.month }}/{{ plan.date }}</span>
+                            <span class="text-base font-black text-[#e65100] flex-shrink-0 text-center pt-0.5" style="min-width:3.5rem">
+                                <span v-if="plan.year && plan.year !== new Date().getFullYear()" class="text-[10px] text-[#a1887f] font-black block leading-none mb-0.5">{{ plan.year }}년</span>{{ plan.month }}/{{ plan.date }}
+                            </span>
                             <span class="text-base font-bold text-[#5d4037] flex-1">{{ plan.content }}</span>
                         </div>
                         <div v-if="dashboardUpcomingPlans.length === 0" class="text-center text-[#a1887f] font-bold text-base py-2"></div>
@@ -5728,6 +5782,9 @@ alarmWorker: null,
 alarmWorkerLastTriggered: {},
 ringingAlarmTime: '',
 ringingAlarmLabel: '',
+currentTime24s: '',
+alarmAutoCloseTimer: null,
+_alarmPrevClockState: false,
 resumeState: {
             audio: null,       // 듣던 음악
             timerRunning: false, // 타이머 돌고 있었는지
@@ -5790,6 +5847,7 @@ making: new Audio('./making.mp3'),
         dashboardSettingsTab: 'info', // 'info' | 'timetable' | 'schedule' | 'links' | 'plans'
         dashboardCalendarMonth: { year: new Date().getFullYear(), month: new Date().getMonth() },
         dashboardBulkPasteText: '',
+        isFetchingHolidays: false,
         dashboardEditingDate: null,
         dashboardEditingPlans: [],
         dashboardSettings: {
@@ -5815,6 +5873,8 @@ making: new Audio('./making.mp3'),
                 { name: '학교알리미', url: 'https://www.schoolinfo.go.kr' },
             ],
             monthlyPlans: [],
+            holidaySchoolYear: null, // 공휴일 불러오기 버튼을 누른 학년도 (null = 미실행)
+            hidePastPlans: true, // 지난 일정 숨기기 (기본값: 숨김)
             supplies: {},
         },
 
@@ -6016,59 +6076,93 @@ soundSettings: {
 computed: {
 // ── 공휴일 세트 ──
 allHolidaySet() {
-    // 한국 법정 공휴일 (고정 + 음력/대체, 2025~2026)
+    // 한국 법정 공휴일 기본값 (monthlyPlans 미로드 시 fallback)
     const fixed = new Set([
-        // 2025 고정
-        '2025-01-01','2025-03-01','2025-05-05','2025-06-06',
-        '2025-08-15','2025-10-03','2025-10-09','2025-12-25',
-        // 2025 음력/대체
-        '2025-01-28','2025-01-29','2025-01-30', // 설날 연휴
-        '2025-05-06',                            // 부처님오신날 대체
-        '2025-10-05','2025-10-06','2025-10-07','2025-10-08', // 추석+대체
-        // 2026 고정
-        '2026-01-01','2026-03-01','2026-05-05','2026-06-06',
-        '2026-08-15','2026-10-03','2026-10-09','2026-12-25',
-        // 2026 음력/대체
-        '2026-02-16','2026-02-17','2026-02-18', // 설날 연휴
-        '2026-05-24',                            // 부처님오신날
-        '2026-09-24','2026-09-25','2026-09-26', // 추석 연휴
+        // 2025
+        '2025-01-01','2025-01-28','2025-01-29','2025-01-30',
+        '2025-03-01','2025-03-03', // 삼일절+대체(3/1=토)
+        '2025-05-01','2025-05-05','2025-05-06',
+        '2025-06-06','2025-08-15',
+        '2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08',
+        '2025-10-09','2025-12-25',
+        // 2026
+        '2026-01-01','2026-02-16','2026-02-17','2026-02-18',
+        '2026-03-01','2026-03-02', // 삼일절+대체(3/1=일)
+        '2026-05-01','2026-05-05','2026-05-24','2026-05-25',
+        '2026-06-03','2026-06-06',
+        '2026-08-15','2026-08-17', // 광복절+대체(8/15=토)
+        '2026-09-24','2026-09-25','2026-09-26','2026-09-28',
+        '2026-10-03','2026-10-05', // 개천절+대체(10/3=토)
+        '2026-10-09','2026-12-25',
+        // 2027 (학년도 범위: 1~2월만)
+        '2027-01-01','2027-02-06','2027-02-07','2027-02-08','2027-02-09','2027-02-10',
     ]);
-    // 교육활동 설정에서 isHoliday 체크된 항목 추가 (해당 연도)
+    // monthlyPlans의 isHoliday 항목으로 보완 (실제 year 사용)
     const curY = new Date().getFullYear();
     (this.dashboardSettings.monthlyPlans || [])
         .filter(p => p.isHoliday && p.month && p.date)
         .forEach(p => {
+            const y = p.year || curY;
             const mm = String(p.month).padStart(2,'0');
             const dd = String(p.date).padStart(2,'0');
-            fixed.add(`${curY}-${mm}-${dd}`);
-            fixed.add(`${curY+1}-${mm}-${dd}`);
+            fixed.add(`${y}-${mm}-${dd}`);
         });
     return fixed;
 },
 // ── 대시보드 computed ──
+dashboardSortedPlans() {
+    let plans = this.dashboardSettings.monthlyPlans || [];
+    const curYear = new Date().getFullYear();
+    if (this.dashboardSettings.hidePastPlans) {
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        plans = plans.filter(p => {
+            const y = p.year || curYear;
+            const d = new Date(y, (p.month || 1) - 1, p.date || 1);
+            return d >= now;
+        });
+    }
+    return [...plans].sort((a, b) => {
+        const aYear = a.year || curYear;
+        const bYear = b.year || curYear;
+        return (aYear - bYear) || ((a.month||0) - (b.month||0)) || ((a.date||0) - (b.date||0));
+    });
+},
 dashboardTodaySchedule() {
+    const _t = this.dashboardTime; // 매초 갱신 트리거
     const now = new Date();
     const dayIdx = now.getDay(); // 0=일,1=월,...,6=토
     if (dayIdx === 0 || dayIdx === 6) return [];
     const dayName = ['월','화','수','목','금'][dayIdx - 1];
     const timetable = (this.dashboardSettings.timetable || {})[dayName] || [];
     const schedule = this.dashboardSettings.timeSchedule || [];
-    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const toMins = (str) => { if (!str) return -1; const [h, m] = str.split(':').map(Number); return h * 60 + (m || 0); };
 
+    // 현재 수업: 시작 후 40분 이내
     let currentIdx = -1;
     for (let i = 0; i < schedule.length; i++) {
-        if (timeStr >= schedule[i].startTime) currentIdx = i;
-        else break;
+        const s = toMins(schedule[i].startTime);
+        if (nowMins >= s && nowMins < s + 40) { currentIdx = i; break; }
+    }
+    // 다음 수업: now보다 시작 시간이 늦은 첫 번째 교시 (오늘 과목 있는 것만)
+    let nextIdx = -1;
+    for (let i = 0; i < schedule.length; i++) {
+        const s = toMins(schedule[i].startTime);
+        if (nowMins < s && (timetable[i] || '')) { nextIdx = i; break; }
     }
 
     const all = schedule.map((item, idx) => {
         const subject = timetable[idx] || '';
+        const start = toMins(item.startTime);
+        // 다음 교시 10분 전부터 미리 표시 (현재 수업 없을 때)
+        const isNextPreview = currentIdx === -1 && idx === nextIdx && nowMins >= start - 10 && nowMins < start;
         return {
             label: item.label,
             startTime: item.startTime,
             subject,
             isCurrent: idx === currentIdx,
-            isNext: idx === currentIdx + 1,
+            isNext: idx === nextIdx,
+            isNextPreview,
             isMoving: subject.includes('*'),
         };
     });
@@ -6098,25 +6192,37 @@ dashboardCurrentClass() {
 },
 dashboardNextClass() {
     const items = this.dashboardTodaySchedule;
-    return items.find(i => i.isNext) || null;
+    return items.find(i => i.isNextPreview) || null;
 },
 dashboardWeeklySchedule() {
+    const _t = this.dashboardTime; // 매초 갱신 트리거
     const now = new Date();
     const todayDow = now.getDay(); // 0=일,1=월,...
     const days = ['월','화','수','목','금'];
     const todayName = days[todayDow - 1] || null;
-    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     const schedule = this.dashboardSettings.timeSchedule || [];
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const toMins = (str) => { if (!str) return -1; const [h, m] = str.split(':').map(Number); return h * 60 + (m || 0); };
+    // 현재 수업: 40분 이내
     let currentIdx = -1;
     for (let i = 0; i < schedule.length; i++) {
-        if (timeStr >= schedule[i].startTime) currentIdx = i;
-        else break;
+        const s = toMins(schedule[i].startTime);
+        if (nowMins >= s && nowMins < s + 40) { currentIdx = i; break; }
     }
-    // 최대 교시 수
+    // 다음 수업 (오늘 과목이 있는 교시만, 빈 교시는 건너뜀)
     const tt = this.dashboardSettings.timetable || {};
+    let nextIdx = -1;
+    for (let i = 0; i < schedule.length; i++) {
+        const s = toMins(schedule[i].startTime);
+        if (nowMins < s) {
+            // 오늘 과목이 있을 때만 next로 인정
+            const subj = todayName ? ((tt[todayName] || [])[i] || '') : '';
+            if (!todayName || subj) { nextIdx = i; break; }
+        }
+    }
     const maxPeriods = Math.max(...days.map(d => (tt[d] || []).length), schedule.length, 1);
     return {
-        days, todayName, schedule, currentIdx, maxPeriods,
+        days, todayName, schedule, currentIdx, nextIdx, maxPeriods,
         getSubject: (day, pIdx) => (tt[day] || [])[pIdx] || '',
     };
 },
@@ -6133,7 +6239,10 @@ dashboardCalendarCells() {
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
     const today = isCurrentMonth ? now.getDate() : -1;
     const plans = this.dashboardSettings.monthlyPlans || [];
-    const eventDates = new Set(plans.filter(p => p.month === month + 1).map(p => p.date));
+    // year 필드 있으면 연도 일치 확인, 없으면 월만 비교 (기존 데이터 호환)
+    const monthPlans = plans.filter(p => p.month === month + 1 && (!p.year || p.year === year));
+    const eventDates = new Set(monthPlans.map(p => p.date));
+    const holidayDates = new Set(monthPlans.filter(p => p.isHoliday).map(p => p.date));
 
     const cells = [];
     for (let i = 0; i < firstDay; i++) cells.push({ key: 'e'+i, isEmpty: true });
@@ -6143,6 +6252,7 @@ dashboardCalendarCells() {
             key: d, isEmpty: false, date: d,
             isToday: d === today,
             hasEvent: eventDates.has(d),
+            isHolidayDay: holidayDates.has(d),
             isWeekend: dow === 0 || dow === 6,
         });
     }
@@ -6156,6 +6266,7 @@ dashboardUpcomingPlans() {
     return (this.dashboardSettings.monthlyPlans || [])
         .filter(p => {
             if (p.month !== month + 1 || !p.content) return false;
+            if (p.year && p.year !== year) return false;
             // 현재 달이면 오늘 이전 일정 숨김
             if (isCurrentMonth && p.date < todayDate) return false;
             return true;
@@ -6503,6 +6614,10 @@ allRequests() {
             },
             allMode: { get() { return this.view === 'group' ? this.allModeGroup : this.allModeMain; }, set(val) { if(this.view === 'group') this.allModeGroup = val; else this.allModeMain = val; } },
             currentTabData() { return this.tabData[this.currentTabId] || {}; },
+            checkedStudentCount() {
+                if (this.currentTabId === 'summary') return 0;
+                return Object.values(this.currentTabData).filter(v => v && v.checked).length;
+            },
             activitySummary() {
                 return this.allStudents.map(s => {
                     let totalScore = 0, totalChecked = 0;
@@ -6906,6 +7021,14 @@ formatTimeBank(secs) {
                 if (diff <= 0) return 'mission-dday-done';
                 return 'mission-dday';
             },
+            adjustMissionDay(idx, delta) {
+                const m = this.missions[idx];
+                if (m.type !== 'count') return;
+                const d = new Date(m.startDate || this.todayStr());
+                d.setDate(d.getDate() - delta); // delta>0 → startDate 앞당김 → 일수 증가
+                m.startDate = d.toISOString().slice(0, 10);
+                this.saveToLocal();
+            },
             resetMission(idx) {
                 const m = this.missions[idx];
                 if (m.type === 'count') {
@@ -7135,17 +7258,21 @@ handleMiniClockClick() {
     }
 },
 stopAlarm() {
-    // 1. 알람 소리 끄기
+    // 1. 자동 종료 타이머 취소
+    if (this.alarmAutoCloseTimer) { clearTimeout(this.alarmAutoCloseTimer); this.alarmAutoCloseTimer = null; }
+
+    // 2. 알람 소리 끄기
     if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio = null;
     }
-    
-    // 2. 알람 상태 해제
-    this.isAlarmRinging = false; 
-    this.notificationMsg = ''; 
 
-    // 3. 멈췄던 활동 다시 시작
+    // 3. 알람 상태 해제 + 이전 화면으로 복귀
+    this.isAlarmRinging = false;
+    this.isClockMaximized = this._alarmPrevClockState || false;
+    this.notificationMsg = '';
+
+    // 4. 멈췄던 활동 다시 시작
     this.resumeActivities();
 },
 pauseActivities() {
@@ -7452,12 +7579,14 @@ declareWinner(winner, matchIdx) {
 playSound(key, loop = false, volume = 0.5) {
     if (!this.sounds[key]) return;
 
-    // 1. 설정 체크 (기존 유지)
-    const basicUiSounds = ['click', 'hover']; 
-    const isBasicUi = basicUiSounds.includes(key);
-
-    if (isBasicUi && !this.soundSettings.ui) return;
-    if (!isBasicUi && !this.soundSettings.game) return;
+    // 1. 설정 체크 (알람은 설정과 무관하게 항상 재생)
+    const alwaysPlay = ['alarm'];
+    if (!alwaysPlay.includes(key)) {
+        const basicUiSounds = ['click', 'hover'];
+        const isBasicUi = basicUiSounds.includes(key);
+        if (isBasicUi && !this.soundSettings.ui) return;
+        if (!isBasicUi && !this.soundSettings.game) return;
+    }
 
     const audio = this.sounds[key];
 
@@ -7465,12 +7594,17 @@ playSound(key, loop = false, volume = 0.5) {
     // 일반 효과음(클릭, 띠링, 팡파레 등)은 배경음을 끊지 않고 겹쳐서 재생됨
     const isExclusive = (key === 'alarm' || key === 'timer' || key.startsWith('bgm_'));
 
+    // 알람 울리는 중엔 다른 독점 소리가 알람을 끊지 못하도록 차단
+    if (isExclusive && key !== 'alarm' && this.isAlarmRinging) return;
+
     if (isExclusive) {
         // 기존에 재생 중이던 다른 '중요 소리'가 있다면 멈춤 (예: BGM1 -> BGM2 교체)
         if (this.currentAudio && this.currentAudio !== audio) {
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
         }
+        // 알람은 처음부터 재생되도록 리셋
+        if (key === 'alarm') audio.currentTime = 0;
         this.currentAudio = audio; // ESC로 끄기 위해 등록
     } else {
         // 일반 효과음은 등록하지 않음 (알람/BGM 위에 얹어서 재생)
@@ -8256,7 +8390,7 @@ startGroupShuffle() {
                     this.microphone = this.audioContext.createMediaStreamSource(stream);
                     this.noiseAnalyzer = this.audioContext.createAnalyser();
                     this.noiseAnalyzer.fftSize = 2048;
-                    this.noiseAnalyzer.smoothingTimeConstant = 0.8;
+                    this.noiseAnalyzer.smoothingTimeConstant = 0.92;
                     this.microphone.connect(this.noiseAnalyzer);
                     this.dataArray = new Float32Array(this.noiseAnalyzer.fftSize);
 
@@ -8327,9 +8461,9 @@ startGroupShuffle() {
 
                 // 급격한 변화 완화 (올라갈 때 빠르게, 내려갈 때 천천히)
                 if (rawDb > this.currentVolume) {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.3;
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.12;
                 } else {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.1;
+                    this.currentVolume += (rawDb - this.currentVolume) * 0.04;
                 }
 
                 let calcVol = Math.round(this.currentVolume);
@@ -9584,6 +9718,7 @@ updateClock() {
                 this.miniTime = `${h}:${m}`;
                 this.currentTime = `${h}:${m}.${s}`;
                 this.currentSeconds = s;
+                this.currentTime24s = `${String(now.getHours()).padStart(2,'0')}:${m}:${s}`;
 
                 // 알람 리스트 체크 로직
                 if (this.alarmList && this.alarmList.length > 0) {
@@ -9760,14 +9895,19 @@ triggerAlarm(alarm) {
     // 1. 하던 활동 일시 정지 & 상태 저장
     this.pauseActivities();
 
-    // 2. 화면 강제 표시 + 알람 정보 저장
-    this.isClockMaximized = true;
+    // 2. 이전 화면 상태 저장 + 알람 정보 저장
+    this._alarmPrevClockState = this.isClockMaximized;
+    this.isClockMaximized = true; // 알람창 표시를 위해 시계 전체화면으로 전환
     this.isAlarmRinging = true;
     this.ringingAlarmTime = alarm.time || '';
     this.ringingAlarmLabel = alarm.label || '';
 
-    // 3. 알람 소리 재생
+    // 3. 알람 소리 1번 재생
     this.playSound('alarm', false, 1.0);
+
+    // 4. 18초 후 자동 종료
+    if (this.alarmAutoCloseTimer) clearTimeout(this.alarmAutoCloseTimer);
+    this.alarmAutoCloseTimer = setTimeout(() => { if (this.isAlarmRinging) this.stopAlarm(); }, 18000);
 
     // 알람 ON 상태 유지 (매일 반복)
     this.saveToLocal();
@@ -10597,7 +10737,12 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
                             if (parsed.tabData) this.tabData = parsed.tabData;
                             if (parsed.showCheckedStudentPanel !== undefined) this.showCheckedStudentPanel = parsed.showCheckedStudentPanel;
-                            if (parsed.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, parsed.dashboardSettings);
+                            if (parsed.dashboardSettings) {
+                                const ds = { ...parsed.dashboardSettings };
+                                // Firebase가 배열을 객체로 변환할 수 있으므로 monthlyPlans는 항상 배열로 복원
+                                if (ds.monthlyPlans && !Array.isArray(ds.monthlyPlans)) ds.monthlyPlans = toArray(ds.monthlyPlans);
+                                this.dashboardSettings = Object.assign({}, this.dashboardSettings, ds);
+                            }
 
                             // [4. 판서 실시간 동기화] (내가 지금 타이핑 중이 아닐 때만 덮어씀)
                             const editor = document.getElementById('board-editor');
@@ -11381,6 +11526,10 @@ if(this.allMode) {
     }, 75); // ★ 0.075초마다 이름 바뀜 (총 1.5초)
 },
         // ── 메인 대시보드 메서드 ──
+        getSchoolYear() {
+            const now = new Date();
+            return now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1;
+        },
         openMainDashboard() {
             this.showMainDashboard = true;
             this.updateDashboardTime();
@@ -11388,6 +11537,15 @@ if(this.allMode) {
             this.dashboardInterval = setInterval(() => this.updateDashboardTime(), 1000);
             this.fetchDashboardWeather();
             this.fetchDashboardMeal();
+            // 학년도 바뀌면 이전 공휴일 자동 정리 (버튼으로만 재등록)
+            const curSY = this.getSchoolYear();
+            if (this.dashboardSettings.holidaySchoolYear !== curSY) {
+                const keepKeywords = ['휴업일', '재량휴업일'];
+                this.dashboardSettings.monthlyPlans = (this.dashboardSettings.monthlyPlans || []).filter(p =>
+                    !p.isHoliday || keepKeywords.some(kw => (p.content || '').includes(kw))
+                );
+                this.dashboardSettings.holidaySchoolYear = null;
+            }
         },
         closeMainDashboard() {
             this.showMainDashboard = false;
@@ -11419,10 +11577,16 @@ if(this.allMode) {
                 else if (code >= 95) icon = '⛈️';
                 const pm10 = Math.round(aData.current.pm10);
                 let pm10Level;
-                if (pm10 <= 30) pm10Level = { label: '좋음', color: '#1565c0' };
-                else if (pm10 <= 80) pm10Level = { label: '보통', color: '#2e7d32' };
-                else if (pm10 <= 150) pm10Level = { label: '나쁨', color: '#e65100' };
-                else pm10Level = { label: '매우나쁨', color: '#c62828' };
+                if (pm10 <= 30) pm10Level = { label: '좋음', color: '#e65100', icon: '😄' };
+                else if (pm10 <= 80) pm10Level = { label: '보통', color: '#2e7d32', icon: '🙂' };
+                else if (pm10 <= 150) pm10Level = { label: '나쁨', color: '#e65100', icon: '😷' };
+                else pm10Level = { label: '매우나쁨', color: '#c62828', icon: '🤢' };
+                const pm25 = Math.round(aData.current.pm2_5);
+                let pm25Level;
+                if (pm25 <= 15) pm25Level = { label: '좋음', color: '#e65100', icon: '😄' };
+                else if (pm25 <= 35) pm25Level = { label: '보통', color: '#2e7d32', icon: '🙂' };
+                else if (pm25 <= 75) pm25Level = { label: '나쁨', color: '#e65100', icon: '😷' };
+                else pm25Level = { label: '매우나쁨', color: '#c62828', icon: '🤢' };
                 this.dashboardWeather = {
                     icon,
                     temp: Math.round(wData.current.temperature_2m),
@@ -11430,7 +11594,7 @@ if(this.allMode) {
                     minTemp: Math.round(wData.daily.temperature_2m_min[0]),
                     rainProb: wData.daily.precipitation_probability_max[0],
                     pm10, pm10Level,
-                    pm25: Math.round(aData.current.pm2_5),
+                    pm25, pm25Level,
                     error: false,
                 };
             } catch (e) { this.dashboardWeather = { error: true, icon: '?', temp: '--', maxTemp: '--', minTemp: '--', rainProb: '--', pm10Level: { label: '오류', color: '#ef4444' } }; }
@@ -11475,6 +11639,199 @@ if(this.allMode) {
             const d = parseInt(dateStr.substring(6, 8));
             const dow = new Date(parseInt(dateStr.substring(0,4)), m-1, d).getDay();
             return `${m}/${d}(${'일월화수목금토'[dow]})`;
+        },
+        async fetchDashboardHolidays() {
+            this.isFetchingHolidays = true;
+            const now = new Date();
+            const curYear = now.getFullYear();
+            const fetchYears = [curYear, curYear + 1];
+
+            // 고정 공휴일 (매년 같은 날짜)
+            const fixedHolidays = [
+                { month: 1,  date: 1,  content: '새해' },
+                { month: 3,  date: 1,  content: '삼일절' },
+                { month: 5,  date: 1,  content: '노동자의 날' },
+                { month: 5,  date: 5,  content: '어린이날' },
+                { month: 6,  date: 6,  content: '현충일' },
+                { month: 7,  date: 17, content: '제헌절' },
+                { month: 8,  date: 15, content: '광복절' },
+                { month: 10, date: 3,  content: '개천절' },
+                { month: 10, date: 9,  content: '한글날' },
+                { month: 12, date: 25, content: '성탄절' },
+            ];
+
+            // 공휴일끼리 겹쳐 발생하는 대체공휴일 (자동 계산 불가한 특수 케이스만)
+            const specialSubstitutes = {
+                2025: [
+                    { month: 5, date: 6, content: '어린이날 대체공휴일' }, // 석가탄신일(5/5)과 어린이날 겹침
+                ],
+            };
+
+            // ── 기존 데이터 분류 ──────────────────────────────────────────────
+            const schoolKeywords = ['휴업일', '재량휴업일'];
+            const rawPlans = Array.isArray(this.dashboardSettings.monthlyPlans)
+                ? this.dashboardSettings.monthlyPlans
+                : Object.values(this.dashboardSettings.monthlyPlans || {});
+
+            const keptPlans = [];   // 비공휴일 항목 + 학교 휴업일
+            for (const p of rawPlans) {
+                if (!p.isHoliday) { keptPlans.push(p); continue; }
+                if (schoolKeywords.some(kw => (p.content || '').includes(kw))) { keptPlans.push(p); }
+                // 그 외 기존 공휴일 항목은 전부 폐기 → 아래서 깨끗하게 재등록
+            }
+
+            // ── Set 기반 중복 방지 (타입 불일치 무관) ────────────────────────
+            const holidaySet = new Set(
+                keptPlans.filter(p => p.isHoliday).map(p => `${p.year||curYear}-${p.month}-${p.date}`)
+            );
+            const newHolidays = [];
+            const addHoliday = (year, month, date, content) => {
+                const key = `${year}-${month}-${date}`;
+                if (!holidaySet.has(key)) {
+                    holidaySet.add(key);
+                    newHolidays.push({ year, month, date, content, isHoliday: true });
+                }
+            };
+
+            // ① 고정 공휴일 재등록
+            fetchYears.forEach(year => fixedHolidays.forEach(h => addHoliday(year, h.month, h.date, h.content)));
+
+            // ② 음력 변동 공휴일 자동 계산 (lunar-javascript CDN)
+            // 설날(음력 1/1)·추석(음력 8/15): 연휴 3일 + 주말 겹침 시 대체공휴일 자동 생성
+            // 석가탄신일(음력 4/8): 일요일 겹침 시 다음 월요일 대체공휴일
+            fetchYears.forEach(year => {
+                if (typeof Lunar !== 'undefined') {
+                    // 설날·추석: 연휴 3일 + 주말 겹침 → 대체공휴일
+                    const addLunarRange = (lunarMonth, lunarDay, nameMain) => {
+                        const s = Lunar.fromYmd(year, lunarMonth, lunarDay).getSolar();
+                        const main = new Date(s.getYear(), s.getMonth()-1, s.getDay());
+                        const prev = new Date(main); prev.setDate(main.getDate() - 1);
+                        const next = new Date(main); next.setDate(main.getDate() + 1);
+                        addHoliday(prev.getFullYear(), prev.getMonth()+1, prev.getDate(), nameMain + ' 전날');
+                        addHoliday(main.getFullYear(), main.getMonth()+1, main.getDate(), nameMain);
+                        addHoliday(next.getFullYear(), next.getMonth()+1, next.getDate(), nameMain + ' 다음날');
+                        // 연휴 3일 중 주말 수만큼 대체공휴일 생성 (연휴 마지막 날 다음날부터)
+                        const weekendCount = [prev, main, next].filter(d => d.getDay() === 0 || d.getDay() === 6).length;
+                        if (weekendCount > 0) {
+                            let sub = new Date(next); sub.setDate(next.getDate() + 1);
+                            let added = 0, safety = 0;
+                            while (added < weekendCount && safety++ < 14) {
+                                if (sub.getDay() !== 0 && sub.getDay() !== 6 &&
+                                    !holidaySet.has(`${sub.getFullYear()}-${sub.getMonth()+1}-${sub.getDate()}`)) {
+                                    addHoliday(sub.getFullYear(), sub.getMonth()+1, sub.getDate(), nameMain + ' 대체공휴일');
+                                    added++;
+                                }
+                                sub.setDate(sub.getDate() + 1);
+                            }
+                        }
+                    };
+                    // 석가탄신일: 일요일이면 다음 월요일 대체공휴일
+                    const addBuddha = () => {
+                        const s = Lunar.fromYmd(year, 4, 8).getSolar();
+                        const d = new Date(s.getYear(), s.getMonth()-1, s.getDay());
+                        addHoliday(d.getFullYear(), d.getMonth()+1, d.getDate(), '석가탄신일');
+                        if (d.getDay() === 0) { // 일요일 → 다음 월요일
+                            const sub = new Date(d); sub.setDate(d.getDate() + 1);
+                            if (!holidaySet.has(`${sub.getFullYear()}-${sub.getMonth()+1}-${sub.getDate()}`))
+                                addHoliday(sub.getFullYear(), sub.getMonth()+1, sub.getDate(), '석가탄신일 대체공휴일');
+                        }
+                    };
+                    addLunarRange(1, 1, '설날');
+                    addLunarRange(8, 15, '추석');
+                    addBuddha();
+                }
+                // 특수 대체공휴일 (공휴일끼리 겹치는 경우 등 자동 계산 불가)
+                (specialSubstitutes[year] || []).forEach(h => addHoliday(year, h.month, h.date, h.content));
+            });
+
+            // ②-1 고정 공휴일 주말 겹침 시 대체공휴일 자동 계산
+            // 대상: 삼일절·어린이날·광복절·개천절·한글날 (현충일·노동자의날 등은 대체공휴일 비대상)
+            const substituteEligible = [
+                { month: 3, date: 1, content: '삼일절' },
+                { month: 5, date: 5, content: '어린이날' },
+                { month: 8, date: 15, content: '광복절' },
+                { month: 10, date: 3, content: '개천절' },
+                { month: 10, date: 9, content: '한글날' },
+            ];
+            fetchYears.forEach(year => {
+                substituteEligible.forEach(h => {
+                    const dow = new Date(year, h.month - 1, h.date).getDay(); // 0=일, 6=토
+                    if (dow !== 0 && dow !== 6) return; // 평일이면 대체 불필요
+                    // 토요일 → +2일(월), 일요일 → +1일(월)
+                    let sub = new Date(year, h.month - 1, h.date + (dow === 6 ? 2 : 1));
+                    // 대체일이 이미 공휴일이면 그 다음 평일로 밀기
+                    let safety = 0;
+                    while (holidaySet.has(`${sub.getFullYear()}-${sub.getMonth()+1}-${sub.getDate()}`) && safety++ < 7) {
+                        sub.setDate(sub.getDate() + 1);
+                    }
+                    addHoliday(sub.getFullYear(), sub.getMonth() + 1, sub.getDate(), `${h.content} 대체공휴일`);
+                });
+            });
+
+            // ③ date.nager.at API 보완 (하드코딩에 없는 연도 또는 추가 항목)
+            let apiSuccess = false;
+            try {
+                for (const y of fetchYears) {
+                    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/KR`);
+                    if (!res.ok) continue;
+                    const holidays = await res.json();
+                    if (!Array.isArray(holidays) || holidays.length === 0) continue;
+                    apiSuccess = true;
+                    const sorted = [...holidays].sort((a, b) => a.date.localeCompare(b.date));
+                    const resolved = sorted.map((h, i) => {
+                        const localName = h.localName || h.name || '';
+                        const isSubstitute = localName === '대체공휴일' || (h.name || '').toLowerCase().includes('substitute');
+                        if (!isSubstitute) return { date: h.date, content: localName };
+                        for (let j = i - 1; j >= 0; j--) {
+                            const prevName = sorted[j].localName || sorted[j].name || '';
+                            if (!prevName.includes('대체공휴일') && !(sorted[j].name || '').toLowerCase().includes('substitute'))
+                                return { date: h.date, content: `${prevName} 대체공휴일` };
+                        }
+                        return { date: h.date, content: '대체공휴일' };
+                    });
+                    resolved.forEach(h => {
+                        const parts = h.date.split('-');
+                        if (parts.length < 3) return;
+                        addHoliday(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]), h.content);
+                    });
+                }
+            } catch (e) { console.warn('공휴일 API 조회 실패:', e); }
+
+            // ④ NEIS 학교 휴업일
+            const key = this.dashboardSettings.neisApiKey;
+            const schoolName = this.dashboardSettings.schoolName;
+            if (key && schoolName) {
+                try {
+                    const schoolRes = await fetch(`https://open.neis.go.kr/hub/schoolInfo?KEY=${key}&Type=json&SCHUL_NM=${encodeURIComponent(schoolName)}`);
+                    const schoolData = await schoolRes.json();
+                    const school = schoolData.schoolInfo?.[1]?.row?.[0];
+                    if (school) {
+                        const from = `${curYear}0101`, to = `${curYear + 1}0228`;
+                        const calRes = await fetch(`https://open.neis.go.kr/hub/SchulCalendInfo?KEY=${key}&Type=json&ATPT_OFCDC_SC_CODE=${school.ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${school.SD_SCHUL_CODE}&AA_FROM_YMD=${from}&AA_TO_YMD=${to}&pSize=300`);
+                        const calData = await calRes.json();
+                        (calData.SchulCalendInfo?.[1]?.row || []).forEach(r => {
+                            const eventName = r.EVENT_NM || '';
+                            if (!['휴업일','대체휴업일','재량휴업일','공휴일'].some(kw => eventName.includes(kw))) return;
+                            const ymd = r.AA_YMD || '';
+                            if (ymd.length < 8) return;
+                            addHoliday(parseInt(ymd.substring(0,4)), parseInt(ymd.substring(4,6)), parseInt(ymd.substring(6,8)), eventName);
+                        });
+                    }
+                } catch (e) { console.warn('학사일정 조회 실패:', e); }
+            }
+
+            // 학년도 범위 초과 항목 제거: curYear+1년은 1~2월만 유지 (3월부터는 다음 학년도)
+            const trimmedHolidays = newHolidays.filter(h =>
+                h.year === curYear || (h.year === curYear + 1 && h.month <= 2)
+            );
+            const plans = [...keptPlans, ...trimmedHolidays];
+            plans.sort((a, b) => ((a.year || curYear) - (b.year || curYear)) || (a.month - b.month) || (a.date - b.date));
+            this.dashboardSettings.monthlyPlans = plans;
+            this.dashboardSettings.holidaySchoolYear = this.getSchoolYear(); // 학년도 기록
+            this.saveToLocal();
+            this.isFetchingHolidays = false;
+            this.notificationMsg = '공휴일을 불러왔습니다!';
+            setTimeout(() => { this.notificationMsg = ''; }, 3000);
         },
         saveDashboardSettings() {
             this.saveToLocal();
@@ -11527,8 +11884,20 @@ if(this.allMode) {
         dashboardBulkAddPlans() {
             const lines = (this.dashboardBulkPasteText || '').split('\n').map(l => l.trim()).filter(Boolean);
             let added = 0;
-            const daysInMonth = (m, y) => new Date(y || new Date().getFullYear(), m, 0).getDate();
+            const curYear = new Date().getFullYear();
+            const daysInMonth = (m, y) => new Date(y || curYear, m, 0).getDate();
             lines.forEach(line => {
+                // 년도 포함 단일 날짜: 2027/1/2 내용, 2027.1.2 내용
+                const ymdM = line.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})[일]?\s+(.+)/);
+                if (ymdM) {
+                    const year = parseInt(ymdM[1]), month = parseInt(ymdM[2]), date = parseInt(ymdM[3]);
+                    const content = ymdM[4].trim();
+                    if (year >= 2024 && month >= 1 && month <= 12 && date >= 1 && date <= 31 && content) {
+                        this.dashboardSettings.monthlyPlans.push({ year, month, date, content });
+                        added++;
+                    }
+                    return;
+                }
                 // 연속 날짜 범위: 3/31~4/2 또는 3.31~4.2 행사명
                 const rangeM = line.match(/^(\d{1,2})[\/\.](\d{1,2})\s*[~\-]\s*(\d{1,2})[\/\.](\d{1,2})\s+(.+)/);
                 if (rangeM) {
@@ -11536,14 +11905,12 @@ if(this.allMode) {
                     let em = parseInt(rangeM[3]), ed = parseInt(rangeM[4]);
                     const content = rangeM[5].trim();
                     if (content && sm >= 1 && sm <= 12 && em >= 1 && em <= 12) {
-                        const year = new Date().getFullYear();
-                        let curM = sm, curD = sd;
-                        let safety = 0;
+                        let curM = sm, curD = sd, safety = 0;
                         while ((curM < em || (curM === em && curD <= ed)) && safety++ < 100) {
                             this.dashboardSettings.monthlyPlans.push({ month: curM, date: curD, content });
                             added++;
                             curD++;
-                            if (curD > daysInMonth(curM, year)) { curD = 1; curM++; }
+                            if (curD > daysInMonth(curM, curYear)) { curD = 1; curM++; }
                         }
                     }
                     return;
@@ -11551,8 +11918,7 @@ if(this.allMode) {
                 // 단일 날짜: 4/1 내용, 4월1일 내용, 4.1 내용
                 const m = line.match(/^(\d{1,2})[\/월\.\-](\d{1,2})[일\.\-]?\s*(.+)/);
                 if (m) {
-                    const month = parseInt(m[1]);
-                    const date = parseInt(m[2]);
+                    const month = parseInt(m[1]), date = parseInt(m[2]);
                     const content = m[3].trim();
                     if (month >= 1 && month <= 12 && date >= 1 && date <= 31 && content) {
                         this.dashboardSettings.monthlyPlans.push({ month, date, content });
@@ -11561,7 +11927,8 @@ if(this.allMode) {
                 }
             });
             if (added > 0) {
-                this.dashboardSettings.monthlyPlans.sort((a, b) => a.month !== b.month ? a.month - b.month : a.date - b.date);
+                const cy = new Date().getFullYear();
+                this.dashboardSettings.monthlyPlans.sort((a, b) => ((a.year||cy)-(b.year||cy)) || (a.month-b.month) || (a.date-b.date));
                 this.dashboardBulkPasteText = '';
                 this.saveToLocal();
                 this.showToast(`📅 ${added}개 일정이 추가되었습니다`);

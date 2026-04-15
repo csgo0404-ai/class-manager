@@ -1785,11 +1785,12 @@ body .blackboard-editor u { text-decoration: underline !important; }
 .dash-scroll::-webkit-scrollbar-track { background: transparent; }
 .dash-scroll::-webkit-scrollbar-thumb { background: #d7c4b0; border-radius: 10px; }
 .dash-scroll::-webkit-scrollbar-thumb:hover { background: #a1887f; }
+.supplement-marked { text-decoration: line-through !important; color: #9e9e9e !important; background: #f5f5f5 !important; border-color: #bdbdbd !important; }
 
 /* 알림장 미리보기: 우리반 매니저 제목(30px) 수준으로 고정 */
-.dash-preview { font-size: 50px; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; }
-.dash-preview font[size] { font-size: 50px !important; }
-.dash-preview * { font-size: 50px !important; }
+.dash-preview { font-size: 40px; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; color: #5d4037; }
+.dash-preview font[size] { font-size: 40px !important; }
+.dash-preview * { font-size: 40px !important; color: #5d4037 !important; }
 .dash-preview b, .dash-preview strong { font-weight: 900 !important; }
 .dash-preview i, .dash-preview em { font-style: italic !important; }
 .dash-preview u { text-decoration: underline !important; }
@@ -2653,73 +2654,71 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
 
     <div v-if="showAlarmModal" class="absolute inset-0 bg-black/80 z-[100000] flex items-center justify-center backdrop-blur-sm" @click.stop="showAlarmModal = false">
-        <div class="bg-white rounded-[3rem] p-10 w-[600px] max-h-[85vh] shadow-2xl flex flex-col animate-pop-in border-8 border-slate-200" @click.stop>
-            <div class="flex items-center justify-between mb-8 pb-4 border-b-2 border-slate-100">
+        <div class="bg-white rounded-[3rem] p-8 shadow-2xl animate-pop-in border-8 border-slate-200 flex flex-col" style="width:min(900px,95vw);max-height:90vh;" @click.stop>
+            <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-slate-100 flex-shrink-0">
                 <h3 class="text-4xl font-black text-slate-800 flex items-center gap-3"><span class="text-5xl">🔔</span> 알람 설정</h3>
                 <button @click="showAlarmModal = false" class="text-slate-400 hover:text-slate-600 text-4xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
-            <div class="flex gap-4 mb-4 items-center justify-center bg-slate-100 p-6 rounded-[2rem] border-4 border-slate-200">
-                <input type="text" inputmode="numeric" maxlength="2" v-model="alarmHour" @blur="padTime('alarmHour')" @focus="focusInput" @keydown.enter="addAlarm"
-                       class="bg-white text-7xl font-black text-slate-800 text-center rounded-2xl w-40 h-32 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
-                <span class="text-6xl font-black text-slate-400 pb-2">:</span>
-                <input type="text" inputmode="numeric" maxlength="2" v-model="alarmMinute" @blur="padTime('alarmMinute')" @focus="focusInput" @keydown.enter="addAlarm"
-                       class="bg-white text-7xl font-black text-slate-800 text-center rounded-2xl w-40 h-32 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
-            </div>
 
-            <!-- 알람 메모 입력 -->
-            <div class="mb-4 px-1">
-                <input type="text" v-model="alarmLabel" @mousedown.stop @focus="focusInput" @keydown.enter="addAlarm"
-                       placeholder="메모 (선택 사항)"
-                       class="w-full bg-slate-100 text-slate-700 font-bold text-xl text-center rounded-2xl px-4 py-3 outline-none border-4 border-transparent focus:border-blue-400 transition-colors placeholder-slate-300">
-            </div>
-
-            <!-- 요일 반복 선택 -->
-            <div class="flex gap-2 justify-center mb-4">
-                <button v-for="(dayLabel, dayIdx) in ['일','월','화','수','목','금','토']" :key="dayIdx"
-                        @click="toggleAlarmDay(dayIdx)"
-                        class="w-11 h-11 rounded-full font-black text-base transition-all active:scale-90"
-                        :class="alarmDays.includes(dayIdx) ? (dayIdx===0 ? 'bg-red-500 text-white shadow-md' : dayIdx===6 ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-600 text-white shadow-md') : 'bg-slate-100 text-slate-400 hover:bg-slate-200'">
-                    {{ dayLabel }}
-                </button>
-            </div>
-
-            <div class="flex gap-3 mb-3">
-                <button @click="addAlarm" class="flex-1 text-white py-4 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-transform"
-                        :class="editingAlarmIndex !== null ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'">
-                    {{ editingAlarmIndex !== null ? '수정 완료' : '알람 추가' }}
-                </button>
-                <button v-if="editingAlarmIndex !== null" @click="cancelEdit" class="bg-slate-400 text-white w-32 rounded-2xl font-black text-2xl hover:bg-slate-500 shadow-lg active:scale-95 transition-transform">취소</button>
-            </div>
-
-            <!-- 시간표에서 알람 추가 -->
-            <button @click="addTimetableAlarms" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-lg hover:bg-emerald-100 transition-all mb-4 border-2 border-emerald-200 active:scale-95">
-                📅 수업 시작 알람 추가
-            </button>
-
-            <div class="overflow-y-auto custom-scrollbar flex flex-col gap-3 max-h-[260px] border-t-2 border-slate-100 pt-4">
-                <div v-if="alarmList.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400 opacity-50 py-4">
-                    <i class="fa-regular fa-clock text-6xl mb-4"></i><span class="font-bold text-xl">등록된 알람이 없습니다</span>
-                </div>
-                <div v-for="(alarm, idx) in alarmList" :key="idx" class="flex items-start justify-between p-4 rounded-3xl border-4 transition-all hover:border-blue-300 cursor-pointer group"
-                     :class="[alarm.on ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-100 opacity-60', editingAlarmIndex === idx ? 'ring-4 ring-green-400 scale-[1.02] bg-white' : '']"
-                     @click="startEditAlarm(idx)">
-                    <div class="flex flex-col gap-1">
-                        <span class="text-4xl font-black text-slate-800 font-mono tracking-tighter">{{ alarm.time }}</span>
-                        <div class="flex gap-1 flex-wrap">
-                            <span v-for="d in (alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6])" :key="d"
-                                  class="text-xs font-black px-2 py-0.5 rounded-full"
-                                  :class="d===0?'bg-red-100 text-red-600':(d===6?'bg-blue-100 text-blue-600':'bg-slate-100 text-slate-600')">
-                                {{ ['일','월','화','수','목','금','토'][d] }}
-                            </span>
-                            <span v-if="alarm.label" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 max-w-[180px] truncate" :title="alarm.label">{{ alarm.label }}</span>
-                        </div>
+            <div class="flex gap-6 flex-1 overflow-hidden min-h-0">
+                <!-- 왼쪽: 입력 영역 -->
+                <div class="flex flex-col gap-3 flex-shrink-0" style="width:320px;">
+                    <div class="flex gap-4 items-center justify-center bg-slate-100 p-5 rounded-[2rem] border-4 border-slate-200">
+                        <input type="text" inputmode="numeric" maxlength="2" v-model="alarmHour" @blur="padTime('alarmHour')" @focus="focusInput" @keydown.enter="addAlarm"
+                               class="bg-white text-6xl font-black text-slate-800 text-center rounded-2xl w-32 h-28 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
+                        <span class="text-5xl font-black text-slate-400 pb-2">:</span>
+                        <input type="text" inputmode="numeric" maxlength="2" v-model="alarmMinute" @blur="padTime('alarmMinute')" @focus="focusInput" @keydown.enter="addAlarm"
+                               class="bg-white text-6xl font-black text-slate-800 text-center rounded-2xl w-32 h-28 outline-none border-4 border-transparent focus:border-blue-500 transition-colors placeholder-slate-300 shadow-sm" placeholder="00">
                     </div>
-                    <div class="flex items-center gap-3" @click.stop>
-                        <button @click="toggleAlarm(idx)" class="w-14 h-9 rounded-full flex items-center transition-colors p-1 shrink-0" :class="alarm.on ? 'bg-green-500' : 'bg-slate-300'">
-                            <div class="w-7 h-7 bg-white rounded-full shadow-sm transition-transform" :class="alarm.on ? 'translate-x-5' : 'translate-x-0'"></div>
+                    <input type="text" v-model="alarmLabel" @mousedown.stop @focus="focusInput" @keydown.enter="addAlarm"
+                           placeholder="메모 (선택 사항)"
+                           class="bg-slate-100 text-slate-700 font-bold text-lg text-center rounded-2xl px-4 py-3 outline-none border-4 border-transparent focus:border-blue-400 transition-colors placeholder-slate-300">
+                    <div class="flex gap-2 justify-center">
+                        <button v-for="(dayLabel, dayIdx) in ['일','월','화','수','목','금','토']" :key="dayIdx"
+                                @click="toggleAlarmDay(dayIdx)"
+                                class="w-10 h-10 rounded-full font-black text-sm transition-all active:scale-90"
+                                :class="alarmDays.includes(dayIdx) ? (dayIdx===0 ? 'bg-red-500 text-white shadow-md' : dayIdx===6 ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-600 text-white shadow-md') : 'bg-slate-100 text-slate-400 hover:bg-slate-200'">
+                            {{ dayLabel }}
                         </button>
-                        <button @click="removeAlarm(idx)" class="w-10 h-10 rounded-full bg-red-50 text-red-300 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-lg"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <div class="flex gap-3">
+                        <button @click="addAlarm" class="flex-1 text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform"
+                                :class="editingAlarmIndex !== null ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'">
+                            {{ editingAlarmIndex !== null ? '수정 완료' : '알람 추가' }}
+                        </button>
+                        <button v-if="editingAlarmIndex !== null" @click="cancelEdit" class="bg-slate-400 text-white w-24 rounded-2xl font-black text-xl hover:bg-slate-500 shadow-lg active:scale-95 transition-transform">취소</button>
+                    </div>
+                    <button @click="addTimetableAlarms" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-base hover:bg-emerald-100 transition-all border-2 border-emerald-200 active:scale-95">
+                        📅 수업 시작 알람 추가
+                    </button>
+                </div>
+
+                <!-- 오른쪽: 알람 목록 -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 min-h-0">
+                    <div class="text-sm font-black text-slate-400 mb-1">등록된 알람 ({{ alarmList.length }}개)</div>
+                    <div v-if="alarmList.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400 opacity-50 py-8">
+                        <i class="fa-regular fa-clock text-6xl mb-4"></i><span class="font-bold text-xl">등록된 알람이 없습니다</span>
+                    </div>
+                    <div v-for="(alarm, idx) in alarmList" :key="idx" class="flex items-start justify-between p-4 rounded-3xl border-4 transition-all hover:border-blue-300 cursor-pointer group"
+                         :class="[alarm.on ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-100 opacity-60', editingAlarmIndex === idx ? 'ring-4 ring-green-400 scale-[1.02] bg-white' : '']"
+                         @click="startEditAlarm(idx)">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-4xl font-black text-slate-800 font-mono tracking-tighter">{{ alarm.time }}</span>
+                            <div class="flex gap-1 flex-wrap">
+                                <span v-for="d in (alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6])" :key="d"
+                                      class="text-xs font-black px-2 py-0.5 rounded-full"
+                                      :class="d===0?'bg-red-100 text-red-600':(d===6?'bg-blue-100 text-blue-600':'bg-slate-100 text-slate-600')">
+                                    {{ ['일','월','화','수','목','금','토'][d] }}
+                                </span>
+                                <span v-if="alarm.label" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 max-w-[180px] truncate" :title="alarm.label">{{ alarm.label }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3" @click.stop>
+                            <button @click="toggleAlarm(idx)" class="w-14 h-9 rounded-full flex items-center transition-colors p-1 shrink-0" :class="alarm.on ? 'bg-green-500' : 'bg-slate-300'">
+                                <div class="w-7 h-7 bg-white rounded-full shadow-sm transition-transform" :class="alarm.on ? 'translate-x-5' : 'translate-x-0'"></div>
+                            </button>
+                            <button @click="removeAlarm(idx)" class="w-10 h-10 rounded-full bg-red-50 text-red-300 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-lg"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2761,7 +2760,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                           title="요청 알림">🏫<span v-if="allRequests.length > 0"
                               class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
                     </span>
-                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메인화면 / 우클릭: 설정" @contextmenu.prevent.stop="openSettings">우리반 매니저</h1>
+                    <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메인화면" @contextmenu.prevent.stop>우리반 매니저</h1>
                 </div>
                 <!-- 🔔 클릭 투과 방지 오버레이 -->
                 <div v-if="showKioskRequests" class="fixed inset-0 z-[49]" @click="showKioskRequests = false" @mousedown.stop @touchstart.stop></div>
@@ -3815,114 +3814,115 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 
                 
-<div v-if="showSettings" class="fixed inset-0 bg-stone-900/60 z-[5000] flex items-center justify-center backdrop-blur-sm" @click.self="showSettings = false">
-    <div class="bg-[#fffdf0] w-full max-w-2xl rounded-[3.5rem] p-10 shadow-[0_20px_50px_rgba(120,66,18,0.2)] relative overflow-hidden border-[6px] border-[#e7d5b1]">
-        
-        <div class="flex justify-between items-start mb-8">
-            <div>
-                <h2 class="text-3xl font-black mb-2 text-[#5d4037] flex items-center gap-2" style="font-family: 'Jua', sans-serif;">
-                    <span>🍪</span> 명단 관리
-                </h2>
-                <p class="text-[#8d6e63] text-sm font-bold leading-relaxed">
-                    번호, 이름, 성별 순서로 입력해 주세요.<br>
-                    <span class="opacity-70">(예: 1 홍길동 남)</span>
-                </p>
-            </div>
-
-            <div class="flex gap-4">
-                <button @click="soundSettings.ui = !soundSettings.ui" 
-                        class="w-16 h-16 rounded-[1.5rem] transition-all active:translate-y-1 border-b-[6px] flex flex-col items-center justify-center"
-                        :class="soundSettings.ui ? 'bg-[#7dd3fc] border-[#38bdf8] text-white' : 'bg-stone-200 border-stone-300 text-stone-400 shadow-inner'">
-                    <i :class="soundSettings.ui ? 'fa-solid fa-volume-high text-2xl' : 'fa-solid fa-volume-xmark text-2xl'"></i>
-                    <span class="text-[10px] mt-1 font-black">효과음</span>
-                </button>
-
-                <button @click="soundSettings.game = !soundSettings.game" 
-                        class="w-16 h-16 rounded-[1.5rem] transition-all active:translate-y-1 border-b-[6px] flex flex-col items-center justify-center"
-                        :class="soundSettings.game ? 'bg-[#c084fc] border-[#a855f7] text-white' : 'bg-stone-200 border-stone-300 text-stone-400 shadow-inner'">
-                    <i :class="soundSettings.game ? 'fa-solid fa-music text-2xl' : 'fa-solid fa-bell-slash text-2xl'"></i>
-                    <span class="text-[10px] mt-1 font-black">배경음</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="w-full h-44 rounded-[2rem] border-[4px] border-dashed border-[#a1887f] mb-8 overflow-hidden bg-white shadow-inner p-1">
-            <textarea v-model="tempNameList" 
-                      class="w-full h-full p-5 outline-none text-lg font-bold text-[#5d4037] resize-none custom-scrollbar bg-transparent leading-relaxed" 
-                      placeholder="1 홍길동 남"></textarea>
-        </div>
-        
-        <div class="p-6 bg-[#fff9db] rounded-[2.5rem] border-4 border-[#ffec99] relative mb-8">
-            <h4 class="text-sm font-black text-[#856404] mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-box-archive"></i> 데이터 금고
-            </h4>
-            <div class="flex gap-3">
-                <button @click="exportData" class="flex-1 bg-[#fcc419] border-b-4 border-[#fab005] text-[#744210] py-4 rounded-2xl font-black text-sm hover:brightness-105 transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-file-export"></i> 내보내기
-                </button>
-                <button @click="$refs.fileInput.click()" class="flex-1 bg-[#69db7c] border-b-4 border-[#40c057] text-[#1a4721] py-4 rounded-2xl font-black text-sm hover:brightness-105 transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-file-import"></i> 불러오기
-                </button>
-                <input type="file" ref="fileInput" class="hidden" accept=".json" @change="importData">
-            </div>
-        </div>
-
-        <div class="flex justify-center">
-             <button @click="saveNameList" 
-                     class="w-2/3 py-5 rounded-[2rem] font-black text-xl transition-all active:translate-y-1 bg-[#fb923c] border-b-[8px] border-[#f97316] text-white hover:brightness-105 shadow-orange-200">
-                 저장
-             </button>
-        </div>
-    </div>
-</div>
 
 <!-- ══════════ 메인 대시보드 ══════════ -->
 <div v-if="showMainDashboard" class="fixed top-0 bottom-0 right-0 z-[8900] flex flex-col" style="left:320px; background:#ffffff; font-family:'Jua',sans-serif; overflow:hidden; font-size:16px;">
 
     <!-- 설정 패널 -->
     <div v-if="dashboardShowSettings" class="flex-shrink-0 bg-[#fffdf0] border-b-4 border-[#e7d5b1] px-4 py-3 overflow-y-auto dash-scroll" style="max-height:55vh;">
-        <div class="flex gap-2 mb-3 flex-wrap">
-            <button v-for="t in [{k:'info',l:'기본 정보'},{k:'timetable',l:'시간표'},{k:'schedule',l:'수업 시간'},{k:'links',l:'단축링크'},{k:'plans',l:'교육활동'}]" :key="t.k"
-                    @click="dashboardSettingsTab = t.k"
-                    class="px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all"
+        <div class="flex gap-1.5 mb-3 flex-wrap items-center">
+            <button v-for="t in [{k:'info',l:'기본 정보'},{k:'timetable',l:'시간표'},{k:'links',l:'단축링크'},{k:'plans',l:'교육활동'}]" :key="t.k"
+                    @click="dashboardSettingsTab = t.k; if(t.k==='info') openStudentTab()"
+                    class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all"
                     :class="dashboardSettingsTab===t.k ? 'bg-[#5d4037] text-white border-[#3e2723]' : 'bg-white text-[#5d4037] border-[#e7d5b1]'">
                 {{ t.l }}
             </button>
-            <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
-                    class="ml-auto px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all"
-                    :class="dashboardSettings.hidePastPlans ? 'bg-[#e0f2f1] border-[#80cbc4] text-[#00796b] hover:bg-[#b2dfdb]' : 'bg-[#fff9c4] border-[#f9a825] text-[#f57f17] hover:bg-[#fff59d]'"
-                    :title="dashboardSettings.hidePastPlans ? '지난 일정 숨기는 중 (클릭 시 모두 표시)' : '지난 일정 표시 중 (클릭 시 숨기기)'">
-                {{ dashboardSettings.hidePastPlans ? '👁 모두 보기' : '🙈 숨기기' }}
-            </button>
-            <button @click="fetchDashboardHolidays()"
-                    :disabled="isFetchingHolidays"
-                    class="px-3 py-1.5 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
-                    :class="isFetchingHolidays ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-wait' : 'bg-[#fff3e0] border-[#ffb74d] text-[#e65100] hover:bg-[#ffe0b2]'">
-                <span v-if="isFetchingHolidays">⏳</span>
-                <span v-else>📅 공휴일 불러오기</span>
-            </button>
-            <button @click="saveDashboardSettings(); dashboardShowSettings=false" class="px-3 py-1.5 rounded-xl font-black text-xs bg-[#ef9a9a] border-b-4 border-[#e57373] text-white hover:bg-[#e57373] transition-all">×</button>
+            <!-- 우측 버튼들 (탭에 따라 조건부 표시) -->
+            <div class="ml-auto flex gap-1.5 items-center">
+                <template v-if="dashboardSettingsTab==='info'">
+                    <button @click="soundSettings.ui = !soundSettings.ui"
+                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
+                            :class="soundSettings.ui ? 'bg-[#7dd3fc] border-[#38bdf8] text-white' : 'bg-white text-slate-400 border-slate-200'">
+                        <i :class="soundSettings.ui ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark'"></i> 효과음
+                    </button>
+                    <button @click="soundSettings.game = !soundSettings.game"
+                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
+                            :class="soundSettings.game ? 'bg-[#c084fc] border-[#a855f7] text-white' : 'bg-white text-slate-400 border-slate-200'">
+                        <i :class="soundSettings.game ? 'fa-solid fa-music' : 'fa-solid fa-bell-slash'"></i> 배경음
+                    </button>
+                </template>
+                <template v-if="dashboardSettingsTab==='plans'">
+                    <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
+                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all"
+                            :class="dashboardSettings.hidePastPlans ? 'bg-[#e0f2f1] border-[#80cbc4] text-[#00796b] hover:bg-[#b2dfdb]' : 'bg-[#fff9c4] border-[#f9a825] text-[#f57f17] hover:bg-[#fff59d]'">
+                        {{ dashboardSettings.hidePastPlans ? '👁 모두 보기' : '🙈 숨기기' }}
+                    </button>
+                    <button @click="fetchDashboardHolidays()"
+                            :disabled="isFetchingHolidays"
+                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
+                            :class="isFetchingHolidays ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-wait' : 'bg-[#fff3e0] border-[#ffb74d] text-[#e65100] hover:bg-[#ffe0b2]'">
+                        <span v-if="isFetchingHolidays">⏳</span>
+                        <span v-else>📅 공휴일</span>
+                    </button>
+                </template>
+                <button @click="saveDashboardSettings(); dashboardShowSettings=false" class="px-2 py-1 rounded-xl font-black text-xs bg-[#ef9a9a] border-b-4 border-[#e57373] text-white hover:bg-[#e57373] transition-all">×</button>
+            </div>
         </div>
-        <div v-if="dashboardSettingsTab==='info'" class="grid grid-cols-2 gap-3">
-            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">NEIS API 키</label><input v-model="dashboardSettings.neisApiKey" type="text" placeholder="나이스 API 키" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
-            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">학교 이름</label><input v-model="dashboardSettings.schoolName" type="text" placeholder="예: 남산초등학교" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
-            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">위도</label><input v-model="dashboardSettings.lat" type="text" placeholder="37.5665" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
-            <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">경도</label><input v-model="dashboardSettings.lon" type="text" placeholder="126.9780" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
-        </div>
-        <div v-if="dashboardSettingsTab==='timetable'">
-            <p class="text-xs text-[#a1887f] font-bold mb-2">※ 이동 수업은 과목 뒤에 * 를 붙여 주세요 (예: 체육*)</p>
-            <div class="overflow-x-auto"><table class="w-full border-collapse text-xs"><thead><tr class="bg-[#f5e6d0]"><th class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">교시</th><th v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">{{day}}</th></tr></thead><tbody><tr v-for="(_, pIdx) in dashboardSettings.timetable['월']" :key="pIdx" :class="pIdx%2===0?'bg-white':'bg-[#fdf8ef]'"><td class="border border-[#e7d5b1] px-2 py-1 text-center font-black text-[#8d6e63]">{{pIdx+1}}교시</td><td v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-1 py-0.5"><input v-model="dashboardSettings.timetable[day][pIdx]" type="text" placeholder="과목" class="w-full px-1 py-0.5 text-center text-xs font-bold text-[#5d4037] outline-none bg-transparent focus:bg-yellow-50 rounded"></td></tr></tbody></table></div>
-            <div class="flex gap-2 mt-2"><button @click="dashboardAddPeriod()" class="px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 교시 추가</button><button @click="dashboardRemovePeriod()" v-if="(dashboardSettings.timetable['월']||[]).length>1" class="px-3 py-1 rounded-lg bg-[#ffcdd2] border-b-2 border-[#ef9a9a] text-[#c62828] font-black text-xs">- 삭제</button></div>
-        </div>
-        <div v-if="dashboardSettingsTab==='schedule'" class="flex flex-col gap-2">
-            <div class="grid grid-cols-4 gap-2">
-                <div v-for="(item, idx) in dashboardSettings.timeSchedule" :key="idx" class="flex items-center gap-1 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
-                    <input v-model="item.label" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="레이블">
-                    <input v-model="item.startTime" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="HH:MM">
-                    <button @click="dashboardSettings.timeSchedule.splice(idx,1)" class="text-[#ef9a9a] font-black text-xs ml-auto">✕</button>
+        <div v-if="dashboardSettingsTab==='info'" class="flex gap-4">
+            <!-- 왼쪽: 기본 정보 + 기능 버튼 -->
+            <div class="flex flex-col gap-2" style="flex:1;">
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-1 col-span-2"><label class="text-xs font-black text-[#8d6e63]">NEIS API 키</label><input v-model="dashboardSettings.neisApiKey" type="text" placeholder="나이스 API 키" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+                    <div class="flex flex-col gap-1 col-span-2">
+                        <label class="text-xs font-black text-[#8d6e63]">학교 이름</label>
+                        <div class="flex gap-1">
+                            <input v-model="dashboardSettings.schoolName" type="text" placeholder="예: 중앙초등학교" class="flex-1 px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white" @keydown.enter="searchSchool">
+                            <button @click="searchSchool" class="px-2 py-1 rounded-xl bg-[#fff3e0] border-b-2 border-[#ffb74d] text-[#e65100] font-black text-xs hover:bg-[#ffe0b2]">검색</button>
+                        </div>
+                        <div v-if="dashboardSettings.neisSchoolCode" class="text-[10px] text-[#00796b] font-bold">✓ {{ dashboardSettings.neisSchoolCode.name }} 선택됨</div>
+                        <div v-if="showSchoolPicker && schoolPickerResults.length > 0" class="mt-1 bg-white border-2 border-[#ffb74d] rounded-xl shadow-lg max-h-32 overflow-y-auto">
+                            <div v-for="s in schoolPickerResults" :key="s.SD_SCHUL_CODE"
+                                 @click="selectSchool(s)"
+                                 class="px-3 py-1.5 text-xs font-bold text-[#5d4037] hover:bg-[#fff3e0] cursor-pointer border-b border-[#f5e6d0] last:border-0">
+                                {{ s.SCHUL_NM }} <span class="text-[#a1887f] font-normal">{{ s.ORG_RDNMA || s.LCTN_SC_NM }}</span>
+                            </div>
+                        </div>
+                        <div v-if="showSchoolPicker && schoolPickerResults.length === 0" class="text-[10px] text-red-500 font-bold">검색 결과가 없습니다. 학교명을 확인해 주세요.</div>
+                    </div>
+                    <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">위도</label><input v-model="dashboardSettings.lat" type="text" placeholder="37.5665" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+                    <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">경도</label><input v-model="dashboardSettings.lon" type="text" placeholder="126.9780" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
+                </div>
+                <!-- 내보내기/불러오기 -->
+                <div class="flex gap-2">
+                    <button @click="exportData" class="flex-1 bg-[#fcc419] border-b-4 border-[#fab005] text-[#744210] py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-file-export"></i> 내보내기
+                    </button>
+                    <button @click="$refs.fileInput.click()" class="flex-1 bg-[#69db7c] border-b-4 border-[#40c057] text-[#1a4721] py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-file-import"></i> 불러오기
+                    </button>
+                    <input type="file" ref="fileInput" class="hidden" accept=".json" @change="importData">
                 </div>
             </div>
-            <button @click="dashboardSettings.timeSchedule.push({label:'N교시',startTime:'00:00'})" class="self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
+            <!-- 오른쪽: 학생 관리 -->
+            <div class="flex flex-col gap-2" style="flex:1;">
+                <p class="text-xs font-black text-[#8d6e63]">학생 명단 <span class="font-normal text-[#a1887f]">(번호 이름 성별 · 예: 1 홍길동 남)</span></p>
+                <textarea v-model="tempNameList"
+                          class="flex-1 p-3 rounded-xl border-2 border-dashed border-[#a1887f] text-xs font-bold text-[#5d4037] resize-none outline-none bg-white leading-relaxed" style="min-height:120px;"
+                          placeholder="1 홍길동 남"></textarea>
+                <button @click="saveNameList(); saveDashboardSettings(); dashboardShowSettings=false"
+                        class="py-2 rounded-xl font-black text-sm bg-[#fb923c] border-b-4 border-[#f97316] text-white hover:brightness-105 transition-all">
+                    💾 학생 목록 저장
+                </button>
+            </div>
+        </div>
+        <div v-if="dashboardSettingsTab==='timetable'" class="flex flex-col gap-3">
+            <div>
+                <p class="text-xs text-[#a1887f] font-bold mb-2">※ 이동 수업은 과목 뒤에 * 를 붙여 주세요 (예: 체육*)</p>
+                <div class="overflow-x-auto"><table class="w-full border-collapse text-xs"><thead><tr class="bg-[#f5e6d0]"><th class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">교시</th><th v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">{{day}}</th></tr></thead><tbody><tr v-for="(_, pIdx) in dashboardSettings.timetable['월']" :key="pIdx" :class="pIdx%2===0?'bg-white':'bg-[#fdf8ef]'"><td class="border border-[#e7d5b1] px-2 py-1 text-center font-black text-[#8d6e63]">{{pIdx+1}}교시</td><td v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-1 py-0.5"><input v-model="dashboardSettings.timetable[day][pIdx]" type="text" placeholder="과목" class="w-full px-1 py-0.5 text-center text-xs font-bold text-[#5d4037] outline-none bg-transparent focus:bg-yellow-50 rounded"></td></tr></tbody></table></div>
+                <div class="flex gap-2 mt-2"><button @click="dashboardAddPeriod()" class="px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 교시 추가</button><button @click="dashboardRemovePeriod()" v-if="(dashboardSettings.timetable['월']||[]).length>1" class="px-3 py-1 rounded-lg bg-[#ffcdd2] border-b-2 border-[#ef9a9a] text-[#c62828] font-black text-xs">- 삭제</button></div>
+            </div>
+            <!-- 수업 시간 설정 (시간표 하단) -->
+            <div class="border-t-2 border-[#e7d5b1] pt-3">
+                <p class="text-xs font-black text-[#8d6e63] mb-2">⏰ 수업 시간</p>
+                <div class="grid grid-cols-4 gap-2">
+                    <div v-for="(item, idx) in dashboardSettings.timeSchedule" :key="idx" class="flex items-center gap-1 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
+                        <input v-model="item.label" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="레이블">
+                        <input v-model="item.startTime" type="text" class="w-14 text-xs font-bold text-[#5d4037] outline-none bg-transparent border-b border-[#e7d5b1] text-center" placeholder="HH:MM">
+                        <button @click="dashboardSettings.timeSchedule.splice(idx,1)" class="text-[#ef9a9a] font-black text-xs ml-auto">✕</button>
+                    </div>
+                </div>
+                <button @click="dashboardSettings.timeSchedule.push({label:'N교시',startTime:'00:00'})" class="mt-2 self-start px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 추가</button>
+            </div>
         </div>
         <div v-if="dashboardSettingsTab==='links'" class="flex flex-col gap-2">
             <div v-for="(link, idx) in dashboardSettings.quickLinks" :key="idx" class="flex items-center gap-2 bg-white rounded-lg border border-[#e7d5b1] px-2 py-1.5">
@@ -3975,9 +3975,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <span class="text-5xl font-bold text-[#5d4037]">{{ dashboardCurrentClass.subject.replace('*','') }}</span>
                         <span v-if="dashboardCurrentClass.isMoving" class="text-sm text-[#e65100] font-bold self-end">이동🚶</span>
                     </div>
-                    <div v-else class="text-3xl font-black text-[#8d6e63]">{{ dashboardNextClass ? '쉬는 시간' : '수업 없음' }}</div>
-                    <div v-if="dashboardNextClass && !dashboardCurrentClass" class="text-lg text-[#a1887f] font-bold mt-1">
-                        다음: <span class="text-[#5d4037]">{{ dashboardNextClass.subject.replace('*','') }}</span> {{ dashboardNextClass.startTime }}~
+                    <div v-else class="font-black text-[#8d6e63] leading-tight">
+                        <span class="text-3xl">{{ dashboardNextClass ? '쉬는 시간' : '수업 없음' }}</span>
+                        <span v-if="dashboardNextClass" class="text-lg text-[#a1887f]"> (다음: {{ dashboardNextClass.subject.replace('*','') }})</span>
                     </div>
                 </div>
                 <!-- 가로 구분선 (중앙) -->
@@ -4038,8 +4038,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
                     <div v-if="dashboardMeal.length > 0">
                         <div v-for="(meal, idx) in dashboardMeal" :key="idx" class="mb-2" :class="idx < dashboardMeal.length-1 ? 'pb-2 border-b border-[#f5e6d0]' : ''">
-                            <div class="text-sm font-black text-[#e65100]">{{ dashboardFormatMealDate(meal.date) }}</div>
-                            <div class="text-sm font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ meal.menu }}</div>
+                            <div class="text-[0.92rem] font-black text-[#e65100]">{{ dashboardFormatMealDate(meal.date) }}</div>
+                            <div class="text-[0.92rem] font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ meal.menu }}</div>
                         </div>
                     </div>
                     <div v-else class="text-center text-[#a1887f] font-bold text-sm py-2">
@@ -4055,7 +4055,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
                 <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
                     <div class="text-xl font-black text-[#8d6e63]">📋 알림장</div>
-                    <button @click="showMainDashboard=false; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
+                    <button @click="showMainDashboard=false; returnToDashboardOnClose=true; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
                 </div>
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
                     <div v-if="dashboardBlackboardPreview" class="dash-preview text-[#5d4037]" v-html="dashboardBlackboardPreview"></div>
@@ -4077,8 +4077,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-1.5">
                         <span class="text-sm font-black text-[#8d6e63] mr-1">{{ group.tabName }}:</span>
                         <button v-for="name in group.names" :key="name"
-                                @click="toggleSummaryCheck(name, group.tabId)"
-                                class="inline-flex items-center text-sm font-bold bg-[#fff3e0] border border-[#ffcc80] text-[#e65100] rounded-lg px-2 py-0.5 mr-1 mb-0.5 hover:bg-[#ffcdd2] hover:text-red-600 transition-colors cursor-pointer">
+                                @mousedown.left.prevent.stop="toggleSummaryCheck(name, group.tabId)"
+                                @contextmenu.prevent.stop="toggleDashboardMark(group.tabId, name)"
+                                class="inline-flex items-center text-sm font-bold rounded-lg px-2 py-0.5 mr-1 mb-0.5 transition-colors cursor-pointer border"
+                                :class="dashboardMarkedStudents[group.tabId+'-'+name]
+                                    ? 'supplement-marked'
+                                    : 'bg-[#fff3e0] border-[#c4956a] text-[#e65100] hover:bg-[#ffcdd2] hover:text-red-600'">
                             {{ name }}
                         </button>
                     </div>
@@ -4161,7 +4165,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <!-- 단축링크 카드 (20%) -->
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm px-3 py-2 overflow-hidden flex flex-col min-h-0" style="flex:2;">
                 <div class="text-xl font-black text-[#8d6e63] mb-2 flex-shrink-0 cursor-pointer hover:text-[#5d4037] transition-colors select-none"
-                     @click="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'links'">⚙ 설정</div>
+                     @click="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'info'; openStudentTab()">⚙ 설정</div>
                 <div class="flex-1 overflow-y-auto dash-scroll min-h-0">
                     <div class="grid grid-cols-2 gap-1.5">
                         <button v-for="link in dashboardSettings.quickLinks" :key="link.url"
@@ -4234,7 +4238,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
            </div>
            <button v-if="isMaximized" @mousedown.prevent="isMaximized = false" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="창 모드로 복원"><i class="fa-solid fa-window-restore"></i></button>
            <button v-else @mousedown.prevent="isMaximized = true" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="전체 화면"><i class="fa-solid fa-expand"></i></button>
-           <button @mousedown.prevent="showBlackboard = false" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기"><i class="fa-solid fa-xmark"></i></button>
+           <button @mousedown.prevent="showBlackboard = false; if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기"><i class="fa-solid fa-xmark"></i></button>
        </div>
    </div>
    
@@ -4414,8 +4418,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="text-lg font-black text-slate-700 mb-2 pb-1 border-b border-slate-200">{{ group.tabName }}</div>
                 <div class="flex flex-wrap gap-2">
                     <button v-for="name in group.names" :key="name"
-                            @mousedown.prevent.stop="toggleSummaryCheck(name, group.tabId)"
-                            class="inline-flex items-center text-lg font-bold rounded-xl px-4 py-1.5 transition-colors cursor-pointer bg-slate-100 border border-slate-300 text-slate-800 hover:bg-red-50 hover:border-red-300 hover:text-red-600">
+                            @mousedown.left.prevent.stop="toggleSummaryCheck(name, group.tabId)"
+                            @contextmenu.prevent.stop="toggleDashboardMark(group.tabId, name)"
+                            class="inline-flex items-center text-lg font-bold rounded-xl px-4 py-1.5 transition-colors cursor-pointer border"
+                            :class="dashboardMarkedStudents[group.tabId+'-'+name]
+                                ? 'supplement-marked'
+                                : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-red-50 hover:border-red-300 hover:text-red-600'">
                         {{ name }}
                     </button>
                 </div>
@@ -5848,11 +5856,16 @@ making: new Audio('./making.mp3'),
         dashboardCalendarMonth: { year: new Date().getFullYear(), month: new Date().getMonth() },
         dashboardBulkPasteText: '',
         isFetchingHolidays: false,
+        returnToDashboardOnClose: false,
+        dashboardMarkedStudents: {},
         dashboardEditingDate: null,
         dashboardEditingPlans: [],
+        schoolPickerResults: [],
+        showSchoolPicker: false,
         dashboardSettings: {
             neisApiKey: '',
             schoolName: '',
+            neisSchoolCode: null,
             lat: '',
             lon: '',
             grade: '4',
@@ -6177,14 +6190,21 @@ dashboardTodaySchedule() {
 dashboardBlackboardPreview() {
     const html = this.blackboardContent || '';
     if (!html.trim()) return '';
+    // <div>를 제거하면 앞 텍스트와 붙으므로 <br>로 교체, </div>는 제거
     const normalized = html
-        .replace(/<div[^>]*>/gi, '')
-        .replace(/<\/div>/gi, '<br>')
-        .replace(/<p[^>]*>/gi, '')
-        .replace(/<\/p>/gi, '<br>');
-    const parts = normalized.split(/<br\s*\/?>/i);
-    // 앞 1줄 건너뛰고 2번째부터 출력
-    return parts.slice(1).join('<br>');
+        .replace(/<div[^>]*>/gi, '<br>')
+        .replace(/<\/div>/gi, '')
+        .replace(/<p[^>]*>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>') // 연속 <br> → 1개로 압축
+        .replace(/^(<br\s*\/?>)+/gi, ''); // 맨 앞 <br> 제거
+    const parts = normalized.split(/<br\s*\/?>/i).filter(p => p.trim() !== '' || false);
+    // 모든 빈 줄 포함 버전
+    const rawParts = normalized.split(/<br\s*\/?>/i);
+    // 앞뒤 공백 라인 제거
+    while (rawParts.length && !rawParts[0].trim()) rawParts.shift();
+    while (rawParts.length && !rawParts[rawParts.length-1].trim()) rawParts.pop();
+    return rawParts.join('<br>');
 },
 dashboardCurrentClass() {
     const items = this.dashboardTodaySchedule;
@@ -11018,6 +11038,13 @@ toggleSummaryCheck(name, tabId) {
         this.saveToLocal();
     }
 },
+toggleDashboardMark(tabId, name) {
+    const key = tabId + '-' + name;
+    this.dashboardMarkedStudents = {
+        ...this.dashboardMarkedStudents,
+        [key]: !this.dashboardMarkedStudents[key],
+    };
+},
 getCheckedTabsOrdered(name) {
     return this.activityTabs
         .map((tab, i) => ({ tab, i, d: (this.tabData[tab.id]||{})[name]||{} }))
@@ -11141,7 +11168,7 @@ openRankModal() {
                     if (this.showAnimalRace) { this.showAnimalRace = false; return; }
                     if (this.showRankModal) { this.showRankModal = false; return; }
                     if (this.showPickerMaster) { this.showPickerMaster = false; return; }
-                    if (this.showBlackboard) { this.showBlackboard = false; return; }
+                    if (this.showBlackboard) { this.showBlackboard = false; if(this.returnToDashboardOnClose){ this.showMainDashboard=true; this.returnToDashboardOnClose=false; } return; }
                     if (this.showTimer) { this.showTimer = false; return; }
                     if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
                     if (this.isClockMaximized) { this.isClockMaximized = false; return; }
@@ -11604,14 +11631,23 @@ if(this.allMode) {
             const name = this.dashboardSettings.schoolName;
             if (!key || !name) { this.dashboardMeal = []; return; }
             try {
-                const schoolRes = await fetch(`https://open.neis.go.kr/hub/schoolInfo?KEY=${key}&Type=json&SCHUL_NM=${encodeURIComponent(name)}`);
-                const schoolData = await schoolRes.json();
-                const school = schoolData.schoolInfo?.[1]?.row?.[0];
-                if (!school) { this.dashboardMeal = []; return; }
+                let atpt, schul;
+                // 저장된 학교 코드가 있으면 바로 사용 (동명이교 문제 방지)
+                if (this.dashboardSettings.neisSchoolCode) {
+                    atpt = this.dashboardSettings.neisSchoolCode.atpt;
+                    schul = this.dashboardSettings.neisSchoolCode.schul;
+                } else {
+                    const schoolRes = await fetch(`https://open.neis.go.kr/hub/schoolInfo?KEY=${key}&Type=json&SCHUL_NM=${encodeURIComponent(name)}`);
+                    const schoolData = await schoolRes.json();
+                    const school = schoolData.schoolInfo?.[1]?.row?.[0];
+                    if (!school) { this.dashboardMeal = []; return; }
+                    atpt = school.ATPT_OFCDC_SC_CODE;
+                    schul = school.SD_SCHUL_CODE;
+                }
                 const today = new Date();
                 const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
                 const endDate = new Date(today); endDate.setDate(today.getDate() + 7);
-                const mealRes = await fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${key}&Type=json&ATPT_OFCDC_SC_CODE=${school.ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${school.SD_SCHUL_CODE}&MLSV_FROM_YMD=${fmt(today)}&MLSV_TO_YMD=${fmt(endDate)}`);
+                const mealRes = await fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${key}&Type=json&ATPT_OFCDC_SC_CODE=${atpt}&SD_SCHUL_CODE=${schul}&MLSV_FROM_YMD=${fmt(today)}&MLSV_TO_YMD=${fmt(endDate)}`);
                 const mealData = await mealRes.json();
                 const rows = mealData.mealServiceDietInfo?.[1]?.row || [];
                 this.dashboardMeal = rows.slice(0, 3).map(m => ({
@@ -11629,9 +11665,14 @@ if(this.allMode) {
         },
         dashboardTrimBoardContent(html) {
             if (!html) return '';
-            const normalized = html.replace(/<div[^>]*>/gi,'').replace(/<\/div>/gi,'<br>').replace(/<p[^>]*>/gi,'').replace(/<\/p>/gi,'<br>');
-            const parts = normalized.split(/<br\s*\/?>/i);
-            return parts.slice(1).join('<br>');
+            const normalized = html
+                .replace(/<div[^>]*>/gi, '<br>').replace(/<\/div>/gi, '')
+                .replace(/<p[^>]*>/gi, '<br>').replace(/<\/p>/gi, '')
+                .replace(/^(<br\s*\/?>)+/gi, '');
+            const rawParts = normalized.split(/<br\s*\/?>/i);
+            while (rawParts.length && !rawParts[0].trim()) rawParts.shift();
+            while (rawParts.length && !rawParts[rawParts.length-1].trim()) rawParts.pop();
+            return rawParts.join('<br>');
         },
         dashboardFormatMealDate(dateStr) {
             if (!dateStr || dateStr.length < 8) return dateStr;
@@ -11941,7 +11982,7 @@ if(this.allMode) {
                 try {
                     const seats = Array.isArray(this.seats) ? this.seats : [];
                     const waiting = Array.isArray(this.waitingRoom) ? this.waitingRoom : [];
-                    const allCurrent = [...seats.filter(s => s), ...waiting]; 
+                    const allCurrent = [...seats.filter(s => s), ...waiting];
                     allCurrent.sort((a,b) => {
                         const numA = (a && a.number) ? parseInt(a.number) : 99999;
                         const numB = (b && b.number) ? parseInt(b.number) : 99999;
@@ -11955,13 +11996,46 @@ if(this.allMode) {
                         const gender = s.gender === 'M' ? ' 남' : (s.gender === 'F' ? ' 여' : '');
                         return `${num}${name}${gender}`;
                     }).join('\n');
-                    
-                    this.showSettings = true; 
+
+                    this.showSettings = true;
                 } catch (e) {
                     console.error("설정 창 열기 오류:", e);
-                    this.tempNameList = ""; 
+                    this.tempNameList = "";
                     this.showSettings = true;
                 }
+            },
+            openStudentTab() {
+                try {
+                    const seats = Array.isArray(this.seats) ? this.seats : [];
+                    const waiting = Array.isArray(this.waitingRoom) ? this.waitingRoom : [];
+                    const allCurrent = [...seats.filter(s => s), ...waiting];
+                    allCurrent.sort((a,b) => ((a?.number ? parseInt(a.number) : 99999) - (b?.number ? parseInt(b.number) : 99999)));
+                    this.tempNameList = allCurrent.map(s => {
+                        if (!s) return '';
+                        return `${s.number ? s.number + ' ' : ''}${s.name || ''}${s.gender === 'M' ? ' 남' : s.gender === 'F' ? ' 여' : ''}`;
+                    }).join('\n');
+                } catch(e) { this.tempNameList = ''; }
+            },
+            async searchSchool() {
+                const key = this.dashboardSettings.neisApiKey;
+                const name = this.dashboardSettings.schoolName;
+                if (!name) { alert('학교 이름을 입력해 주세요.'); return; }
+                const apiKey = key || 'OPEN';
+                try {
+                    const res = await fetch(`https://open.neis.go.kr/hub/schoolInfo?KEY=${apiKey}&Type=json&SCHUL_NM=${encodeURIComponent(name)}&pSize=200`);
+                    const data = await res.json();
+                    this.schoolPickerResults = data.schoolInfo?.[1]?.row || [];
+                    this.showSchoolPicker = true;
+                } catch(e) { this.schoolPickerResults = []; this.showSchoolPicker = true; }
+            },
+            selectSchool(school) {
+                this.dashboardSettings.neisSchoolCode = {
+                    atpt: school.ATPT_OFCDC_SC_CODE,
+                    schul: school.SD_SCHUL_CODE,
+                    name: school.SCHUL_NM,
+                };
+                this.showSchoolPicker = false;
+                this.saveDashboardSettings();
             }, 
 
 
@@ -12729,7 +12803,7 @@ saveSelection() {
     const todaySchedule = currentData[dayIdx] || `(${days[dayIdx]})`;
 
     // ★ 브라우저가 빈 태그를 지우지 못하게 처음부터 오늘 일정을 채워서 삽입
-    const html = `<c-sched class="dynamic-schedule" style="color: #0ea5e9; font-weight: 900;">${todaySchedule}</c-sched>&nbsp;`;
+    const html = `<c-sched class="dynamic-schedule" style="color: #eab308; font-weight: 900;">${todaySchedule}</c-sched>&nbsp;`;
     document.execCommand('insertHTML', false, html);
 
     this.closePalettes(); 

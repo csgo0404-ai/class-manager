@@ -4031,9 +4031,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             <!-- 급식 카드 (고정 높이, 과제보충과 동일) -->
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col" style="flex: 0 0 22%; min-height: 80px;">
-                <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
+                <div class="flex items-center px-3 pt-2 pb-1 flex-shrink-0">
                     <div class="text-xl font-black text-[#8d6e63]">🍱 급식</div>
-                    <button @click="fetchDashboardMeal()" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold">↻</button>
                 </div>
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
                     <div v-if="dashboardMeal.length > 0">
@@ -4415,7 +4414,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <div v-if="dashboardCheckedStudents.length === 0" class="text-base text-slate-400 font-bold text-center py-8">체크된 학생이 없습니다</div>
             <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-5">
-                <div class="text-lg font-black text-slate-700 mb-2 pb-1 border-b border-slate-200">{{ group.tabName }}</div>
+                <div @mousedown.prevent.stop="insertGroupToBoard(group)"
+                     class="text-lg font-black text-slate-700 mb-2 pb-1 border-b border-slate-200 cursor-pointer hover:text-emerald-600 transition-colors"
+                     title="클릭: 이 탭만 판서에 입력">{{ group.tabName }}</div>
                 <div class="flex flex-wrap gap-2">
                     <button v-for="name in group.names" :key="name"
                             @mousedown.left.prevent.stop="toggleSummaryCheck(name, group.tabId)"
@@ -6212,7 +6213,7 @@ dashboardCurrentClass() {
 },
 dashboardNextClass() {
     const items = this.dashboardTodaySchedule;
-    return items.find(i => i.isNextPreview) || null;
+    return items.find(i => i.isNext) || null;
 },
 dashboardWeeklySchedule() {
     const _t = this.dashboardTime; // 매초 갱신 트리거
@@ -11956,6 +11957,22 @@ if(this.allMode) {
                     }
                     return;
                 }
+                // 같은 월 범위: 4.1~2 행사명 (끝 날짜에 월 생략)
+                const rangeSameM = line.match(/^(\d{1,2})[\/\.](\d{1,2})\s*[~\-]\s*(\d{1,2})\s+(.+)/);
+                if (rangeSameM) {
+                    let sm = parseInt(rangeSameM[1]), sd = parseInt(rangeSameM[2]);
+                    let em = sm, ed = parseInt(rangeSameM[3]);
+                    const content = rangeSameM[4].trim();
+                    if (content && sm >= 1 && sm <= 12 && sd >= 1 && ed >= sd && ed <= 31) {
+                        let curD = sd, safety = 0;
+                        while (curD <= ed && safety++ < 100) {
+                            this.dashboardSettings.monthlyPlans.push({ month: sm, date: curD, content });
+                            added++;
+                            curD++;
+                        }
+                    }
+                    return;
+                }
                 // 단일 날짜: 4/1 내용, 4월1일 내용, 4.1 내용
                 const m = line.match(/^(\d{1,2})[\/월\.\-](\d{1,2})[일\.\-]?\s*(.+)/);
                 if (m) {
@@ -12249,7 +12266,11 @@ saveNameList() {
                         separationPairs: this.separationPairs,
                         shuffleHistory: this.shuffleHistory,
                         
-                        // 2. 모둠 활동 관련
+                        // 2. 활동 탭 및 모둠 관련
+                        activityTabs: this.activityTabs,
+                        nextTabId: this.nextTabId,
+                        tabData: this.tabData,
+                        missions: this.missions,
                         groups: this.groups,
                         groupingList: this.groupingList,
                         savedGroupings: this.savedGroupings,
@@ -12292,17 +12313,14 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         noiseRecordSeconds: this.noiseRecordSeconds, // ★ 소음 측정 누적 시간 누락 추가
                         isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 백업 추가
 
-// ★ 자리바꾸기 설정값 백업
+                        // 7. 자리바꾸기 설정
                         shuffleMode: this.shuffleMode,
                         mixedOrder: this.mixedOrder,
                         sameOrder: this.sameOrder,
                         avoidPrevious: this.avoidPrevious,
                         avoidPreviousSeat: this.avoidPreviousSeat,
-avoidPrevious: this.avoidPrevious,
 
-                        avoidPreviousSeat: this.avoidPreviousSeat,
-
-                        // 7. UI 창 크기 및 위치
+                        // 8. UI 창 크기 및 위치
                         uiState: {
                             timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
                             board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
@@ -12358,20 +12376,18 @@ avoidPrevious: this.avoidPrevious,
                         if (data.seatConfig) this.seatConfig = data.seatConfig;
                         if (data.manualLocks) this.manualLocks = data.manualLocks;
                         if (data.separationPairs) this.separationPairs = data.separationPairs;
-if (parsed.shuffleHistory) this.shuffleHistory = parsed.shuffleHistory;
-
-                        // ★ [버그 수정 완료] data가 아니라 parsed에서 값을 가져와야 에러 없이 기억합니다!
-                        if (parsed.shuffleMode) this.shuffleMode = parsed.shuffleMode;
-                        if (parsed.mixedOrder) this.mixedOrder = parsed.mixedOrder;
-                        if (parsed.sameOrder) this.sameOrder = parsed.sameOrder;
-                        if (parsed.avoidPrevious !== undefined) this.avoidPrevious = parsed.avoidPrevious;
-                        if (parsed.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = parsed.avoidPreviousSeat;                   
-                        if (parsed.activityTabs) this.activityTabs = parsed.activityTabs;
+                        if (data.shuffleHistory) this.shuffleHistory = data.shuffleHistory;
+                        if (data.shuffleMode) this.shuffleMode = data.shuffleMode;
+                        if (data.mixedOrder) this.mixedOrder = data.mixedOrder;
+                        if (data.sameOrder) this.sameOrder = data.sameOrder;
+                        if (data.avoidPrevious !== undefined) this.avoidPrevious = data.avoidPrevious;
+                        if (data.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = data.avoidPreviousSeat;
+                        if (data.activityTabs) this.activityTabs = data.activityTabs;
                         this.currentTabId = this.activityTabs[0]?.id ?? 1;
-                        if (parsed.nextTabId) this.nextTabId = parsed.nextTabId;
-                        if (parsed.tabData) this.tabData = parsed.tabData;
-                        if (parsed.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, parsed.dashboardSettings);
-                        if (parsed.groups) this.groups = parsed.groups;                
+                        if (data.nextTabId) this.nextTabId = data.nextTabId;
+                        if (data.tabData) this.tabData = data.tabData;
+                        if (data.missions) this.missions = data.missions;
+                        if (data.groups) this.groups = data.groups;
       if (data.groupingList) this.groupingList = data.groupingList;
                         if (data.savedGroupings) this.savedGroupings = data.savedGroupings;
                         
@@ -12415,11 +12431,6 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         if (data.noiseRecordSeconds !== undefined) {
                             this.noiseRecordSeconds = data.noiseRecordSeconds;
                             localStorage.setItem('noiseRecordSeconds', this.noiseRecordSeconds);
-
-
-// 판서 일정 복구
-                        if (data.scheduleVersions) this.scheduleVersions = data.scheduleVersions;
-                        if (data.currentScheduleVersion !== undefined) this.currentScheduleVersion = data.currentScheduleVersion;
                         }
 
                         if (data.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, data.dashboardSettings);
@@ -13271,6 +13282,25 @@ toggleForeColorPalette() {
     this.saveToLocal();
 },
            toggleBoardList() { this.showBoardList = !this.showBoardList; this.closePalettes(); },
+insertGroupToBoard(group) {
+    if (!group || !group.names || group.names.length === 0) {
+        this.showToast('체크된 학생이 없습니다.');
+        return;
+    }
+    this.restoreSelection();
+    let html = `<span class="board-tab-label" data-tabid="${group.tabId}" style="color:#ca8a04;font-weight:900;">${group.tabName}:</span> `;
+    group.names.forEach(name => {
+        html += `<span contenteditable="false" class="board-student-badge" data-name="${name}" data-tabid="${group.tabId}" style="display:inline-flex;align-items:center;background:transparent;border:1.5px solid #facc15;color:#facc15;border-radius:8px;padding:2px 10px;margin:2px 3px;font-weight:700;cursor:pointer;user-select:none;" title="클릭: 삭제 및 체크 해제">${name}</span>`;
+    });
+    html += '<br>';
+    document.execCommand('insertHTML', false, html);
+    this.$nextTick(() => {
+        const editor = document.getElementById('board-editor');
+        if (editor && !this.isCornellMode) this.blackboardContent = editor.innerHTML;
+        this.saveHistory();
+        this.saveToLocal();
+    });
+},
 insertCheckedStudentsToBoard() {
     if (this.dashboardCheckedStudents.length === 0) {
         this.showToast('체크된 학생이 없습니다.');

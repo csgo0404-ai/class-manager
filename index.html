@@ -10518,6 +10518,9 @@ saveToLocal() {
 
 
             saveToFirebase() {
+                // ★ [데이터 증발 방지] Firebase에서 아직 첫 응답을 못 받은 상태라면 절대 저장 금지!
+                // lastDbSnapshot이 null이면 기본값(빈 배열/객체)으로 Firebase를 덮어쓸 위험이 있음
+                if (this.lastDbSnapshot === null) return;
                 if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
                     this.isSavingNow = true; // [동시저장 방어막] 내가 저장 중임을 알림
                     
@@ -10616,9 +10619,14 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 // [★동시저장 핵심] get 대신 onValue를 써서 카톡처럼 실시간으로 계속 데이터를 받습니다.
                 if (typeof onValue !== 'undefined') {
                     onValue(dbRef, (snapshot) => {
+                        if (!snapshot.exists()) {
+                            // Firebase에 데이터가 없는 경우 (첫 사용자): 빈 스냅샷으로 초기화하여 저장 허용
+                            if (this.lastDbSnapshot === null) this.lastDbSnapshot = '{}';
+                            return;
+                        }
                         if (snapshot.exists()) {
                             if (this.isSavingNow) return; // 내가 전송한 데이터가 메아리쳐 돌아오는 건 무시
-                            
+
                             this.isSyncing = true;
                             const parsed = snapshot.val();
                             this.lastDbSnapshot = JSON.stringify(parsed); // 최신 스냅샷 저장

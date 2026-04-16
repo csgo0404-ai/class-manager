@@ -4031,15 +4031,19 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             <!-- 급식 카드 (고정 높이, 과제보충과 동일) -->
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col" style="flex: 0 0 22%; min-height: 80px;">
-                <div class="flex items-center px-3 pt-2 pb-1 flex-shrink-0">
-                    <div class="text-xl font-black text-[#8d6e63]">🍱 급식</div>
+                <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
+                    <div class="text-xl font-black text-[#8d6e63] flex items-center gap-1">
+                        <span @click="dashboardMealIndex > 0 && dashboardMealIndex--"
+                              class="cursor-pointer select-none hover:scale-110 transition-transform">🍱</span>
+                        급식<span v-if="dashboardMeal[dashboardMealIndex] && dashboardMeal[dashboardMealIndex].date !== dashboardTodayStr" class="text-base">({{ dashboardMealDow(dashboardMeal[dashboardMealIndex].date) }})</span>
+                    </div>
+                    <button @click="dashboardMealIndex < dashboardMeal.length-1 && dashboardMealIndex++"
+                            class="text-[#a1887f] font-black text-base w-7 text-center select-none transition-opacity"
+                            :class="dashboardMealIndex >= dashboardMeal.length-1 ? 'opacity-20 cursor-default' : 'hover:text-[#5d4037]'">▶</button>
                 </div>
-                <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
-                    <div v-if="dashboardMeal.length > 0">
-                        <div v-for="(meal, idx) in dashboardMeal" :key="idx" class="mb-2" :class="idx < dashboardMeal.length-1 ? 'pb-2 border-b border-[#f5e6d0]' : ''">
-                            <div class="text-[0.92rem] font-black text-[#e65100]">{{ dashboardFormatMealDate(meal.date) }}</div>
-                            <div class="text-[0.92rem] font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ meal.menu }}</div>
-                        </div>
+                <div class="flex-1 px-3 pb-2 overflow-hidden">
+                    <div v-if="dashboardMeal.length > 0 && dashboardMeal[dashboardMealIndex]">
+                        <div class="text-[0.92rem] font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ dashboardMeal[dashboardMealIndex].menu }}</div>
                     </div>
                     <div v-else class="text-center text-[#a1887f] font-bold text-sm py-2">
                         {{ dashboardSettings.neisApiKey ? '급식 정보가 없습니다' : '⚙️ NEIS API 키를 설정해 주세요' }}
@@ -5853,6 +5857,7 @@ making: new Audio('./making.mp3'),
         dashboardInterval: null,
         dashboardWeather: null,
         dashboardMeal: [],
+        dashboardMealIndex: 0,
         dashboardSettingsTab: 'info', // 'info' | 'timetable' | 'schedule' | 'links' | 'plans'
         dashboardCalendarMonth: { year: new Date().getFullYear(), month: new Date().getMonth() },
         dashboardBulkPasteText: '',
@@ -6206,6 +6211,10 @@ dashboardBlackboardPreview() {
     while (rawParts.length && !rawParts[0].trim()) rawParts.shift();
     while (rawParts.length && !rawParts[rawParts.length-1].trim()) rawParts.pop();
     return rawParts.join('<br>');
+},
+dashboardTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 },
 dashboardCurrentClass() {
     const items = this.dashboardTodaySchedule;
@@ -11659,10 +11668,14 @@ if(this.allMode) {
                 const mealRes = await fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${key}&Type=json&ATPT_OFCDC_SC_CODE=${atpt}&SD_SCHUL_CODE=${schul}&MLSV_FROM_YMD=${fmt(today)}&MLSV_TO_YMD=${fmt(endDate)}`);
                 const mealData = await mealRes.json();
                 const rows = mealData.mealServiceDietInfo?.[1]?.row || [];
-                this.dashboardMeal = rows.slice(0, 3).map(m => ({
+                this.dashboardMeal = rows.map(m => ({
                     date: m.MLSV_YMD,
                     menu: m.DDISH_NM.replace(/\([^)]*\d[^)]*\)/g, '').replace(/<br\/>/g, '\n').trim()
                 }));
+                // 오늘 날짜에 해당하는 급식으로 index 초기화
+                const todayStr = fmt(today);
+                const todayIdx = this.dashboardMeal.findIndex(m => m.date === todayStr);
+                this.dashboardMealIndex = todayIdx >= 0 ? todayIdx : 0;
             } catch (e) { this.dashboardMeal = []; }
         },
         dashboardChangeMonth(delta) {
@@ -11682,6 +11695,13 @@ if(this.allMode) {
             while (rawParts.length && !rawParts[0].trim()) rawParts.shift();
             while (rawParts.length && !rawParts[rawParts.length-1].trim()) rawParts.pop();
             return rawParts.join('<br>');
+        },
+        dashboardMealDow(dateStr) {
+            if (!dateStr || dateStr.length < 8) return '';
+            const m = parseInt(dateStr.substring(4, 6));
+            const d = parseInt(dateStr.substring(6, 8));
+            const dow = new Date(parseInt(dateStr.substring(0,4)), m-1, d).getDay();
+            return '일월화수목금토'[dow];
         },
         dashboardFormatMealDate(dateStr) {
             if (!dateStr || dateStr.length < 8) return dateStr;

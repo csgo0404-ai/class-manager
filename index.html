@@ -5620,6 +5620,8 @@ measurementId: "G-H95D2Z7MFF"
     createApp({
         data() {
             return {
+lastDbSnapshot: null, // ★ [데이터 증발 방지] Firebase 첫 응답 전까지 null 유지 → saveToFirebase 차단
+isSavingNow: false,   // ★ [동시저장 방어막] 내가 저장 중일 때 외부 onValue 무시
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
 isNoiseTimeHidden: false,
 isSortedByNumber: false,  // ★ 추가: 번호순 정렬 상태인지 확인
@@ -10548,7 +10550,7 @@ saveToLocal() {
             saveToFirebase() {
                 // ★ [데이터 증발 방지] Firebase에서 아직 첫 응답을 못 받은 상태라면 절대 저장 금지!
                 // lastDbSnapshot이 null이면 기본값(빈 배열/객체)으로 Firebase를 덮어쓸 위험이 있음
-                if (this.lastDbSnapshot === null) return;
+                if (this.lastDbSnapshot == null) return; // null 또는 undefined 둘 다 차단
                 if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
                     this.isSavingNow = true; // [동시저장 방어막] 내가 저장 중임을 알림
                     
@@ -10649,7 +10651,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     onValue(dbRef, (snapshot) => {
                         if (!snapshot.exists()) {
                             // Firebase에 데이터가 없는 경우 (첫 사용자): 빈 스냅샷으로 초기화하여 저장 허용
-                            if (this.lastDbSnapshot === null) this.lastDbSnapshot = '{}';
+                            if (this.lastDbSnapshot == null) this.lastDbSnapshot = '{}';
                             return;
                         }
                         if (snapshot.exists()) {

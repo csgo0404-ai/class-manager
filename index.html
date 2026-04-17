@@ -3006,7 +3006,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
       <main class="flex-1 flex flex-col items-center justify-center p-8 relative transition-all duration-300" 
               :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
             
-            <div class="absolute top-8 right-8 z-50 flex flex-col gap-3 items-end">
+            <div class="absolute top-8 right-8 z-50 flex flex-col items-end" style="gap:11px;">
                 <button v-if="view !== 'order'" title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
                 <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
            
@@ -3042,11 +3042,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </template>
             </div>
 
-            <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-3 items-end">
+            <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end" style="gap:11px;">
                 
                 <div v-if="view === 'main' && currentTabId !== 'summary' && checkedStudentCount > 0"
                      class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center bg-[#5c3d1e] text-[#eaddca] border-[#3e2a12] pointer-events-none select-none">
                     <span class="text-2xl font-black leading-none">{{ checkedStudentCount }}</span><span class="text-[10px] font-bold leading-none mt-1">명</span>
+                </div>
+                <div v-if="view === 'group' && checkedGroupCount > 0"
+                     class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center bg-[#5c3d1e] text-[#eaddca] border-[#3e2a12] pointer-events-none select-none">
+                    <span class="text-2xl font-black leading-none">{{ checkedGroupCount }}</span><span class="text-[10px] font-bold leading-none mt-1">모둠</span>
                 </div>
                 <template v-if="view === 'main' || view === 'group'">
                     <button @click="allMode = !allMode"
@@ -4061,7 +4065,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <button @click="showMainDashboard=false; returnToDashboardOnClose=true; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
                 </div>
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
-                    <div v-if="dashboardBlackboardPreview" class="dash-preview text-[#5d4037]" v-html="dashboardBlackboardPreview"></div>
+                    <div v-if="dashboardBlackboardPreview" @click="handleDashboardBadgeClick($event)" class="dash-preview text-[#5d4037]" v-html="dashboardBlackboardPreview"></div>
                     <div v-else-if="savedBoards && savedBoards.length > 0">
                         <div v-for="(board, idx) in savedBoards.slice(0,3)" :key="idx" class="mb-2 pb-2 border-b border-[#f5e6d0] last:border-0">
                             <div class="text-xs font-black text-[#a1887f] mb-0.5">{{ board.name || board.title || '판서 '+(idx+1) }}</div>
@@ -5337,11 +5341,14 @@ tabindex="0">
     </div>
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
-        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full relative overflow-hidden bg-slate-50">
+        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full flex flex-col overflow-hidden bg-slate-50">
 
-            <!-- 카메라 전체화면 비디오 -->
+            <!-- 비디오/측정 영역 (flex-1) -->
+            <div class="flex-1 relative overflow-hidden min-h-0">
+
+            <!-- 카메라 비디오 (object-contain: 전체 화면 잘림 없이 표시) -->
             <video v-if="isCameraOn" ref="cameraVideo" autoplay playsinline muted
-                   class="absolute inset-0 w-full h-full object-cover" style="z-index:1;"></video>
+                   class="absolute inset-0 w-full h-full object-contain bg-black" style="z-index:1;"></video>
 
             <!-- 타이머 + 카메라 버튼 -->
             <div class="absolute flex items-center gap-2" style="top:1.5rem;left:1.5rem;z-index:30;">
@@ -5464,26 +5471,19 @@ tabindex="0">
                 </div>
             </div>
 
-            <!-- 카메라 ON: 하단 소음 경보 오버레이 -->
-            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-6 py-4 bg-black/60 backdrop-blur-md" style="z-index:20;">
-                <div class="flex justify-between items-end mb-2">
-                    <span class="font-black text-white text-lg">⚠️ 소음 경보</span>
-                    <div class="flex items-baseline gap-3">
-                        <span class="font-mono font-black leading-none transition-colors duration-500"
-                              :class="displayedDb > noiseThreshold ? 'text-red-400' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-300' : 'text-white')"
-                              style="font-size:3rem;">{{ displayedDb }}</span>
-                        <span class="font-black text-slate-200 text-2xl" style="font-family:'Dongle',sans-serif!important;">와글</span>
-                        <span class="font-mono font-bold text-xl text-white/70">{{ noiseGauge.toFixed(0) }}%</span>
-                    </div>
-                </div>
-                <div class="w-full h-16 bg-white/20 rounded-2xl overflow-hidden shadow-inner border-2 border-white/30 relative">
-                    <div class="h-full transition-all duration-500 ease-linear"
+            </div><!-- end 비디오/측정 영역 -->
+
+            <!-- 카메라 ON: 소음 경보 (얇게, 별도 영역) -->
+            <div v-if="isCameraOn" class="shrink-0 px-4 py-2 bg-slate-900 flex items-center gap-3">
+                <span class="font-black text-yellow-400 text-sm whitespace-nowrap">⚠️ 소음</span>
+                <div class="flex-1 h-8 bg-white/20 rounded-full overflow-hidden relative">
+                    <div class="h-full transition-all duration-500 ease-linear rounded-full"
                          :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-500'), { 'animate-pulse': noiseGauge > 90 }]"
                          :style="{ width: noiseGauge + '%' }">
-                        <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
-                        <span v-if="noiseGauge > 10" class="absolute right-4 top-1/2 -translate-y-1/2 text-white font-black text-2xl opacity-50 tracking-widest">///</span>
                     </div>
                 </div>
+                <span class="font-mono font-black text-sm whitespace-nowrap transition-colors"
+                      :class="displayedDb > noiseThreshold ? 'text-red-400' : 'text-white/80'">와글 {{ displayedDb }}</span>
             </div>
         </div><!-- end meter -->
 
@@ -6647,6 +6647,9 @@ allRequests() {
             checkedStudentCount() {
                 if (this.currentTabId === 'summary') return 0;
                 return Object.values(this.currentTabData).filter(v => v && v.checked).length;
+            },
+            checkedGroupCount() {
+                return this.groups.filter(g => g && g.checked).length;
             },
             activitySummary() {
                 return this.allStudents.map(s => {
@@ -8307,11 +8310,12 @@ startGroupShuffle() {
             async startCamera() {
                 this.stopCamera();
                 try {
-                    const constraints = { video: this.selectedCameraId ? { deviceId: { exact: this.selectedCameraId } } : true };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const videoConstraints = this.selectedCameraId
+                        ? { deviceId: { exact: this.selectedCameraId }, width: { ideal: 3840 }, height: { ideal: 2160 } }
+                        : { width: { ideal: 3840 }, height: { ideal: 2160 } };
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
                     this.cameraStream = stream;
                     this.isCameraOn = true;
-                    // 권한 허용 후 장치 목록 갱신 (label 채우기)
                     await this.loadCameraDevices();
                     this.$nextTick(() => {
                         const vid = this.$refs.cameraVideo;
@@ -8420,7 +8424,7 @@ startGroupShuffle() {
                     this.microphone = this.audioContext.createMediaStreamSource(stream);
                     this.noiseAnalyzer = this.audioContext.createAnalyser();
                     this.noiseAnalyzer.fftSize = 2048;
-                    this.noiseAnalyzer.smoothingTimeConstant = 0.92;
+                    this.noiseAnalyzer.smoothingTimeConstant = 0.97;
                     this.microphone.connect(this.noiseAnalyzer);
                     this.dataArray = new Float32Array(this.noiseAnalyzer.fftSize);
 
@@ -8461,6 +8465,10 @@ startGroupShuffle() {
                 this.noiseGauge = 0;
                 this.currentVolume = 0;
                 this.displayedDb = 0;
+                this._volBuf = [];
+                this._frameSkip = 0;
+                this._peakVol = 0;
+                this._lastDispUpdate = 0;
             },
 
             handleNoiseFail() {
@@ -8480,43 +8488,54 @@ startGroupShuffle() {
             updateVolume() {
                 if (!this.isMeasuring || !this.noiseAnalyzer) return;
 
+                // 4프레임마다 1번 처리 (~15fps)
+                this._frameSkip = ((this._frameSkip || 0) + 1) % 4;
+                if (this._frameSkip !== 0) {
+                    this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
+                    return;
+                }
+
                 this.noiseAnalyzer.getFloatTimeDomainData(this.dataArray);
                 let sumSquares = 0;
-                for (let i = 0; i < this.dataArray.length; i++) {
-                    sumSquares += this.dataArray[i] * this.dataArray[i];
-                }
+                for (let i = 0; i < this.dataArray.length; i++) sumSquares += this.dataArray[i] * this.dataArray[i];
                 const rms = Math.sqrt(sumSquares / this.dataArray.length);
-                // 확장된 dB 스케일: 조용할 때 ~10, 떠들 때 ~110
-                const rawDb = rms > 0.000001 ? Math.max(0, 61 * Math.log10(rms) + 192) : 0;
 
-                // 급격한 변화 완화 (올라갈 때 빠르게, 내려갈 때 천천히)
-                if (rawDb > this.currentVolume) {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.12;
+                // 노이즈 플로어 기준 상대 dB: 조용=0, 박수=~70
+                // FLOOR: 마이크 기본 잡음 수준 (조용한 교실 기준 ~0.005)
+                const FLOOR = 0.005;
+                const rawDb = rms > FLOOR
+                    ? Math.min(120, Math.max(0, Math.round(90 * Math.log10(rms / FLOOR))))
+                    : 0;
+
+                // ── 표시용 (빠른 어택·느린 디케이로 피크 반응) ──
+                if (!this._peakVol) this._peakVol = 0;
+                if (rawDb > this._peakVol) {
+                    this._peakVol = rawDb * 0.5 + this._peakVol * 0.5;
                 } else {
-                    this.currentVolume += (rawDb - this.currentVolume) * 0.04;
+                    this._peakVol = rawDb * 0.07 + this._peakVol * 0.93;
                 }
-
-                let calcVol = Math.round(this.currentVolume);
-                calcVol = Math.max(0, Math.min(120, calcVol));
-
+                // 화면 표시는 333ms마다 (초당 3회)
                 const now = Date.now();
-                if (now - (this.lastDbUpdate || 0) > 500) { 
-                    this.displayedDb = calcVol;
-                    this.lastDbUpdate = now;
+                if (now - (this._lastDispUpdate || 0) >= 1000) {
+                    this.displayedDb = Math.round(this._peakVol);
+                    this._lastDispUpdate = now;
                 }
 
-                if (calcVol > this.noiseThreshold) {
-                    const gap = calcVol - this.noiseThreshold;
-                    let increaseSpeed = 0.02 + (gap * 0.015); 
-                    increaseSpeed = Math.min(increaseSpeed, 0.4); 
-                    this.noiseGauge += increaseSpeed;
-                } else {        
-                    this.noiseGauge -= 0.02; 
+                // ── 게이지용 (30프레임 이동평균 → 요동 방지) ──
+                if (!this._volBuf) this._volBuf = [];
+                this._volBuf.push(rawDb);
+                if (this._volBuf.length > 30) this._volBuf.shift();
+                const avgDb = this._volBuf.reduce((s, v) => s + v, 0) / this._volBuf.length;
+
+                if (avgDb > this.noiseThreshold) {
+                    const gap = avgDb - this.noiseThreshold;
+                    this.noiseGauge += Math.min(0.15, 0.008 + gap * 0.005);
+                } else {
+                    this.noiseGauge -= 0.01;
                 }
 
                 if (this.noiseGauge < 0) this.noiseGauge = 0;
                 if (this.noiseGauge > 100) this.noiseGauge = 100;
-
                 if (this.noiseGauge >= 100) { this.handleNoiseFail(); return; }
 
                 this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
@@ -13350,6 +13369,23 @@ insertCheckedStudentsToBoard() {
         this.saveHistory();
         this.saveToLocal();
     });
+},
+handleDashboardBadgeClick(e) {
+    const badge = e.target.closest('.board-student-badge');
+    if (!badge) return;
+    const name = badge.dataset.name;
+    const tabId = badge.dataset.tabid;
+    if (!name || !tabId) return;
+    // blackboardContent에서 해당 badge 제거
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(this.blackboardContent || '', 'text/html');
+    doc.querySelectorAll(`.board-student-badge[data-name="${name}"][data-tabid="${tabId}"]`).forEach(b => b.remove());
+    this.blackboardContent = doc.body.innerHTML;
+    const editor = document.getElementById('board-editor');
+    if (editor) editor.innerHTML = this.blackboardContent;
+    this.saveHistory();
+    this.saveToLocal();
+    this.toggleSummaryCheck(name, tabId);
 },
 handleBoardStudentBadgeClick(e) {
     const badge = e.target.closest('.board-student-badge');

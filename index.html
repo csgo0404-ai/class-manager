@@ -5365,14 +5365,14 @@ tabindex="0">
     </div>
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
-        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full flex flex-col overflow-hidden bg-slate-50">
+        <div v-if="noiseMode === 'meter'" class="flex-1 w-full flex flex-col overflow-hidden bg-slate-50" style="min-height:0;">
 
             <!-- 비디오/측정 영역 (flex-1) -->
-            <div class="flex-1 relative overflow-hidden min-h-0">
+            <div class="flex-1 relative overflow-hidden" style="min-height:0;">
 
-            <!-- 카메라 비디오 (object-cover: 화면 꽉 차게, 검은 여백 없음) -->
+            <!-- 카메라 비디오 -->
             <video v-if="isCameraOn" ref="cameraVideo" autoplay playsinline muted
-                   class="absolute inset-0 w-full h-full object-cover" style="z-index:1;"></video>
+                   style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1;"></video>
 
             <!-- 타이머 + 카메라 버튼 -->
             <div class="absolute flex items-center gap-2" style="top:1.5rem;left:1.5rem;z-index:30;">
@@ -5421,7 +5421,7 @@ tabindex="0">
             </div>
 
             <!-- 일반 모드 (카메라 OFF) -->
-            <div v-if="!isCameraOn" class="w-full h-full flex flex-col p-6 relative" style="container-type:size;">
+            <div v-show="!isCameraOn" class="w-full h-full flex flex-col p-6 relative" style="container-type:size;">
                 <div class="w-full flex justify-end mb-4 shrink-0 relative" style="z-index:20;">
                     <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
                         <div @click.stop.prevent="setSensitivity('reading')"
@@ -5495,10 +5495,8 @@ tabindex="0">
                 </div>
             </div>
 
-            </div><!-- end 비디오/측정 영역 -->
-
-            <!-- 카메라 ON: 소음 경보 (얇게, 별도 영역) -->
-            <div v-if="isCameraOn" class="shrink-0 px-4 py-2 bg-slate-900 flex items-center gap-3">
+            <!-- 카메라 ON: 소음 경보 (비디오 컨테이너 내 하단 오버레이) -->
+            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-4 py-2 bg-slate-900/85 backdrop-blur-sm flex items-center gap-3" style="z-index:5;">
                 <span class="font-black text-yellow-400 text-sm whitespace-nowrap">⚠️ 소음</span>
                 <div class="flex-1 h-8 bg-white/20 rounded-full overflow-hidden relative">
                     <div class="h-full transition-all duration-500 ease-linear rounded-full"
@@ -5509,6 +5507,9 @@ tabindex="0">
                 <span class="font-mono font-black text-sm whitespace-nowrap transition-colors"
                       :class="displayedDb > noiseThreshold ? 'text-red-400' : 'text-white/80'">와글 {{ displayedDb }}</span>
             </div>
+
+            </div><!-- end 비디오/측정 영역 -->
+
         </div><!-- end meter -->
 
         <div v-else-if="noiseMode === 'sound'" 
@@ -8589,16 +8590,16 @@ startGroupShuffle() {
                     ? Math.min(120, Math.max(0, Math.round(90 * Math.log10(rms / FLOOR))))
                     : 0;
 
-                // ── 표시용: 비대칭 EMA (빠른 어택·완만한 디케이) ──
+                // ── 표시용: 비대칭 EMA (완만한 어택·느린 디케이) ──
                 if (this._smoothDb === undefined) this._smoothDb = 0;
                 if (rawDb > this._smoothDb) {
-                    this._smoothDb = rawDb * 0.6 + this._smoothDb * 0.4;   // 빠른 어택
+                    this._smoothDb = rawDb * 0.2 + this._smoothDb * 0.8;   // 완만한 어택
                 } else {
-                    this._smoothDb = rawDb * 0.1 + this._smoothDb * 0.9;   // 느린 디케이
+                    this._smoothDb = rawDb * 0.08 + this._smoothDb * 0.92; // 느린 디케이
                 }
-                // 화면 표시는 333ms마다 (초당 3회) — 자연스러운 갱신
+                // 화면 표시는 700ms마다 — 수치 안정화
                 const now = Date.now();
-                if (now - (this._lastDispUpdate || 0) >= 333) {
+                if (now - (this._lastDispUpdate || 0) >= 1000) {
                     this.displayedDb = Math.round(this._smoothDb);
                     this._lastDispUpdate = now;
                 }

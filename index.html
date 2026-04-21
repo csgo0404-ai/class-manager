@@ -3293,12 +3293,20 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <span class="text-xl font-game tracking-tight pt-0.5">선수 기억</span> 
             </button>
 
-            <button @click="deductWinnerCount = !deductWinnerCount; saveToLocal();" 
+            <button @click="deductWinnerCount = !deductWinnerCount; saveToLocal();"
                     class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95"
                     :class="deductWinnerCount ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100'"
                     title="다음 경기부터 우승자의 남은 참가 횟수가 자동으로 1 감소합니다.">
                 <span class="text-xl">🏆</span>
-                <span class="text-xl font-game tracking-tight pt-0.5">우승자 -1</span> 
+                <span class="text-xl font-game tracking-tight pt-0.5">우승자 -1</span>
+            </button>
+
+            <button v-if="currentTabId !== 'summary' && activityTabs && activityTabs.length"
+                    @click="importTabScoresToRace"
+                    class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95 bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                    title="활성화된 좌석배치도 탭 점수를 출전 횟수로 가져옵니다">
+                <span class="text-xl">📥</span>
+                <span class="text-xl font-game tracking-tight pt-0.5">점수 가져오기</span>
             </button>
 
             <div class="w-px h-8 bg-emerald-200 mx-1"></div>
@@ -3324,10 +3332,11 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
     <div class="w-px h-6 bg-emerald-200 mx-1"></div>
 
-    <button @click="resetParticipants" 
+    <button @click="resetParticipants"
             class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 border-2 border-slate-300 shadow-sm hover:bg-slate-300 active:scale-95 transition-all flex items-center justify-center text-sm" title="전체 0개로 초기화">
         <i class="fa-solid fa-rotate-left"></i>
     </button>
+
 </div>
         </div>
     </div>
@@ -10689,6 +10698,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         currentTabId: this.currentTabId,
                         nextTabId: this.nextTabId,
                         tabData: this.tabData,
+                        isSortedByNumber: this.isSortedByNumber,
+                        preSortLayout: this.preSortLayout,
                         showCheckedStudentPanel: this.showCheckedStudentPanel,
                         dashboardSettings: this.dashboardSettings,
                         uiState: {
@@ -10854,8 +10865,18 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             }
                             this.animalRaceFinished = parsed.animalRaceFinished || false;
                             if (parsed.deductWinnerCount !== undefined) this.deductWinnerCount = parsed.deductWinnerCount;
-                            if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants; 
+                            if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants;
                             if (parsed.participantList) this.participantList = toArray(parsed.participantList);
+                            if (parsed.isSortedByNumber !== undefined) this.isSortedByNumber = parsed.isSortedByNumber;
+                            if (parsed.preSortLayout) {
+                                this.preSortLayout = {
+                                    seats: Array.from({length: 30}, (_, i) => parsed.preSortLayout.seats?.[i] || null),
+                                    waitingRoom: toArray(parsed.preSortLayout.waitingRoom)
+                                };
+                            } else {
+                                // preSortLayout 없는데 정렬 상태면 현재 자리가 원본으로 간주
+                                if (this.isSortedByNumber) this.isSortedByNumber = false;
+                            }
 
                             this.lotteryPools = parsed.lotteryPools || { all: [], M: [], F: [] };
                             this.lastWinners = parsed.lastWinners || { all: null, M: null, F: null };
@@ -15180,8 +15201,21 @@ this.stopSound('bgm_rock');
                 this.saveToLocal(); // 최신화된 명단 저장
             },
 
-            addParticipant() { 
-                this.participantList.push({ name: '', count: 1, selected: false }); 
+            importTabScoresToRace() {
+                const tabScores = this.tabData?.[this.currentTabId] || {};
+                let imported = 0;
+                this.participantList.forEach(p => {
+                    const score = tabScores[p.name]?.score;
+                    if (score !== undefined) {
+                        p.count = Math.max(0, score);
+                        imported++;
+                    }
+                });
+                if (imported === 0) alert('현재 탭에 점수 데이터가 없습니다.');
+            },
+
+            addParticipant() {
+                this.participantList.push({ name: '', count: 1, selected: false });
                 this.$nextTick(() => { 
                     const grid = document.querySelector('.card-grid-10'); 
                     if(grid) grid.scrollTop = grid.scrollHeight; 

@@ -2688,6 +2688,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         </button>
                         <button v-if="editingAlarmIndex !== null" @click="cancelEdit" class="bg-slate-400 text-white w-24 rounded-2xl font-black text-xl hover:bg-slate-500 shadow-lg active:scale-95 transition-transform">취소</button>
                     </div>
+                    <div class="flex items-center gap-3 px-1 mt-1">
+                        <span class="text-xl">🔊</span>
+                        <input type="range" v-model.number="alarmVolume" @change="saveToLocal"
+                               min="0" max="1" step="0.05"
+                               class="flex-1 accent-yellow-400 h-2 cursor-pointer">
+                        <span class="text-sm font-mono font-black text-slate-500 w-9 text-right">{{ Math.round(alarmVolume * 100) }}%</span>
+                    </div>
                     <button @click="addTimetableAlarms" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-base hover:bg-emerald-100 transition-all border-2 border-emerald-200 active:scale-95">
                         📅 수업 시작 알람 추가
                     </button>
@@ -5374,14 +5381,14 @@ tabindex="0">
     </div>
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
-        <div v-if="noiseMode === 'meter'" class="flex-1 w-full flex flex-col overflow-hidden bg-slate-50" style="min-height:0;">
+        <div v-if="noiseMode === 'meter'" class="flex-1 w-full h-full flex flex-col overflow-hidden bg-slate-50">
 
             <!-- 비디오/측정 영역 (flex-1) -->
-            <div class="flex-1 relative overflow-hidden" style="min-height:0;">
+            <div class="flex-1 relative overflow-hidden min-h-0">
 
             <!-- 카메라 비디오 -->
             <video v-if="isCameraOn" ref="cameraVideo" autoplay playsinline muted
-                   style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:1;"></video>
+                   class="absolute inset-0 w-full h-full object-contain" style="z-index:1;background:#000;"></video>
 
             <!-- 타이머 + 카메라 버튼 -->
             <div class="absolute flex items-center gap-2" style="top:1.5rem;left:1.5rem;z-index:30;">
@@ -5430,7 +5437,7 @@ tabindex="0">
             </div>
 
             <!-- 일반 모드 (카메라 OFF) -->
-            <div v-show="!isCameraOn" class="w-full h-full flex flex-col p-6 relative" style="container-type:size;">
+            <div v-if="!isCameraOn" class="w-full h-full flex flex-col p-6 relative" style="container-type:size;">
                 <div class="w-full flex justify-end mb-4 shrink-0 relative" style="z-index:20;">
                     <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
                         <div @click.stop.prevent="setSensitivity('reading')"
@@ -5504,8 +5511,8 @@ tabindex="0">
                 </div>
             </div>
 
-            <!-- 카메라 ON: 소음 경보 (비디오 컨테이너 내 하단 오버레이) -->
-            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-4 py-2 bg-slate-900/85 backdrop-blur-sm flex items-center gap-3" style="z-index:5;">
+            <!-- 카메라 ON: 소음 경보 (하단 오버레이) -->
+            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-4 py-2 bg-slate-900 flex items-center gap-3" style="z-index:5;">
                 <span class="font-black text-yellow-400 text-sm whitespace-nowrap">⚠️ 소음</span>
                 <div class="flex-1 h-8 bg-white/20 rounded-full overflow-hidden relative">
                     <div class="h-full transition-all duration-500 ease-linear rounded-full"
@@ -5513,8 +5520,8 @@ tabindex="0">
                          :style="{ width: noiseGauge + '%' }">
                     </div>
                 </div>
-                <span class="font-mono font-black text-sm whitespace-nowrap transition-colors"
-                      :class="displayedDb > noiseThreshold ? 'text-red-400' : 'text-white/80'">와글 {{ displayedDb }}</span>
+                <span class="font-black text-sm whitespace-nowrap transition-colors"
+                      :class="noiseGauge > 80 ? 'text-red-400' : (noiseGauge > 50 ? 'text-orange-400' : 'text-teal-300')">와글 {{ displayedDb }}</span>
             </div>
 
             </div><!-- end 비디오/측정 영역 -->
@@ -5830,6 +5837,7 @@ alarmList: [],
 editingAlarmIndex: null,
 alarmWorker: null,
 alarmWorkerLastTriggered: {},
+alarmVolume: 1.0,
 ringingAlarmTime: '',
 ringingAlarmLabel: '',
 currentTime24s: '',
@@ -10044,7 +10052,7 @@ triggerAlarm(alarm) {
     this.ringingAlarmLabel = alarm.label || '';
 
     // 3. 알람 소리 1번 재생
-    this.playSound('alarm', false, 1.0);
+    this.playSound('alarm', false, this.alarmVolume);
 
     // 4. 18초 후 자동 종료
     if (this.alarmAutoCloseTimer) clearTimeout(this.alarmAutoCloseTimer);
@@ -10700,6 +10708,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         tabData: this.tabData,
                         isSortedByNumber: this.isSortedByNumber,
                         preSortLayout: this.preSortLayout,
+                        alarmVolume: this.alarmVolume,
                         showCheckedStudentPanel: this.showCheckedStudentPanel,
                         dashboardSettings: this.dashboardSettings,
                         uiState: {
@@ -10867,6 +10876,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.deductWinnerCount !== undefined) this.deductWinnerCount = parsed.deductWinnerCount;
                             if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants;
                             if (parsed.participantList) this.participantList = toArray(parsed.participantList);
+                            if (parsed.alarmVolume !== undefined) this.alarmVolume = parsed.alarmVolume;
                             if (parsed.isSortedByNumber !== undefined) this.isSortedByNumber = parsed.isSortedByNumber;
                             if (parsed.preSortLayout) {
                                 this.preSortLayout = {

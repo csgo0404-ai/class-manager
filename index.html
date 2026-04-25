@@ -6634,31 +6634,11 @@ mergedRankData() {
 },
 allRequests() {
     const list = [];
-    // 이벤트 상점 요청
+    // 이벤트 상점 요청 (승인+미완료+오늘 사용 예정만 storeRequests에 들어옴)
     this.storeRequests.forEach(r => list.push({
         time: r.time || '', nm: r.nm, label: r.label, type: r.type,
         ts: r.ts || 0, url: 'https://csgo0404-ai.github.io/class-store/'
     }));
-    // 키오스크 사용 요청 (선생님 처리 필요)
-    this.kioskRequests.forEach(r => {
-        list.push({
-            time: r.time || '', nm: r.studentName || '', label: r.itemName + ' 사용 요청',
-            type: 'kiosk_req', ts: r.timestamp || 0,
-            url: 'https://csgo0404-ai.github.io/class-koisk/', reqId: r.id
-        });
-    });
-    // 키오스크 구입 내역
-    this.kioskHistory.forEach(r => {
-        const t = new Date(r.timestamp || 0);
-        const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-        const isUse = (r.itemName || '').includes('사용');
-        list.push({
-            time: timeStr, nm: r.studentName || '',
-            label: r.itemName + (isUse ? '' : ' 구입'),
-            type: isUse ? 'kiosk_use' : 'kiosk_buy',
-            ts: r.timestamp || 0, url: 'https://csgo0404-ai.github.io/class-koisk/', histId: r.id
-        });
-    });
     return list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
 },
 
@@ -11058,17 +11038,52 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             list.push({ time: timeStr, nm: a.reqNm || '?', label: '경매 요청', type: 'auc', ts: a.id || 0 });
                         });
                         // 아이템 승인 요청 / 캐릭터 제작 요청
+                        const _today = new Date();
+                        const _todayStr = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}-${String(_today.getDate()).padStart(2,'0')}`;
                         toArr(raw.stu).forEach(s => {
                             if (!s) return;
                             toArr(s.inv).forEach(item => {
-                                if (!item || item.st !== 'req') return;
-                                const isChar = (item.n || '').startsWith('캐릭터 제작:');
+                                if (!item) return;
+                                // 캐릭터 제작 요청은 제외
+                                if ((item.n || '').startsWith('캐릭터 제작:')) return;
+                                const isPending = item.st === 'req' || item.st === 'shop_req';
+                                if (!isPending) return;
+                                if (item.reqDone) return;
+                                let label, type;
+                                if (!item.reqApproved) {
+                                    label = `아이템 승인 (${item.n})`;
+                                    type = 'item';
+                                } else {
+                                    if (item.useDate !== _todayStr) return;
+                                    label = `오늘 사용 예정 (${item.n})`;
+                                    type = 'item-today';
+                                }
                                 const key = `inv_${s.nm}_${item.n}`;
                                 const seen = seenAt(key);
+                                list.push({ time: seen.time, nm: s.nm || '?', label, type, ts: seen.ts });
+                            });
+                            // 인쇄 요청
+                            toArr(s.printReqs).forEach(r => {
+                                if (!r) return;
+                                const t = new Date(r.ts || Date.now());
+                                const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
                                 list.push({
-                                    time: seen.time, nm: s.nm || '?',
-                                    label: isChar ? `캐릭터 제작 (${(item.n || '').replace('캐릭터 제작: ', '')})` : `아이템 승인 (${item.n})`,
-                                    type: isChar ? 'char' : 'item', ts: seen.ts
+                                    time: timeStr, nm: s.nm || '?',
+                                    label: `인쇄 요청 (${r.week || ''})`,
+                                    type: 'print', ts: r.ts || 0
+                                });
+                            });
+                        });
+                        // 인형 뽑기 (오프라인) 대기 요청
+                        Object.entries(raw.gacQueue || {}).forEach(([gacNm, queue]) => {
+                            toArr(queue).forEach(e => {
+                                if (!e || e.st !== 'wait') return;
+                                const t = new Date(e.ts || Date.now());
+                                const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                                list.push({
+                                    time: timeStr, nm: e.nm || '?',
+                                    label: `${gacNm} 뽑기 요청`,
+                                    type: 'gac', ts: e.ts || 0
                                 });
                             });
                         });

@@ -3104,8 +3104,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                          class="w-[280px] h-[220px] shadow-2xl rounded-[3rem] border-4 flex flex-col items-center justify-center relative transition-all cursor-pointer overflow-hidden"
                         :class="[ g.checked ? 'bg-[#8f6a49] border-[#5c3d1e] ring-4 ring-[#5c3d1e] ring-offset-2 shadow-[0_0_15px_rgba(92,61,30,0.8)]' : (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), { 'aura-gold': allMode } ]">
                         <div class="content-reverse card-container">
-                           <div class="font-black text-2xl mb-2" :class="(g.checked || g.score !== 0) ? 'text-white' : 'text-slate-800'">{{ idx + 1 }}모둠</div>
-                            <div class="font-black text-7xl" :class="(g.checked || g.score !== 0) ? 'text-white' : 'text-slate-800'">{{ g.checked ? '✓' : (g.score !== 0 ? (g.score > 0 ? '+' : '') + g.score : '') }}</div>
+                           <div class="font-black text-2xl mb-2" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ idx + 1 }}모둠</div>
+                            <div class="font-black text-7xl" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ g.checked ? '✓' : (g.score !== 0 ? (g.score > 0 ? '+' : '') + g.score : '') }}</div>
                            <div v-if="isMemoVisible" class="memo-container" @click.stop>
                                 <textarea v-model="g.memo" 
                                        rows="2"

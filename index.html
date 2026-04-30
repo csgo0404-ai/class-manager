@@ -3874,16 +3874,30 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <!-- 우측 버튼들 (탭에 따라 조건부 표시) -->
             <div class="ml-auto flex gap-1.5 items-center">
                 <template v-if="dashboardSettingsTab==='info'">
-                    <button @click="soundSettings.ui = !soundSettings.ui"
-                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
-                            :class="soundSettings.ui ? 'bg-[#7dd3fc] border-[#38bdf8] text-white' : 'bg-white text-slate-400 border-slate-200'">
-                        <i :class="soundSettings.ui ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark'"></i> 효과음
-                    </button>
-                    <button @click="soundSettings.game = !soundSettings.game"
-                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all flex items-center gap-1"
-                            :class="soundSettings.game ? 'bg-[#c084fc] border-[#a855f7] text-white' : 'bg-white text-slate-400 border-slate-200'">
-                        <i :class="soundSettings.game ? 'fa-solid fa-music' : 'fa-solid fa-bell-slash'"></i> 배경음
-                    </button>
+                    <div class="flex items-center gap-1 bg-white rounded-xl border-b-4 border-slate-200 px-1.5 py-0.5">
+                        <button @click="soundSettings.ui = !soundSettings.ui"
+                                class="px-1.5 py-0.5 rounded-lg font-black text-xs flex items-center gap-1"
+                                :class="soundSettings.ui ? 'text-[#0284c7]' : 'text-slate-400'"
+                                :title="soundSettings.ui ? '효과음 OFF' : '효과음 ON'">
+                            <i :class="soundSettings.ui ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark'"></i> 효과음
+                        </button>
+                        <input type="range" v-model.number="sfxVolume" @change="saveToLocal"
+                               min="0" max="1" step="0.05"
+                               class="w-16 accent-sky-400 h-1 cursor-pointer" :disabled="!soundSettings.ui">
+                        <span class="text-[10px] font-mono text-slate-500 w-7 text-right">{{ Math.round(sfxVolume * 100) }}%</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-white rounded-xl border-b-4 border-slate-200 px-1.5 py-0.5">
+                        <button @click="soundSettings.game = !soundSettings.game"
+                                class="px-1.5 py-0.5 rounded-lg font-black text-xs flex items-center gap-1"
+                                :class="soundSettings.game ? 'text-[#9333ea]' : 'text-slate-400'"
+                                :title="soundSettings.game ? '배경음 OFF' : '배경음 ON'">
+                            <i :class="soundSettings.game ? 'fa-solid fa-music' : 'fa-solid fa-bell-slash'"></i> 배경음
+                        </button>
+                        <input type="range" v-model.number="bgmVolume" @change="saveToLocal"
+                               min="0" max="1" step="0.05"
+                               class="w-16 accent-purple-400 h-1 cursor-pointer" :disabled="!soundSettings.game">
+                        <span class="text-[10px] font-mono text-slate-500 w-7 text-right">{{ Math.round(bgmVolume * 100) }}%</span>
+                    </div>
                 </template>
                 <template v-if="dashboardSettingsTab==='plans'">
                     <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
@@ -5838,6 +5852,8 @@ editingAlarmIndex: null,
 alarmWorker: null,
 alarmWorkerLastTriggered: {},
 alarmVolume: 1.0,
+bgmVolume: 1.0,
+sfxVolume: 1.0,
 ringingAlarmTime: '',
 ringingAlarmLabel: '',
 currentTime24s: '',
@@ -7725,9 +7741,17 @@ playSound(key, loop = false, volume = 0.5) {
         audio.currentTime = 0;
     }
 
-    // 3. 재생
+    // 3. 재생 (BGM/SFX 음량 배수 적용)
     audio.loop = loop;
-    audio.volume = volume;
+    let finalVol = volume;
+    if (key === 'alarm') {
+        // 알람은 alarmVolume 그대로
+    } else if (key.startsWith('bgm_')) {
+        finalVol = volume * (this.bgmVolume ?? 1.0);
+    } else {
+        finalVol = volume * (this.sfxVolume ?? 1.0);
+    }
+    audio.volume = Math.max(0, Math.min(1, finalVol));
     audio.play().catch(() => {});
 },
 
@@ -10689,6 +10713,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         isSortedByNumber: this.isSortedByNumber,
                         preSortLayout: this.preSortLayout,
                         alarmVolume: this.alarmVolume,
+                        bgmVolume: this.bgmVolume,
+                        sfxVolume: this.sfxVolume,
                         showCheckedStudentPanel: this.showCheckedStudentPanel,
                         dashboardSettings: this.dashboardSettings,
                         uiState: {
@@ -10857,6 +10883,8 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants;
                             if (parsed.participantList) this.participantList = toArray(parsed.participantList);
                             if (parsed.alarmVolume !== undefined) this.alarmVolume = parsed.alarmVolume;
+                            if (parsed.bgmVolume !== undefined) this.bgmVolume = parsed.bgmVolume;
+                            if (parsed.sfxVolume !== undefined) this.sfxVolume = parsed.sfxVolume;
                             if (parsed.isSortedByNumber !== undefined) this.isSortedByNumber = parsed.isSortedByNumber;
                             if (parsed.preSortLayout) {
                                 this.preSortLayout = {

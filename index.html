@@ -6,15 +6,13 @@
     <title>우리반 매니저</title>
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.13/lunar.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏫</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet"> 
-<link href="https://fonts.googleapis.com/css2?family=Dongle:wght@300;400;700&display=swap" rel="stylesheet"> 
-<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&family=Dongle:wght@300;400;700&family=Jua&display=swap" rel="stylesheet">
 
 
 
@@ -5677,6 +5675,8 @@ measurementId: "G-H95D2Z7MFF"
             return {
 lastDbSnapshot: null,       // ★ [데이터 증발 방지] Firebase 첫 응답 전까지 null 유지 → saveToFirebase 차단
 isSavingNow: false,         // ★ [동시저장 방어막] 내가 저장 중일 때 외부 onValue 무시
+lastBoardSnapshot: null,    // ★ 칠판 데이터(_board) 비교용 스냅샷
+isBoardSaving: false,       // ★ 칠판 데이터 저장 중 echo 차단
 shuffleHistoryByMode: {},   // ★ 모드별 짝꿍 이력 (이성/동성/랜덤 각각 records, cycleCount, currentRound)
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
 isNoiseTimeHidden: false,
@@ -7701,6 +7701,25 @@ adjustBracketPositions() {
 declareWinner(winner, matchIdx) {
     this.bracket[upperRound][upperMatchIdx] = winner; 
     this.adjustBracketPositions();
+},
+
+// 가시성 인지 폴링 헬퍼 (탭 활성 시 5초, 비활성 시 일시중지)
+_smartPoll(fn, activeMs = 5000) {
+    if (!this._smartPollers) {
+        this._smartPollers = [];
+        document.addEventListener('visibilitychange', () => {
+            this._smartPollers.forEach(p => {
+                if (document.hidden) {
+                    if (p.id) { clearInterval(p.id); p.id = null; }
+                } else {
+                    if (!p.id) { p.fn(); p.id = setInterval(p.fn, p.ms); }
+                }
+            });
+        });
+    }
+    const p = { fn, ms: activeMs, id: null };
+    if (!document.hidden) p.id = setInterval(fn, activeMs);
+    this._smartPollers.push(p);
 },
 
 // 1. 소리 재생 (루프 기능 추가)
@@ -10649,10 +10668,12 @@ saveToLocal() {
                 localStorage.setItem('avoidPreviousSeat', this.avoidPreviousSeat);
 
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => { 
-        this.saveToFirebase(); 
-        this.saveTimeout = null; 
-    }, 50);
+    this.saveTimeout = setTimeout(() => {
+        this.saveToFirebase();
+        this.saveTimeout = null;
+    }, 300);
+    // ★ 칠판/paths는 별도 디바운스로 분리 저장
+    if (this.queueSaveBoard) this.queueSaveBoard();
 },
 
 
@@ -10674,7 +10695,7 @@ saveToLocal() {
 daySchedules: this.daySchedules,
 scheduleVersions: this.scheduleVersions,
 currentScheduleVersion: this.currentScheduleVersion, // ★ 누락되었던 일정 인덱스 추가
-                        blackboardContent: this.blackboardContent,
+                        // ★ blackboardContent / paths는 별도 ref(_board)로 분리 (트래픽 절감)
                         thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset,
 isOneMinAlarmOn: this.isOneMinAlarmOn,
 bombMessage: this.bombMessage,
@@ -10690,7 +10711,7 @@ bombMsgH: this.bombMsgH,
                         savedBoards: this.savedBoards, savedRoulettes: this.savedRoulettes, 
                         lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode,
                         savedGroupings: this.savedGroupings, rouletteInput: this.rouletteInput,
-                        blackboardContent: this.blackboardContent, paths: this.paths, groupingList: this.groupingList,
+                        groupingList: this.groupingList,
                         animalRunners: currentAnimalRunners, animalRaceResults: this.animalRaceResults,
                         animalRaceFinished: this.animalRaceFinished, noiseLevels: this.noiseLevels,
                         noiseRecordSeconds: this.noiseRecordSeconds, // ★ 누락되었던 소음 측정기 누적 시간 저장 추가!!
@@ -10755,6 +10776,32 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             this.isSavingNow = false;
                         });
                 }
+            },
+
+            // ★ 칠판 데이터 별도 저장 (디바운스 1.5s) — 자주 바뀌므로 메인 데이터와 분리
+            saveBoardToFirebase() {
+                if (this.isSyncing || this.isInitialLoad) return;
+                if (this.lastBoardSnapshot == null) return;
+                if (typeof db === 'undefined' || typeof update === 'undefined' || typeof ref === 'undefined') return;
+                const cur = { blackboardContent: this.blackboardContent || '', paths: this.paths || [] };
+                const curStr = JSON.stringify(cur);
+                if (curStr === this.lastBoardSnapshot) return;
+                this.isBoardSaving = true;
+                update(ref(db, DB_KEY + '_board'), cur)
+                    .then(() => {
+                        this.lastBoardSnapshot = curStr;
+                        setTimeout(() => { this.isBoardSaving = false; }, 300);
+                    }).catch((e) => {
+                        console.error('칠판 저장 실패:', e);
+                        this.isBoardSaving = false;
+                    });
+            },
+            queueSaveBoard() {
+                if (this._boardSaveTimer) clearTimeout(this._boardSaveTimer);
+                this._boardSaveTimer = setTimeout(() => {
+                    this.saveBoardToFirebase();
+                    this._boardSaveTimer = null;
+                }, 1500);
             },
 
             
@@ -10962,16 +11009,19 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                 this.dashboardSettings = Object.assign({}, this.dashboardSettings, ds);
                             }
 
-                            // [4. 판서 실시간 동기화] (내가 지금 타이핑 중이 아닐 때만 덮어씀)
-                            const editor = document.getElementById('board-editor');
-                            if (document.activeElement !== editor && !this.isComposing) {
-                                if (this.blackboardContent !== parsed.blackboardContent) {
-                                    this.blackboardContent = parsed.blackboardContent || '';
-                                    if (editor) editor.innerHTML = this.blackboardContent;
+                            // [4. 판서 동기화] — 칠판/paths는 별도 ref(_board)로 분리됨
+                            // 단, 옛 데이터(메인 ref에 paths/blackboardContent가 남은 경우) 마이그레이션 1회
+                            if (parsed.blackboardContent !== undefined || parsed.paths !== undefined) {
+                                const oldBoard = {
+                                    blackboardContent: parsed.blackboardContent || '',
+                                    paths: parsed.paths || []
+                                };
+                                // 새 위치에 옮기고 옛 필드는 정리
+                                if (typeof update !== 'undefined') {
+                                    update(ref(db, DB_KEY + '_board'), oldBoard).catch(()=>{});
+                                    update(ref(db, DB_KEY), { blackboardContent: null, paths: null }).catch(()=>{});
                                 }
                             }
-                            this.paths = parsed.paths || [];
-                            this.$nextTick(() => this.redrawCanvas());
 
                             // [5. 창 위치 및 크기 복구]
                             if (parsed.uiState) {
@@ -11007,11 +11057,33 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
 
                             this.displayWinner = this.lastWinners[this.lotteryMode] || '?';
 
-                            this.$nextTick(() => { 
-                                this.isSyncing = false; 
+                            this.$nextTick(() => {
+                                this.isSyncing = false;
                                 // ★ 여기서 섣부르게 잠금을 풀지 않습니다! (mounted의 1.5초 타이머가 안전하게 풀어줍니다)
                             });
                         }
+                    });
+
+                    // ★ 칠판 데이터 별도 구독 (_board) — 메인 데이터와 분리되어 트래픽 절감
+                    const boardRef = ref(db, DB_KEY + '_board');
+                    onValue(boardRef, (snap) => {
+                        if (this.isBoardSaving) return; // 내가 보낸 echo 무시
+                        const b = snap.val() || {};
+                        this.lastBoardSnapshot = JSON.stringify({
+                            blackboardContent: b.blackboardContent || '',
+                            paths: b.paths || []
+                        });
+                        // 타이핑 중이면 칠판 텍스트 덮어쓰지 않음
+                        const editor = document.getElementById('board-editor');
+                        if (document.activeElement !== editor && !this.isComposing) {
+                            const newContent = b.blackboardContent || '';
+                            if (this.blackboardContent !== newContent) {
+                                this.blackboardContent = newContent;
+                                if (editor) editor.innerHTML = newContent;
+                            }
+                        }
+                        this.paths = b.paths || [];
+                        this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
                     });
                 }
             },
@@ -11033,7 +11105,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     } catch(e) {}
                 };
                 poll();
-                setInterval(() => poll(), 1000);
+                this._smartPoll(poll);
             },
             async dismissKioskRequest(reqId) {
                 if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
@@ -11133,7 +11205,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     } catch(e) {}
                 };
                 poll();
-                setInterval(() => poll(), 1000);
+                this._smartPoll(poll);
             },
             async loadKioskHistory() {
                 if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
@@ -11153,7 +11225,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     } catch(e) {}
                 };
                 poll();
-                setInterval(() => poll(), 1000);
+                this._smartPoll(poll);
             },
          getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200 text-slate-800';

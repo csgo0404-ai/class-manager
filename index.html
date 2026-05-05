@@ -2545,7 +2545,53 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 </style>  
 </head>
 <body>
-<div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>        
+<div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>
+
+<!-- 트래픽 통계 모달 -->
+<div v-if="showTrafficStats" @click.self="showTrafficStats = false"
+     style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;">
+    <div style="background:white;border-radius:20px;width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.3);overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#5D4037,#8D6E63);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;color:white;flex-shrink:0;">
+            <span style="font-size:17px;">📊 Firebase 트래픽 사용량 (최근 30일)</span>
+            <button @click="showTrafficStats = false" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;font-size:16px;color:white;cursor:pointer;">×</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;">
+            <div v-if="trafficStatsRows.length === 0" style="text-align:center;color:#aaa;padding:32px;">아직 기록된 트래픽이 없어요</div>
+            <table v-else style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="background:#FFF8E1;">
+                        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #FFE0B2;">날짜</th>
+                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#1565C0;">⬇ 다운로드</th>
+                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#E65100;">⬆ 업로드</th>
+                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;">합계</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(row, i) in trafficStatsRows" :key="row.date" :style="i===0?'background:#E3F2FD;font-weight:bold;':''">
+                        <td style="padding:6px 10px;border-bottom:1px solid #EEE;">{{ row.date }}{{ i===0 ? ' (오늘)' : '' }}</td>
+                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#1565C0;">{{ formatBytes(row.down) }} <span style="color:#aaa;font-size:11px;">({{ row.downCount }}회)</span></td>
+                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#E65100;">{{ formatBytes(row.up) }} <span style="color:#aaa;font-size:11px;">({{ row.upCount }}회)</span></td>
+                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;font-weight:bold;">{{ formatBytes(row.down + row.up) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot v-if="trafficStatsRows.length > 0">
+                    <tr style="background:#FFF3E0;font-weight:bold;">
+                        <td style="padding:8px 10px;">총합</td>
+                        <td style="padding:8px 10px;text-align:right;color:#1565C0;">{{ formatBytes(trafficTotalDown) }}</td>
+                        <td style="padding:8px 10px;text-align:right;color:#E65100;">{{ formatBytes(trafficTotalUp) }}</td>
+                        <td style="padding:8px 10px;text-align:right;">{{ formatBytes(trafficTotalDown + trafficTotalUp) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.6;">
+                ※ Firebase 데이터 송수신만 추적합니다 (CDN/이미지 제외).<br>
+                ※ JSON 직렬화 크기 기준 추정치이며, 실제 네트워크 트래픽과 약간 차이가 있을 수 있어요.<br>
+                ※ 30일이 지난 기록은 자동 삭제됩니다.
+            </div>
+            <button @click="resetTrafficStats" style="margin-top:14px;padding:8px 16px;background:#EEE;border:none;border-radius:10px;font-family:'Jua';font-size:13px;cursor:pointer;color:#666;">통계 초기화</button>
+        </div>
+    </div>
+</div>
 
 <div class="loading-overlay" :class="{'hide': !isInitialLoad}">
         <div class="loading-icon mb-6">🏫</div>
@@ -2775,21 +2821,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <span class="font-black text-slate-700 text-sm flex items-center gap-1">🔔 요청 목록
                             <span v-if="allRequests.length > 0" class="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 ml-1">{{ allRequests.length }}</span>
                         </span>
-                        <button @click.stop="clearAllKioskRequests" v-if="kioskRequests.length > 0" class="text-xs text-slate-400 hover:text-red-500 font-bold">키오스크 요청 삭제</button>
                     </div>
                     <div v-if="allRequests.length === 0" class="py-6 text-center text-slate-400 text-sm font-bold">요청이 없습니다</div>
                     <div v-for="(req, idx) in allRequests" :key="idx"
                          @click.stop="openUrl(req.url)"
-                         class="flex items-center gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors"
-                         :class="req.url && req.url.includes('store') ? 'hover:bg-orange-50' : 'hover:bg-blue-50'">
+                         class="flex items-center gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors hover:bg-orange-50">
                         <span class="text-xs text-slate-400 font-bold shrink-0 w-10">{{ req.time }}</span>
                         <span class="font-black text-slate-700 text-sm shrink-0 max-w-[60px] truncate">{{ req.nm }}</span>
                         <span class="text-xs font-bold ml-1 flex-1 truncate"
-                              :class="req.type==='auc'?'text-purple-600':req.type==='dex'?'text-yellow-600':req.type==='char'?'text-blue-600':req.type==='kiosk_buy'?'text-cyan-600':req.type==='kiosk_use'?'text-teal-600':req.type==='kiosk_req'?'text-indigo-600':'text-orange-600'">
-                            {{ req.type==='auc'?'🔨 경매 요청':req.type==='dex'?'📜 도감 100%':req.type==='char'?'👤 캐릭터 제작':req.type==='kiosk_buy'?'🛒 '+req.label:req.type==='kiosk_use'?'🎒 '+req.label:req.type==='kiosk_req'?'📤 '+req.label:'🎁 승인 요청' }}
+                              :class="req.type==='auc'?'text-purple-600':req.type==='dex'?'text-yellow-600':req.type==='gac'?'text-pink-600':req.type==='print'?'text-blue-600':req.type==='item-today'?'text-emerald-600':'text-orange-600'">
+                            {{ req.type==='auc'?'🔨 '+req.label:req.type==='dex'?'📜 '+req.label:req.type==='gac'?'🎰 '+req.label:req.type==='print'?'🖨️ '+req.label:req.type==='item-today'?'📅 '+req.label:'🎁 '+req.label }}
                         </span>
-                        <button v-if="req.reqId" @click.stop="dismissKioskRequest(req.reqId)" class="text-xs bg-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white px-2 py-1 rounded-lg font-black transition-colors shrink-0">완료</button>
-                    </div>
                 </div>
             </div>
 
@@ -3896,6 +3938,11 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                class="w-16 accent-purple-400 h-1 cursor-pointer" :disabled="!soundSettings.game">
                         <span class="text-[10px] font-mono text-slate-500 w-7 text-right">{{ Math.round(bgmVolume * 100) }}%</span>
                     </div>
+                    <button @click="showTrafficStats = true"
+                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-all flex items-center gap-1"
+                            title="트래픽 사용량 통계">
+                        <i class="fa-solid fa-chart-line"></i> 트래픽
+                    </button>
                 </template>
                 <template v-if="dashboardSettingsTab==='plans'">
                     <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
@@ -5679,6 +5726,7 @@ lastBoardSnapshot: null,    // ★ 칠판 데이터(_board) 비교용 스냅샷
 isBoardSaving: false,       // ★ 칠판 데이터 저장 중 echo 차단
 shuffleHistoryByMode: {},   // ★ 모드별 짝꿍 이력 (이성/동성/랜덤 각각 records, cycleCount, currentRound)
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
+showTrafficStats: false, // 트래픽 통계 모달
 isNoiseTimeHidden: false,
 isSortedByNumber: false,  // ★ 추가: 번호순 정렬 상태인지 확인
 preSortLayout: null,      // ★ 추가: 섞기 전 원래 자리 기억
@@ -6030,7 +6078,7 @@ bombMsgH: 100,
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
 
-isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, showKioskRequests: false, kioskRequests: [], kioskHistory: [], storeRequests: [], tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
+isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, showKioskRequests: false, storeRequests: [], tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
                 activityTabs: [{ id: 1, name: '활동1' }],
@@ -6657,6 +6705,21 @@ allRequests() {
     }));
     return list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
 },
+trafficStatsRows() {
+    // showTrafficStats가 변경될 때마다 reactivity 트리거 (모달 열 때 최신화)
+    this.showTrafficStats;
+    let stats;
+    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
+    return Object.keys(stats).sort().reverse().map(date => ({
+        date,
+        down: stats[date].down || 0,
+        up: stats[date].up || 0,
+        downCount: stats[date].downCount || 0,
+        upCount: stats[date].upCount || 0,
+    }));
+},
+trafficTotalDown() { return this.trafficStatsRows.reduce((s,r) => s + r.down, 0); },
+trafficTotalUp()   { return this.trafficStatsRows.reduce((s,r) => s + r.up,   0); },
 
             topStudents() {
                 const withTotal = this.allStudents.map(s => {
@@ -7701,6 +7764,37 @@ adjustBracketPositions() {
 declareWinner(winner, matchIdx) {
     this.bracket[upperRound][upperMatchIdx] = winner; 
     this.adjustBracketPositions();
+},
+
+formatBytes(b) {
+    if (!b || b < 1) return '0 B';
+    if (b < 1024) return b + ' B';
+    if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+    if (b < 1024*1024*1024) return (b/1024/1024).toFixed(2) + ' MB';
+    return (b/1024/1024/1024).toFixed(2) + ' GB';
+},
+resetTrafficStats() {
+    if (!confirm('트래픽 통계 기록을 모두 삭제할까요?')) return;
+    try { localStorage.removeItem('trafficStats'); } catch(e) {}
+    this.showTrafficStats = false;
+    this.$nextTick(() => { this.showTrafficStats = true; });
+},
+
+// 트래픽 통계 (다운/업로드 byte) — localStorage에 일자별 누적
+_trackDown(data) { try { this._addTraffic('down', JSON.stringify(data||{}).length); } catch(e){} },
+_trackUp(data)   { try { this._addTraffic('up',   JSON.stringify(data||{}).length); } catch(e){} },
+_addTraffic(dir, bytes) {
+    if (!bytes || bytes < 1) return;
+    const today = new Date().toISOString().slice(0,10);
+    let stats;
+    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
+    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0 };
+    stats[today][dir] = (stats[today][dir]||0) + bytes;
+    stats[today][dir+'Count'] = (stats[today][dir+'Count']||0) + 1;
+    // 30일치만 보관
+    const cutoff = new Date(Date.now() - 30*86400*1000).toISOString().slice(0,10);
+    Object.keys(stats).forEach(d => { if (d < cutoff) delete stats[d]; });
+    try { localStorage.setItem('trafficStats', JSON.stringify(stats)); } catch(e) {}
 },
 
 // 가시성 인지 폴링 헬퍼 (탭 활성 시 5초, 비활성 시 일시중지)
@@ -10767,6 +10861,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         return; 
                     }
 
+                    this._trackUp(updates);
                     update(ref(db, DB_KEY), updates)
                         .then(() => {
                             this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates));
@@ -10787,6 +10882,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 const curStr = JSON.stringify(cur);
                 if (curStr === this.lastBoardSnapshot) return;
                 this.isBoardSaving = true;
+                this._trackUp(cur);
                 update(ref(db, DB_KEY + '_board'), cur)
                     .then(() => {
                         this.lastBoardSnapshot = curStr;
@@ -10822,6 +10918,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             this.isSyncing = true;
                             const parsed = snapshot.val();
                             this.lastDbSnapshot = JSON.stringify(parsed); // 최신 스냅샷 저장
+                            this._trackDown(parsed);
                             
                             // [배열 복구 도우미 함수] Firebase가 비어있는 배열을 씹어먹는 현상 방지
                             const toArray = (obj) => {
@@ -11069,6 +11166,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     onValue(boardRef, (snap) => {
                         if (this.isBoardSaving) return; // 내가 보낸 echo 무시
                         const b = snap.val() || {};
+                        this._trackDown(b);
                         this.lastBoardSnapshot = JSON.stringify({
                             blackboardContent: b.blackboardContent || '',
                             paths: b.paths || []
@@ -11087,48 +11185,17 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     });
                 }
             },
-            loadKioskRequests() {
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
-                let isFirstLoad = true;
-                const kioskRef = ref(db, 'kiosk_requests');
-                const poll = async () => {
-                    try {
-                        const snap = await get(kioskRef);
-                        const raw = snap.val() || {};
-                        const newRequests = Object.values(raw).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                        if (!isFirstLoad && newRequests.length > this.kioskRequests.length) {
-                            this.playSound('ding', false, 1.0);
-                            this.showToast('🛒 키오스크 구입 요청이 있습니다!');
-                        }
-                        isFirstLoad = false;
-                        this.kioskRequests = newRequests;
-                    } catch(e) {}
-                };
-                poll();
-                this._smartPoll(poll);
-            },
-            async dismissKioskRequest(reqId) {
-                if (typeof db !== 'undefined' && typeof update !== 'undefined' && typeof ref !== 'undefined') {
-                    await update(ref(db, 'kiosk_requests'), { [reqId]: null });
-                }
-            },
-            async clearAllKioskRequests() {
-                if (typeof db !== 'undefined' && typeof ref !== 'undefined') {
-                    const { set } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
-                    await set(ref(db, 'kiosk_requests'), null);
-                }
-            },
-            async loadStoreRequests() {
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+            loadStoreRequests() {
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
                 if (!this._reqTimes) this._reqTimes = {};
                 const storeRef = ref(db, 'ClassData/EventShop');
                 const toArr = v => Array.isArray(v) ? v : Object.values(v || {});
                 const nowStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; };
                 const seenAt = (key) => { if (!this._reqTimes[key]) this._reqTimes[key] = { time: nowStr(), ts: Date.now() }; return this._reqTimes[key]; };
-                const poll = async () => {
+                onValue(storeRef, (snap) => {
                     try {
-                        const snap = await get(storeRef);
                         const raw = snap.val() || {};
+                        this._trackDown(raw);
                         const list = [];
                         // 경매 요청
                         toArr(raw.auc).forEach(a => {
@@ -11203,29 +11270,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                         }
                         this.storeRequests = list;
                     } catch(e) {}
-                };
-                poll();
-                this._smartPoll(poll);
-            },
-            async loadKioskHistory() {
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
-                const histRef = ref(db, 'kiosk_history');
-                let prevCount = -1;
-                const poll = async () => {
-                    try {
-                        const snap = await get(histRef);
-                        const raw = snap.val() || {};
-                        const list = Object.values(raw).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                        if (prevCount >= 0 && list.length > prevCount) {
-                            this.playSound('ding', false, 1.0);
-                            this.showToast('🛒 키오스크 구입 내역이 있습니다!');
-                        }
-                        prevCount = list.length;
-                        this.kioskHistory = list;
-                    } catch(e) {}
-                };
-                poll();
-                this._smartPoll(poll);
+                });
             },
          getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200 text-slate-800';
@@ -16083,9 +16128,7 @@ startReverseLadderGame(endColIdx) {
        mounted() {
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
-            this.loadKioskRequests();
             this.loadStoreRequests();
-            this.loadKioskHistory();
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

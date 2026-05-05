@@ -2561,32 +2561,34 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <thead>
                     <tr style="background:#FFF8E1;">
                         <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #FFE0B2;">날짜</th>
-                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#1565C0;">⬇ 다운로드</th>
+                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#9E9E9E;" title="새로고침할 때마다 Firebase가 자동으로 보내는 초기 데이터. 줄일 수 없습니다.">📥 초기 동기화</th>
+                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#1565C0;" title="실제 데이터 변경으로 인한 다운로드. 최적화 효과 측정 가능.">🔄 변경 동기화</th>
                         <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#E65100;">⬆ 업로드</th>
-                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;">합계</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(row, i) in trafficStatsRows" :key="row.date" :style="i===0?'background:#E3F2FD;font-weight:bold;':''">
                         <td style="padding:6px 10px;border-bottom:1px solid #EEE;">{{ row.date }}{{ i===0 ? ' (오늘)' : '' }}</td>
-                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#1565C0;">{{ formatBytes(row.down) }} <span style="color:#aaa;font-size:11px;">({{ row.downCount }}회)</span></td>
+                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#9E9E9E;">{{ formatBytes(row.initDown) }} <span style="font-size:11px;">({{ row.initCount }}회)</span></td>
+                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#1565C0;">{{ formatBytes(row.syncDown) }}</td>
                         <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#E65100;">{{ formatBytes(row.up) }} <span style="color:#aaa;font-size:11px;">({{ row.upCount }}회)</span></td>
-                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;font-weight:bold;">{{ formatBytes(row.down + row.up) }}</td>
                     </tr>
                 </tbody>
                 <tfoot v-if="trafficStatsRows.length > 0">
                     <tr style="background:#FFF3E0;font-weight:bold;">
                         <td style="padding:8px 10px;">총합</td>
-                        <td style="padding:8px 10px;text-align:right;color:#1565C0;">{{ formatBytes(trafficTotalDown) }}</td>
+                        <td style="padding:8px 10px;text-align:right;color:#9E9E9E;">{{ formatBytes(trafficTotalInitDown) }}</td>
+                        <td style="padding:8px 10px;text-align:right;color:#1565C0;">{{ formatBytes(trafficTotalSyncDown) }}</td>
                         <td style="padding:8px 10px;text-align:right;color:#E65100;">{{ formatBytes(trafficTotalUp) }}</td>
-                        <td style="padding:8px 10px;text-align:right;">{{ formatBytes(trafficTotalDown + trafficTotalUp) }}</td>
                     </tr>
                 </tfoot>
             </table>
-            <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.6;">
-                ※ Firebase 데이터 송수신만 추적합니다 (CDN/이미지 제외).<br>
-                ※ JSON 직렬화 크기 기준 추정치이며, 실제 네트워크 트래픽과 약간 차이가 있을 수 있어요.<br>
-                ※ 30일이 지난 기록은 자동 삭제됩니다.
+            <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.7;background:#FAFAFA;padding:10px 12px;border-radius:8px;">
+                <b style="color:#9E9E9E;">📥 초기 동기화</b>: 새로고침할 때 Firebase가 자동으로 보내는 전체 데이터. <b>피할 수 없는 트래픽</b>입니다.<br>
+                <b style="color:#1565C0;">🔄 변경 동기화</b>: 실시간 변경으로 발생하는 트래픽. 최적화 효과는 여기서 확인.<br>
+                <b style="color:#E65100;">⬆ 업로드</b>: 내가 변경한 내용을 서버로 보내는 트래픽.<br>
+                ※ Service Worker는 HTML/CDN만 캐시하므로 Firebase 데이터 트래픽엔 영향 없음.<br>
+                ※ JSON 직렬화 기준 추정치 · 30일치만 보관.
             </div>
             <button @click="resetTrafficStats" style="margin-top:14px;padding:8px 16px;background:#EEE;border:none;border-radius:10px;font-family:'Jua';font-size:13px;cursor:pointer;color:#666;">통계 초기화</button>
         </div>
@@ -2804,7 +2806,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div></div>
 
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
-            <div class="relative w-full mb-4 px-2">
+            <div class="relative w-full mb-8 px-2">
                 <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="openMainDashboard()">
                     <span @click.stop="showKioskRequests = !showKioskRequests"
                           class="relative text-3xl leading-none hover:scale-110 transition-transform cursor-pointer"
@@ -6706,20 +6708,27 @@ allRequests() {
     return list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
 },
 trafficStatsRows() {
-    // showTrafficStats가 변경될 때마다 reactivity 트리거 (모달 열 때 최신화)
     this.showTrafficStats;
     let stats;
     try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    return Object.keys(stats).sort().reverse().map(date => ({
-        date,
-        down: stats[date].down || 0,
-        up: stats[date].up || 0,
-        downCount: stats[date].downCount || 0,
-        upCount: stats[date].upCount || 0,
-    }));
+    return Object.keys(stats).sort().reverse().map(date => {
+        const s = stats[date];
+        const down = s.down || 0;
+        const initDown = s.initDown || 0;
+        return {
+            date,
+            initDown,                        // 초기 동기화 (불가피)
+            syncDown: Math.max(0, down - initDown), // 실시간 변경
+            up: s.up || 0,
+            downCount: s.downCount || 0,
+            initCount: s.initCount || 0,
+            upCount: s.upCount || 0,
+        };
+    });
 },
-trafficTotalDown() { return this.trafficStatsRows.reduce((s,r) => s + r.down, 0); },
-trafficTotalUp()   { return this.trafficStatsRows.reduce((s,r) => s + r.up,   0); },
+trafficTotalInitDown() { return this.trafficStatsRows.reduce((s,r) => s + r.initDown, 0); },
+trafficTotalSyncDown() { return this.trafficStatsRows.reduce((s,r) => s + r.syncDown, 0); },
+trafficTotalUp()       { return this.trafficStatsRows.reduce((s,r) => s + r.up, 0); },
 
             topStudents() {
                 const withTotal = this.allStudents.map(s => {
@@ -6851,6 +6860,8 @@ trafficTotalUp()   { return this.trafficStatsRows.reduce((s,r) => s + r.up,   0)
         },
 
         watch: {
+            // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독
+            view() { this.ensureToolsSubscribed && this.ensureToolsSubscribed(); },
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
@@ -7781,14 +7792,27 @@ resetTrafficStats() {
 },
 
 // 트래픽 통계 (다운/업로드 byte) — localStorage에 일자별 누적
-_trackDown(data) { try { this._addTraffic('down', JSON.stringify(data||{}).length); } catch(e){} },
-_trackUp(data)   { try { this._addTraffic('up',   JSON.stringify(data||{}).length); } catch(e){} },
-_addTraffic(dir, bytes) {
+// kind: 'init'(초기 동기화, 새로고침마다 불가피) / 'sync'(실시간 변경)
+_trackDown(data, refKey) {
+    try {
+        const bytes = JSON.stringify(data||{}).length;
+        if (!this._initSeen) this._initSeen = {};
+        const isInit = !this._initSeen[refKey || 'main'];
+        if (isInit) this._initSeen[refKey || 'main'] = true;
+        this._addTraffic('down', bytes, isInit ? 'init' : 'sync');
+    } catch(e){}
+},
+_trackUp(data) { try { this._addTraffic('up', JSON.stringify(data||{}).length, 'sync'); } catch(e){} },
+_addTraffic(dir, bytes, kind) {
     if (!bytes || bytes < 1) return;
     const today = new Date().toISOString().slice(0,10);
     let stats;
     try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0 };
+    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0, initDown:0, initCount:0 };
+    if (kind === 'init') {
+        stats[today].initDown = (stats[today].initDown||0) + bytes;
+        stats[today].initCount = (stats[today].initCount||0) + 1;
+    }
     stats[today][dir] = (stats[today][dir]||0) + bytes;
     stats[today][dir+'Count'] = (stats[today][dir+'Count']||0) + 1;
     // 30일치만 보관
@@ -10861,16 +10885,77 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         return; 
                     }
 
+                    // ★ Phase B: 도구류 필드를 별도 ref(_tools)로 분리 — 초기 동기화 크기 절감
+                    const TOOL_KEYS = ['tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
+                        'participantList','deductWinnerCount','rememberParticipants',
+                        'savedRoulettes','rouletteInput','savedGroupings','groupingList',
+                        'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode'];
+                    const toolUpdates = {};
+                    TOOL_KEYS.forEach(k => {
+                        if (updates[k] !== undefined) {
+                            toolUpdates[k] = updates[k];
+                            delete updates[k];
+                        }
+                    });
+
                     this._trackUp(updates);
-                    update(ref(db, DB_KEY), updates)
+                    const mainSave = Object.keys(updates).length
+                        ? update(ref(db, DB_KEY), updates)
+                        : Promise.resolve();
+                    const toolSave = Object.keys(toolUpdates).length
+                        ? (this._trackUp(toolUpdates), update(ref(db, DB_KEY + '_tools'), toolUpdates))
+                        : Promise.resolve();
+
+                    Promise.all([mainSave, toolSave])
                         .then(() => {
-                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates));
+                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates));
+                            try { localStorage.setItem('dbCache_v1', this.lastDbSnapshot); } catch(e) {}
                             setTimeout(() => { this.isSavingNow = false; }, 300);
                         }).catch((error) => {
                             console.error("저장 실패:", error);
                             this.isSavingNow = false;
                         });
                 }
+            },
+
+            // ★ Phase B: 도구 데이터 별도 구독 (필요 시점에 1회만 호출)
+            ensureToolsSubscribed() {
+                if (this._toolsSubscribed) return;
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
+                this._toolsSubscribed = true;
+                const toolsRef = ref(db, DB_KEY + '_tools');
+                onValue(toolsRef, (snap) => {
+                    const t = snap.val() || {};
+                    this._trackDown(t, 'tools');
+                    const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+                    if (t.tournamentData) {
+                        this.visibleBracketTree = t.tournamentData.tree || [];
+                        this.finalWinner = t.tournamentData.winner || null;
+                        this.selectedBracketMode = t.tournamentData.mode || 'group8';
+                        this.leftSideBracket = t.tournamentData.left;
+                        this.rightSideBracket = t.tournamentData.right;
+                    }
+                    if (t.animalRunners !== undefined) {
+                        const r = t.animalRunners || [];
+                        this.animalRunners = Array.isArray(r) || (r && Object.keys(r).length > 0)
+                            ? (Array.isArray(r) ? r : Object.values(r))
+                            : Array(6).fill().map(() => ({ pos:0, speed:0, finished:false, state:'run', timer:0 }));
+                    }
+                    if (t.animalRaceResults !== undefined) this.animalRaceResults = toArr(t.animalRaceResults);
+                    if (t.animalRaceFinished !== undefined) this.animalRaceFinished = !!t.animalRaceFinished;
+                    if (t.participantList !== undefined) this.participantList = toArr(t.participantList);
+                    if (t.deductWinnerCount !== undefined) this.deductWinnerCount = t.deductWinnerCount;
+                    if (t.rememberParticipants !== undefined) this.rememberParticipants = t.rememberParticipants;
+                    if (t.savedRoulettes !== undefined) this.savedRoulettes = toArr(t.savedRoulettes);
+                    if (t.rouletteInput !== undefined) this.rouletteInput = t.rouletteInput || "1\n2\n3\n4\n5\n6";
+                    if (t.savedGroupings !== undefined) this.savedGroupings = toArr(t.savedGroupings);
+                    if (t.groupingList !== undefined) this.groupingList = toArr(t.groupingList);
+                    if (t.savedBoards !== undefined) this.savedBoards = toArr(t.savedBoards);
+                    if (t.capsules !== undefined) this.capsules = toArr(t.capsules);
+                    if (t.lotteryPools !== undefined) this.lotteryPools = t.lotteryPools || { all:[], M:[], F:[] };
+                    if (t.lastWinners !== undefined) this.lastWinners = t.lastWinners || { all:null, M:null, F:null };
+                    if (t.lotteryMode !== undefined) this.lotteryMode = t.lotteryMode || 'all';
+                });
             },
 
             // ★ 칠판 데이터 별도 저장 (디바운스 1.5s) — 자주 바뀌므로 메인 데이터와 분리
@@ -10902,6 +10987,46 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
 
             
 
+            // ★ Phase A: localStorage 캐시에서 핵심 필드 즉시 렌더
+            // Firebase 응답이 동일하면 onValue 핸들러가 스킵 → UI 깜빡임 없음
+            loadFromCacheFirst() {
+                try {
+                    const raw = localStorage.getItem('dbCache_v1');
+                    if (!raw) return;
+                    const p = JSON.parse(raw);
+                    const toArr = (v) => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+                    // 자리/모둠/일정 등 첫 화면에 보이는 핵심 필드 즉시 적용
+                    if (p.seats) this.seats = Array.from({length:30}, (_,i) => {
+                        const s = (Array.isArray(p.seats) ? p.seats[i] : p.seats[i]) || null;
+                        return s && s.name ? s : null;
+                    });
+                    if (p.waitingRoom) this.waitingRoom = toArr(p.waitingRoom);
+                    if (p.groups) this.groups = toArr(p.groups);
+                    if (p.seatConfig) this.seatConfig = p.seatConfig;
+                    if (p.manualLocks) this.manualLocks = toArr(p.manualLocks);
+                    if (p.separationPairs) this.separationPairs = toArr(p.separationPairs);
+                    if (p.daySchedules) this.daySchedules = p.daySchedules;
+                    if (p.scheduleVersions) {
+                        this.scheduleVersions = p.scheduleVersions;
+                        this.currentScheduleVersion = p.currentScheduleVersion ?? 0;
+                    }
+                    if (p.alarmList) this.alarmList = toArr(p.alarmList);
+                    if (p.activityTabs) this.activityTabs = p.activityTabs;
+                    if (p.tabData) this.tabData = p.tabData;
+                    if (p.currentTabId !== undefined) this.currentTabId = p.currentTabId;
+                    if (p.dashboardSettings) Object.assign(this.dashboardSettings, p.dashboardSettings);
+                    if (p.timeBankSeconds !== undefined) this.timeBankSeconds = +p.timeBankSeconds;
+                    if (p.missions) this.missions = toArr(p.missions);
+                    if (p.bombMessage !== undefined) this.bombMessage = p.bombMessage;
+                    if (p.clockMessage !== undefined) this.clockMessage = p.clockMessage;
+                    if (p.alarmVolume !== undefined) this.alarmVolume = p.alarmVolume;
+                    if (p.bgmVolume !== undefined) this.bgmVolume = p.bgmVolume;
+                    if (p.sfxVolume !== undefined) this.sfxVolume = p.sfxVolume;
+                    // ★ lastDbSnapshot도 미리 채워 Firebase 응답이 동일하면 스킵
+                    this.lastDbSnapshot = raw;
+                } catch(e) { console.warn('cache load failed:', e); }
+            },
+
             loadFromFirebase() {
                 const dbRef = ref(db, DB_KEY);
                 // [★동시저장 핵심] get 대신 onValue를 써서 카톡처럼 실시간으로 계속 데이터를 받습니다.
@@ -10915,10 +11040,17 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         if (snapshot.exists()) {
                             if (this.isSavingNow) return; // 내가 전송한 데이터가 메아리쳐 돌아오는 건 무시
 
-                            this.isSyncing = true;
                             const parsed = snapshot.val();
-                            this.lastDbSnapshot = JSON.stringify(parsed); // 최신 스냅샷 저장
-                            this._trackDown(parsed);
+                            const newSnap = JSON.stringify(parsed); // 최신 스냅샷
+                            this._trackDown(parsed, 'main');
+                            // ★ 동일 데이터(캐시 일치)면 비싼 재처리 스킵 — UI 깜빡임/오버헤드 방지
+                            if (this.lastDbSnapshot === newSnap) {
+                                return;
+                            }
+                            this.isSyncing = true;
+                            this.lastDbSnapshot = newSnap;
+                            // localStorage 캐시 업데이트
+                            try { localStorage.setItem('dbCache_v1', newSnap); } catch(e) {}
                             
                             // [배열 복구 도우미 함수] Firebase가 비어있는 배열을 씹어먹는 현상 방지
                             const toArray = (obj) => {
@@ -10980,12 +11112,23 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             this.waitingRoom = toArray(parsed.waitingRoom);
                             this.manualLocks = toArray(parsed.manualLocks);
                             this.separationPairs = toArray(parsed.separationPairs);
-                            this.savedBoards = toArray(parsed.savedBoards);
-                            this.savedRoulettes = toArray(parsed.savedRoulettes);
-                            this.savedGroupings = toArray(parsed.savedGroupings);
-                            this.groupingList = toArray(parsed.groupingList);
-                            this.animalRaceResults = toArray(parsed.animalRaceResults);
-                            this.capsules = toArray(parsed.capsules);
+                            // ★ Phase B 마이그레이션: 도구 필드가 메인 DB에 남아있으면 _tools로 이전 후 메인에서 정리
+                            const _MIGRATE_TOOLS = ['tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
+                                'participantList','deductWinnerCount','rememberParticipants',
+                                'savedRoulettes','rouletteInput','savedGroupings','groupingList',
+                                'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode'];
+                            const _toolMig = {}; const _toolNull = {}; let _needMig = false;
+                            _MIGRATE_TOOLS.forEach(k => {
+                                if (parsed[k] !== undefined && parsed[k] !== null) {
+                                    _toolMig[k] = parsed[k];
+                                    _toolNull[k] = null;
+                                    _needMig = true;
+                                }
+                            });
+                            if (_needMig && typeof update !== 'undefined') {
+                                update(ref(db, DB_KEY + '_tools'), _toolMig).catch(()=>{});
+                                update(ref(db, DB_KEY), _toolNull).catch(()=>{});
+                            }
                             
                             // 자리바꾸기 기록 복구 (30개 좌석 배열 유지)
                             if (parsed.shuffleHistory) {
@@ -11015,17 +11158,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                 return { score: savedG.score || 0, checked: savedG.checked || false, memo: savedG.memo || "", starred: savedG.starred || false, members: savedG.members || [], showMembers: savedG.showMembers || false };
                             });
 
-                            // [3. 도구(모달) 상태 복구]
-                            const rawRunners = parsed.animalRunners || [];
-                            if (rawRunners && (Array.isArray(rawRunners) || Object.keys(rawRunners).length > 0)) {
-                                this.animalRunners = Array.isArray(rawRunners) ? rawRunners : Object.values(rawRunners);
-                            } else {
-                                this.animalRunners = Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 }));
-                            }
-                            this.animalRaceFinished = parsed.animalRaceFinished || false;
-                            if (parsed.deductWinnerCount !== undefined) this.deductWinnerCount = parsed.deductWinnerCount;
-                            if (parsed.rememberParticipants !== undefined) this.rememberParticipants = parsed.rememberParticipants;
-                            if (parsed.participantList) this.participantList = toArray(parsed.participantList);
+                            // [3. 도구(모달) 상태 복구] — Phase B로 분리됨, ensureToolsSubscribed에서 처리
                             if (parsed.alarmVolume !== undefined) this.alarmVolume = parsed.alarmVolume;
                             if (parsed.bgmVolume !== undefined) this.bgmVolume = parsed.bgmVolume;
                             if (parsed.sfxVolume !== undefined) this.sfxVolume = parsed.sfxVolume;
@@ -11040,19 +11173,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                 if (this.isSortedByNumber) this.isSortedByNumber = false;
                             }
 
-                            this.lotteryPools = parsed.lotteryPools || { all: [], M: [], F: [] };
-                            this.lastWinners = parsed.lastWinners || { all: null, M: null, F: null };
-                            this.lotteryMode = parsed.lotteryMode || 'all';
-                            this.rouletteInput = parsed.rouletteInput || "1\n2\n3\n4\n5\n6";
-
-                            if (parsed.tournamentData) {
-                                this.visibleBracketTree = parsed.tournamentData.tree || [];
-                                this.finalWinner = parsed.tournamentData.winner || null;
-                                this.selectedBracketMode = parsed.tournamentData.mode || 'group8';
-                                this.leftSideBracket = parsed.tournamentData.left || [];
-                                this.rightSideBracket = parsed.tournamentData.right || [];
-                                this.bracketKey++; 
-                            }
+                            // lotteryPools/lastWinners/lotteryMode/rouletteInput/tournamentData → Phase B (_tools)에서 처리
 
                             // ★★★ [에러의 원인 제거!] parsed에서 값을 올바르게 가져오도록 수정
                             if (parsed.shuffleMode) this.shuffleMode = parsed.shuffleMode;
@@ -11166,7 +11287,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                     onValue(boardRef, (snap) => {
                         if (this.isBoardSaving) return; // 내가 보낸 echo 무시
                         const b = snap.val() || {};
-                        this._trackDown(b);
+                        this._trackDown(b, 'board');
                         this.lastBoardSnapshot = JSON.stringify({
                             blackboardContent: b.blackboardContent || '',
                             paths: b.paths || []
@@ -11195,7 +11316,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                 onValue(storeRef, (snap) => {
                     try {
                         const raw = snap.val() || {};
-                        this._trackDown(raw);
+                        this._trackDown(raw, 'eventshop');
                         const list = [];
                         // 경매 요청
                         toArr(raw.auc).forEach(a => {
@@ -16126,9 +16247,13 @@ startReverseLadderGame(endColIdx) {
 },
 
        mounted() {
+            // ★ Phase A: localStorage 캐시 선렌더 — Firebase 응답 전에 UI 즉시 표시
+            this.loadFromCacheFirst();
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
             this.loadStoreRequests();
+            // ★ Phase B: 도구 데이터는 30초 후 자동 구독 (도구 진입 시엔 즉시)
+            setTimeout(() => this.ensureToolsSubscribed && this.ensureToolsSubscribed(), 30000);
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

@@ -5699,7 +5699,7 @@ tabindex="0">
  <script type="module">   
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+    import { createApp } from 'https://unpkg.com/vue@3.4.21/dist/vue.esm-browser.prod.js';
 
     const firebaseConfig = {
 apiKey: "AIzaSyCzsI9FW3bga1V73lCR7pNgfPLdcqcbsgM",
@@ -16241,6 +16241,24 @@ startReverseLadderGame(endColIdx) {
             }, 1500);
         }// mounted 끝
     }).mount('#app') // Vue 인스턴스 끝
+
+    // === Service Worker 등록 (트래픽 절감 캐시) ===
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                // 새 버전 감지 시 자동 활성화
+                reg.addEventListener('updatefound', () => {
+                    const nw = reg.installing;
+                    if (!nw) return;
+                    nw.addEventListener('statechange', () => {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('[SW] 새 버전 설치됨 — 다음 새로고침에 적용');
+                        }
+                    });
+                });
+            }).catch(e => console.warn('[SW] 등록 실패:', e));
+        });
+    }
 </script>
 </body>
 </html>

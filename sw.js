@@ -1,7 +1,7 @@
 // 우리반 매니저 Service Worker — 트래픽 절감 캐시
 // 전략: stale-while-revalidate (캐시 우선 즉시 응답 + 백그라운드 갱신)
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = `wclass-${CACHE_VERSION}`;
 
 // 미리 캐시할 자원 (로컬 우선, CDN은 폴백 시 후처리됨)
@@ -28,6 +28,14 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) =>
             Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
         ).then(() => self.clients.claim())
+        .then(() => self.clients.matchAll({ type: 'window' }))
+        .then((clients) => {
+            // 새 버전 활성화 직후 모든 열린 클라이언트에 reload 메시지 + 직접 navigate (구버전 HTML이 자동 갱신되도록)
+            clients.forEach((c) => {
+                try { c.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }); } catch(_){}
+                try { if(c.url && c.navigate) c.navigate(c.url); } catch(_){}
+            });
+        })
     );
 });
 
@@ -70,12 +78,35 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 같은 origin (HTML 본체, sw.js 등) — stale-while-revalidate
+    // 같은 origin
     if (url.origin === self.location.origin) {
+        // HTML 본체 / 네비게이션 요청은 네트워크 우선 (옛 버전이 박히는 문제 방지)
+        const isHtml = req.mode === 'navigate'
+            || url.pathname.endsWith('.html')
+            || url.pathname.endsWith('/')
+            || (req.headers.get('accept') || '').includes('text/html');
+        if (isHtml) {
+            event.respondWith(networkFirst(req));
+            return;
+        }
+        // 그 외 (JS/CSS/이미지 등) — stale-while-revalidate
         event.respondWith(staleWhileRevalidate(req));
         return;
     }
 });
+
+// 네트워크 우선 + 캐시 폴백 (HTML 전용)
+async function networkFirst(req) {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+        const res = await fetch(req, { cache: 'no-store' });
+        if (res && res.status === 200) cache.put(req, res.clone()).catch(()=>{});
+        return res;
+    } catch (e) {
+        const cached = await cache.match(req);
+        return cached || Response.error();
+    }
+}
 
 // 캐시 우선 + 백그라운드 갱신
 async function staleWhileRevalidate(req) {

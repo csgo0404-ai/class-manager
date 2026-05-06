@@ -6,8 +6,25 @@
     <title>우리반 매니저</title>
 <link rel="preload" as="image" href="./bomb.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.13/lunar.js"></script>
+    <script>
+      // 라이브러리 폴백 — 로컬 → 실패 시 CDN 자동 시도
+      (function(){
+        const tries = [
+          { local: './libs/vue.global.prod.js', cdn: 'https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js' },
+          { local: './libs/lunar.js',           cdn: 'https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.13/lunar.js' }
+        ];
+        tries.forEach(t => {
+          const s = document.createElement('script');
+          s.src = t.local; s.async = false;
+          s.onerror = () => {
+            const f = document.createElement('script');
+            f.src = t.cdn; f.async = false;
+            document.head.appendChild(f);
+          };
+          document.head.appendChild(s);
+        });
+      })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏫</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1500,10 +1517,10 @@ span[contenteditable="true"] {
     gap: 4px;
     background: white;
     border-radius: 0.75rem;
-    padding: 5px 8px;
+    padding: 8px 8px;
     border: 1.5px solid #ede9fe;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 .mission-day-count { color: #7c3aed; font-size: 0.7rem; font-weight: 800; }
 .mission-dday { color: #0891b2; font-size: 0.7rem; font-weight: 800; }
@@ -2607,6 +2624,29 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
     </div>
 
+<!-- 로딩 워치독: 15초 안에 Vue 마운트 안 되면 표시 -->
+<div id="loadFailOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1e293b,#0f172a);color:white;flex-direction:column;align-items:center;justify-content:center;gap:24px;font-family:'Jua','Apple SD Gothic Neo',sans-serif;text-align:center;padding:24px;">
+    <div style="font-size:80px;">🌐</div>
+    <h2 style="font-size:32px;font-weight:900;margin:0;">네트워크 또는 서버 일시 장애</h2>
+    <p style="font-size:18px;color:#cbd5e1;line-height:1.6;max-width:520px;margin:0;">
+        라이브러리 로드가 지연되고 있어요.<br>
+        와이파이 상태를 확인하거나 잠시 후 다시 시도해 주세요.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <button onclick="location.reload(true)" style="padding:14px 32px;font-size:18px;font-weight:900;border:none;border-radius:16px;background:#22c55e;color:white;cursor:pointer;font-family:inherit;">🔄 다시 시도</button>
+        <button onclick="(async()=>{try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}catch(e){}try{const r=await navigator.serviceWorker.getRegistration();if(r)await r.unregister();}catch(e){}location.reload(true);})()" style="padding:14px 32px;font-size:18px;font-weight:900;border:none;border-radius:16px;background:#ef4444;color:white;cursor:pointer;font-family:inherit;">🧹 캐시 비우고 재시도</button>
+    </div>
+    <div style="font-size:13px;color:#64748b;margin-top:16px;">문제 지속 시 다른 브라우저에서 시도해 보세요</div>
+</div>
+<script>
+    // 15초 안에 Vue가 마운트되지 않으면 안내 표시
+    window._loadWatchdog = setTimeout(function() {
+        const app = document.getElementById('app');
+        const stillLoading = !app || app.children.length < 2 || document.querySelector('.loading-overlay:not(.hide)');
+        if (stillLoading) document.getElementById('loadFailOverlay').style.display = 'flex';
+    }, 15000);
+</script>
+
 
 <div class="curtain-overlay" :class="{'curtain-down': isCurtainDown}">
         <div class="curtain-text">자리 배치 중🔨</div>
@@ -2838,7 +2878,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
 
             
-            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-1 space-y-4 flex flex-col"> 
+            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
                 <div @click="view = 'main'; showMainDashboard = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
                 <div @click="view = 'order'; showMainDashboard = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
                 <div @click="view = 'group'; showMainDashboard = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
@@ -2866,7 +2906,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                 <!-- 우리 반 도전 미션 -->
                 <div class="w-full bg-blue-50 border-4 border-blue-200 rounded-[2rem] cursor-default" style="padding: 0.6rem 0.85rem;">
-                    <div class="w-full flex items-center justify-center mb-1.5">
+                    <div class="w-full flex items-center justify-center mb-3">
                         <h3 @click.stop="openAddMissionModal" class="font-black text-blue-600 text-base flex items-center gap-1.5 cursor-pointer hover:text-blue-800 active:scale-95 transition-all select-none" title="클릭: 미션 추가">🚀 우리 반 미션</h3>
                     </div>
                     <div v-for="(m, idx) in missions" :key="m.id" class="mission-card group">
@@ -2941,13 +2981,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </nav>
 
-            <div class="mt-auto pt-5 border-t border-slate-100 flex justify-between gap-3 shrink-0 pb-1">
-                <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-16 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-bomb"></i></button>
-                <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-16 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-gift"></i></button>
-                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-16 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center no-default-sound">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            <div class="mt-auto pt-8 border-t border-slate-100 flex justify-between gap-2 shrink-0 pb-1">
+                <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-14 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-bomb"></i></button>
+                <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-14 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-gift"></i></button>
+                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./ding dong.mp3')" title="좌클릭: 소음측정 / 우클릭: 주목 벨소리" class="flex-1 h-14 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center no-default-sound">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
                 </button>
-                <button @click="openBlackboard" title="판서" class="flex-1 h-16 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-3xl"><i class="fa-solid fa-chalkboard-user"></i></button>
+                <button @click="openBlackboard" title="판서" class="flex-1 h-14 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-chalkboard-user"></i></button>
             </div>
         </aside>
 
@@ -5701,7 +5741,13 @@ tabindex="0">
  <script type="module">   
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { createApp } from 'https://unpkg.com/vue@3.4.21/dist/vue.esm-browser.prod.js';
+    let createApp;
+    try {
+        ({ createApp } = await import('./libs/vue.esm-browser.prod.js'));
+    } catch (e) {
+        console.warn('[Vue] 로컬 로드 실패 → CDN 폴백', e);
+        ({ createApp } = await import('https://unpkg.com/vue@3.4.21/dist/vue.esm-browser.prod.js'));
+    }
 
     const firebaseConfig = {
 apiKey: "AIzaSyCzsI9FW3bga1V73lCR7pNgfPLdcqcbsgM",
@@ -16366,6 +16412,8 @@ startReverseLadderGame(endColIdx) {
             }, 1500);
         }// mounted 끝
     }).mount('#app') // Vue 인스턴스 끝
+    // ★ 워치독 해제 — Vue 마운트 성공
+    if (window._loadWatchdog) { clearTimeout(window._loadWatchdog); window._loadWatchdog = null; }
 
     // === Service Worker 등록 (트래픽 절감 캐시) ===
     if ('serviceWorker' in navigator && location.protocol === 'https:') {

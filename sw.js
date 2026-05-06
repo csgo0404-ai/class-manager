@@ -1,7 +1,7 @@
 // 우리반 매니저 Service Worker — 트래픽 절감 캐시
 // 전략: stale-while-revalidate (캐시 우선 즉시 응답 + 백그라운드 갱신)
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = `wclass-${CACHE_VERSION}`;
 
 // 미리 캐시할 자원 (로컬 우선, CDN은 폴백 시 후처리됨)
@@ -30,10 +30,9 @@ self.addEventListener('activate', (event) => {
         ).then(() => self.clients.claim())
         .then(() => self.clients.matchAll({ type: 'window' }))
         .then((clients) => {
-            // 새 버전 활성화 직후 모든 열린 클라이언트에 reload 메시지 + 직접 navigate (구버전 HTML이 자동 갱신되도록)
+            // 새 버전 활성화 알림만 보냄. (자동 navigate는 reload 루프 위험이 있어 제거)
             clients.forEach((c) => {
                 try { c.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }); } catch(_){}
-                try { if(c.url && c.navigate) c.navigate(c.url); } catch(_){}
             });
         })
     );
@@ -80,31 +79,37 @@ self.addEventListener('fetch', (event) => {
 
     // 같은 origin
     if (url.origin === self.location.origin) {
-        // HTML 본체 / 네비게이션 요청은 네트워크 우선 (옛 버전이 박히는 문제 방지)
+        // HTML/JS/CSS는 네트워크 우선(짧은 타임아웃 후 캐시 폴백) — 옛 버전이 박히는 문제 방지
         const isHtml = req.mode === 'navigate'
             || url.pathname.endsWith('.html')
             || url.pathname.endsWith('/')
             || (req.headers.get('accept') || '').includes('text/html');
-        if (isHtml) {
-            event.respondWith(networkFirst(req));
+        const isCode = url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.mjs');
+        if (isHtml || isCode) {
+            event.respondWith(networkFirst(req, 5000));
             return;
         }
-        // 그 외 (JS/CSS/이미지 등) — stale-while-revalidate
+        // 그 외 (이미지/오디오 등) — stale-while-revalidate
         event.respondWith(staleWhileRevalidate(req));
         return;
     }
 });
 
-// 네트워크 우선 + 캐시 폴백 (HTML 전용)
-async function networkFirst(req) {
+// 네트워크 우선 + 타임아웃 + 캐시 폴백
+async function networkFirst(req, timeoutMs = 5000) {
     const cache = await caches.open(CACHE_NAME);
     try {
-        const res = await fetch(req, { cache: 'no-store' });
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        const res = await fetch(req, { cache: 'no-store', signal: ctrl.signal });
+        clearTimeout(t);
         if (res && res.status === 200) cache.put(req, res.clone()).catch(()=>{});
         return res;
     } catch (e) {
         const cached = await cache.match(req);
-        return cached || Response.error();
+        if (cached) return cached;
+        // 캐시도 없으면 무한 로딩 대신 즉시 에러로 끊어줌
+        return new Response('offline', { status: 504, statusText: 'Gateway Timeout' });
     }
 }
 

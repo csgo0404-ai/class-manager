@@ -2607,7 +2607,12 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <span style="font-family:monospace;">{{ formatBytes(r.bytes) }} <span style="color:#aaa;">({{ r.count }}회 · 평균 {{ formatBytes(r.bytes/Math.max(1,r.count)) }}/회)</span></span>
                 </div>
                 <div style="margin-top:10px;padding-top:8px;border-top:2px solid #FFB74D;">
-                    <button @click="dumpCurrentSizes" style="background:#FF9800;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;">🔬 현재 데이터 크기 진단</button>
+                    <button @click="dumpCurrentSizes" style="background:#FF9800;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;margin-right:6px;">🔬 현재 데이터 크기 진단</button>
+                    <button @click="scanFirebaseUnused" style="background:#8D6E63;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;margin-right:6px;">🧹 사용 안 하는 필드 정리</button>
+                    <label style="background:#558B2F;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;display:inline-block;margin-right:6px;">
+                        📥 전체 복구
+                        <input type="file" accept=".json,application/json" @change="restoreFromBackupFile" style="display:none;">
+                    </label>
                     <div v-if="currentSizesText" style="margin-top:8px;font-family:monospace;font-size:11px;color:#5D4037;background:white;border-radius:6px;padding:8px;white-space:pre-wrap;">{{ currentSizesText }}</div>
                 </div>
             </div>
@@ -4189,7 +4194,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
                 <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
                     <div class="text-xl font-black text-[#8d6e63]">📋 알림장</div>
-                    <button @click="showMainDashboard=false; returnToDashboardOnClose=true; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
+                    <button @click="ensureBoardSubscribed && ensureBoardSubscribed(); showMainDashboard=false; returnToDashboardOnClose=true; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
                 </div>
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0">
                     <div v-if="dashboardBlackboardPreview" @click="handleDashboardBadgeClick($event)" class="dash-preview text-[#5d4037]" v-html="dashboardBlackboardPreview"></div>
@@ -4339,7 +4344,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <div v-if="showHistoryPreview" class="fixed inset-0 bg-black/60 z-[7000] flex items-center justify-center" @click.self="showHistoryPreview = false">
             <div class="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-xl font-black text-center mb-2">배치 기록 미리보기</h3><p class="text-center text-slate-500 text-sm mb-4">{{ previewHistoryItem.date }}</p>
-                <div class="bg-slate-100 p-4 rounded-2xl flex justify-center"><div class="flex gap-4"><div v-for="bIdx in 3" :key="bIdx" class="grid grid-cols-2 gap-2"><template v-for="rIdx in 5" :key="rIdx"><div v-for="pIdx in 2" :key="pIdx" class="seat-preview cursor-default" :class="previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)] ? 'seat-active' : 'seat-empty'">{{ previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)] ? previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)].name : '' }}</div></template></div></div></div>
+                <div class="bg-slate-100 p-4 rounded-2xl flex justify-center"><div class="flex gap-4"><div v-for="bIdx in 3" :key="bIdx" class="grid grid-cols-2 gap-2"><template v-for="rIdx in 5" :key="rIdx"><div v-for="pIdx in 2" :key="pIdx" class="seat-preview cursor-default" :class="previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)] ? 'seat-active' : 'seat-empty'">{{ (s => s ? (typeof s === 'string' ? s : (s.name || '')) : '')(previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)]) }}</div></template></div></div></div>
                 <div class="flex gap-2 mt-4"><button @click="restoreHistory" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">이 배치로 적용</button><button @click="showHistoryPreview = false" class="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold">닫기</button></div>
             </div>
         </div>
@@ -5907,6 +5912,7 @@ thresholdDiscussion: 80,
 currentNoisePreset: 'reading',
 noiseRecordSeconds: 0,
 noiseRecordInterval: null,
+noiseLevels: { safe: 50, caution: 70, warning: 90 },
         noiseThreshold: 60,      // [설정] 기준 민감도 (슬라이더 값)
         noiseGauge: 0,
         currentVolume: 0,
@@ -5995,7 +6001,7 @@ making: new Audio('./making.mp3'),
 },
 
         // ── 메인 대시보드 ──
-        showMainDashboard: false,
+        showMainDashboard: true,
         dashboardShowSettings: false,
         dashboardTime: '',
         dashboardInterval: null,
@@ -6148,7 +6154,7 @@ userSelectedMode: null,
                 animalRunners: Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 })), 
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
-                showBlackboard: false, blackboardContent: '', boardX: 350, boardY: 50, boardW: 900, boardH: 700, showBoardList: false, savedBoards: [], showCheckedStudentPanel: false, isCornellMode: false,
+                showBlackboard: false, blackboardContent: '', boardPreview: '', boardX: 350, boardY: 50, boardW: 900, boardH: 700, showBoardList: false, savedBoards: [], showCheckedStudentPanel: false, isCornellMode: false,
 currentBoardId: null,
 showSymbolPalette: false, history: [], historyIndex: -1,
                 historyTimeout: null, isRestoringHistory: false, isComposing: false, isSyncing: false,
@@ -6393,7 +6399,8 @@ dashboardTodaySchedule() {
     return lastNonEmpty >= 0 ? all.slice(0, lastNonEmpty + 1) : all;
 },
 dashboardBlackboardPreview() {
-    const html = this.blackboardContent || '';
+    // 칠판 lazy 구독: blackboardContent 비어있으면 boardPreview(메인 DB의 작은 스냅샷) 사용
+    const html = this.blackboardContent || this.boardPreview || '';
     if (!html.trim()) return '';
     // <div>를 제거하면 앞 텍스트와 붙으므로 <br>로 교체, </div>는 제거
     const normalized = html
@@ -6905,7 +6912,8 @@ trafficRefreshCountToday() {
 
         watch: {
             // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독
-            view() { this.ensureToolsSubscribed && this.ensureToolsSubscribed(); },
+            view() { this.ensureToolsSubscribed && this.ensureToolsSubscribed(); this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
+            showMainDashboard(v) { if (!v) this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
@@ -7878,6 +7886,128 @@ dumpCurrentSizes() {
     lines.push('');
     lines.push('💡 가장 큰 항목이 트래픽의 주범입니다.');
     this.currentSizesText = lines.join('\n');
+},
+
+// 📥 백업 JSON에서 특정 필드 복구 (savedBoards / savedRoulettes / shuffleHistoryByMode)
+async restoreFromBackupFile(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = ''; // 동일 파일 재선택 가능하게
+    if (!file) return;
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const TOOL_FIELDS = ['savedBoards','savedRoulettes','savedGroupings','groupingList','lotteryPools','lastWinners','lotteryMode','rouletteInput','capsules','tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants'];
+        const SEAT_FIELDS = ['shuffleHistoryByMode','shuffleHistory','seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
+        const BOARD_FIELDS = ['blackboardContent','paths'];
+        const summary = [];
+        const toolsObj = {}, seatsObj = {}, boardObj = {};
+        TOOL_FIELDS.forEach(k => {
+            if (data[k] !== undefined && data[k] !== null) {
+                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
+                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
+                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
+                toolsObj[k] = data[k];
+                summary.push(`[복구] _tools.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+            }
+        });
+        SEAT_FIELDS.forEach(k => {
+            if (data[k] !== undefined && data[k] !== null) {
+                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
+                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
+                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
+                seatsObj[k] = data[k];
+                summary.push(`[복구] _seats.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+            }
+        });
+        BOARD_FIELDS.forEach(k => {
+            if (data[k] !== undefined && data[k] !== null && data[k] !== '') {
+                boardObj[k] = data[k];
+                summary.push(`[복구] _board.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+            }
+        });
+        if (summary.filter(s => s.startsWith('[복구]')).length === 0) {
+            alert('복구할 데이터가 백업 파일에 없습니다.\n\n' + summary.join('\n'));
+            return;
+        }
+        const msg = `다음 항목을 백업에서 Firebase로 복구합니다:\n\n${summary.join('\n')}\n\n⚠ 현재 서버 값을 백업 값으로 덮어씁니다. 계속할까요?`;
+        if (!confirm(msg)) return;
+        const ops = [];
+        if (Object.keys(toolsObj).length) ops.push(update(ref(db, DB_KEY + '_tools'), toolsObj));
+        if (Object.keys(seatsObj).length) ops.push(update(ref(db, DB_KEY + '_seats'), seatsObj));
+        if (Object.keys(boardObj).length) ops.push(update(ref(db, DB_KEY + '_board'), boardObj));
+        await Promise.all(ops);
+        alert('✅ 복구 완료. 새로고침 후 확인해주세요.');
+    } catch (e) {
+        console.error('복구 오류:', e);
+        alert('복구 실패: ' + e.message);
+    }
+},
+
+// 🧹 Firebase에서 사용하지 않는 필드를 찾아 삭제 (옛 버전 잔재 정리)
+async scanFirebaseUnused() {
+    if (typeof db === 'undefined' || typeof get === 'undefined' || typeof update === 'undefined') {
+        alert('Firebase가 로드되지 않았습니다.');
+        return;
+    }
+    const KNOWN_MAIN = new Set([
+        'daySchedules','scheduleVersions','currentScheduleVersion','boardPreview',
+        'thresholdReading','thresholdDiscussion','currentNoisePreset',
+        'isOneMinAlarmOn','bombMessage','bombMsgX','bombMsgY','bombMsgW','bombMsgH',
+        'noiseThreshold','timeBankSeconds','timeBankHistory','missions','currentView',
+        'isRotated','noiseLevels','noiseRecordSeconds','isNoiseTimeHidden',
+        'showGenderHint','showStudentNumber','statsWarningCount','statsPenaltyCount',
+        'clockMessage','alarmList','shuffleMode','avoidPrevious','avoidPreviousSeat',
+        'activityTabs','currentTabId','nextTabId','tabData','isSortedByNumber',
+        'alarmVolume','bgmVolume','sfxVolume','showCheckedStudentPanel',
+        'dashboardSettings','uiState','mixedOrder','sameOrder'
+    ]);
+    const KNOWN_SEATS = new Set(['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout']);
+    const KNOWN_BOARD = new Set(['blackboardContent','paths']);
+    const KNOWN_TOOLS = new Set(['tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','savedRoulettes','rouletteInput','savedGroupings','groupingList','savedBoards','capsules','lotteryPools','lastWinners','lotteryMode']);
+    try {
+        const [mainSnap, seatsSnap, boardSnap, toolsSnap] = await Promise.all([
+            get(ref(db, DB_KEY)),
+            get(ref(db, DB_KEY + '_seats')),
+            get(ref(db, DB_KEY + '_board')),
+            get(ref(db, DB_KEY + '_tools'))
+        ]);
+        const findUnknown = (snap, known, label) => {
+            if (!snap.exists()) return [];
+            const data = snap.val() || {};
+            return Object.keys(data).filter(k => !known.has(k)).map(k => ({
+                ref: label, key: k,
+                size: JSON.stringify(data[k]).length
+            }));
+        };
+        const unknowns = [
+            ...findUnknown(mainSnap, KNOWN_MAIN, 'main'),
+            ...findUnknown(seatsSnap, KNOWN_SEATS, '_seats'),
+            ...findUnknown(boardSnap, KNOWN_BOARD, '_board'),
+            ...findUnknown(toolsSnap, KNOWN_TOOLS, '_tools')
+        ];
+        if (unknowns.length === 0) {
+            alert('✅ 사용하지 않는 필드가 없습니다. 깔끔한 상태입니다!');
+            return;
+        }
+        unknowns.sort((a,b) => b.size - a.size);
+        const totalBytes = unknowns.reduce((s,u) => s+u.size, 0);
+        const list = unknowns.map(u => `[${u.ref}] ${u.key} — ${this.formatBytes ? this.formatBytes(u.size) : (u.size+'B')}`).join('\n');
+        const msg = `사용하지 않는 필드 ${unknowns.length}개 (총 ${this.formatBytes ? this.formatBytes(totalBytes) : (totalBytes+'B')}):\n\n${list}\n\n이 필드들을 삭제하시겠습니까? (되돌릴 수 없음)`;
+        if (!confirm(msg)) return;
+        if (!confirm('정말 삭제할까요? 이 작업은 영구적입니다.')) return;
+        const byRef = { main:{}, _seats:{}, _board:{}, _tools:{} };
+        unknowns.forEach(u => { byRef[u.ref][u.key] = null; });
+        const refMap = { main: DB_KEY, _seats: DB_KEY+'_seats', _board: DB_KEY+'_board', _tools: DB_KEY+'_tools' };
+        const ops = [];
+        Object.entries(byRef).forEach(([label, nullObj]) => {
+            if (Object.keys(nullObj).length) ops.push(update(ref(db, refMap[label]), nullObj));
+        });
+        await Promise.all(ops);
+        alert(`✅ ${unknowns.length}개 필드 삭제 완료. ${this.formatBytes ? this.formatBytes(totalBytes) : (totalBytes+'B')} 절감.\n다음 새로고침부터 트래픽이 줄어듭니다.`);
+    } catch (e) {
+        console.error('정리 도구 오류:', e);
+        alert('오류: ' + e.message);
+    }
 },
 
 // 트래픽 통계 (다운/업로드 byte) — localStorage에 일자별 누적
@@ -10849,7 +10979,7 @@ this.playSound('finish', false, 0.5);
         if (s1?.name || s2?.name) intendedPairs.push([s1?.name||null, s2?.name||null]);
     }
 
-    const rec = { id:recId, date:dateStr, mode:currentMode, seats:pureLayoutSnapshot, intendedPairs };
+    const rec = { id:recId, date:dateStr, mode:currentMode, seats:pureLayoutSnapshot.map(s => s?.name || null), intendedPairs };
     this.shuffleHistory.unshift(rec);
     if (this.shuffleHistory.length > 30) this.shuffleHistory.pop();
 
@@ -10909,6 +11039,7 @@ daySchedules: this.daySchedules,
 scheduleVersions: this.scheduleVersions,
 currentScheduleVersion: this.currentScheduleVersion, // ★ 누락되었던 일정 인덱스 추가
                         // ★ blackboardContent / paths는 별도 ref(_board)로 분리 (트래픽 절감)
+                        boardPreview: this.boardPreview, // 대시보드용 작은 미리보기 (full board는 lazy)
                         thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset,
 isOneMinAlarmOn: this.isOneMinAlarmOn,
 bombMessage: this.bombMessage,
@@ -10993,6 +11124,35 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         }
                     });
 
+                    // ★ Phase C: 자리/이력 필드를 별도 ref(_seats)로 분리 — 초기 동기화 큰 폭 절감
+                    const SEAT_KEYS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout'];
+                    const seatUpdates = {};
+                    SEAT_KEYS.forEach(k => {
+                        if (updates[k] !== undefined) {
+                            seatUpdates[k] = updates[k];
+                            delete updates[k];
+                        }
+                    });
+                    // ★ 데이터 증발 방지: _seats 첫 데이터 도착 전에는 자리 데이터 쓰기 차단
+                    // (구독 시작 후 onValue 응답 도착 전 사용자 상호작용으로 빈 상태가 서버에 쓰이는 것 방지)
+                    if (!this._seatsLoaded) {
+                        Object.keys(seatUpdates).forEach(k => delete seatUpdates[k]);
+                    }
+
+                    // ★ 안전장치: undefined 값이 하나라도 있으면 Firebase update() 전체가 reject되어 모든 저장 실패
+                    // 사전 정리하고 콘솔 경고
+                    const _stripUndef = (obj, label) => {
+                        Object.keys(obj).forEach(k => {
+                            if (obj[k] === undefined) {
+                                console.warn(`[saveToFirebase] ${label}.${k} undefined → 저장 제외`);
+                                delete obj[k];
+                            }
+                        });
+                    };
+                    _stripUndef(updates, 'main');
+                    _stripUndef(toolUpdates, 'tools');
+                    _stripUndef(seatUpdates, 'seats');
+
                     this._trackUp(updates);
                     const mainSave = Object.keys(updates).length
                         ? update(ref(db, DB_KEY), updates)
@@ -11000,10 +11160,13 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     const toolSave = Object.keys(toolUpdates).length
                         ? (this._trackUp(toolUpdates), update(ref(db, DB_KEY + '_tools'), toolUpdates))
                         : Promise.resolve();
+                    const seatSave = Object.keys(seatUpdates).length
+                        ? (this._trackUp(seatUpdates), update(ref(db, DB_KEY + '_seats'), seatUpdates))
+                        : Promise.resolve();
 
-                    Promise.all([mainSave, toolSave])
+                    Promise.all([mainSave, toolSave, seatSave])
                         .then(() => {
-                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates));
+                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates));
                             try { localStorage.setItem('dbCache_v1', this.lastDbSnapshot); } catch(e) {}
                             setTimeout(() => { this.isSavingNow = false; }, 300);
                         }).catch((error) => {
@@ -11053,6 +11216,108 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 });
             },
 
+            // ★ Phase C: 자리/이력 데이터 별도 구독 (좌석 배치도 / 자리바꾸기 진입 시점에만 1회 호출)
+            ensureSeatsSubscribed() {
+                if (this._seatsSubscribed) return;
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
+                this._seatsSubscribed = true;
+                const seatsRef = ref(db, DB_KEY + '_seats');
+                onValue(seatsRef, (snap) => {
+                    this._seatsLoaded = true;
+                    if (this.isSavingNow) return;
+                    const s = snap.val() || {};
+                    this._trackDown(s, 'seats');
+                    const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+                    if (s.seats !== undefined) {
+                        this.seats = Array.from({length: 30}, (_, i) => {
+                            const it = (Array.isArray(s.seats) ? s.seats[i] : s.seats[i]) || null;
+                            return it && it.name ? it : null;
+                        });
+                    }
+                    if (s.waitingRoom !== undefined) this.waitingRoom = toArr(s.waitingRoom);
+                    if (s.seatConfig !== undefined) this.seatConfig = s.seatConfig || this.seatConfig;
+                    if (s.manualLocks !== undefined) this.manualLocks = toArr(s.manualLocks);
+                    if (s.separationPairs !== undefined) this.separationPairs = toArr(s.separationPairs);
+                    if (s.groups !== undefined) this.groups = toArr(s.groups);
+                    if (s.preSortLayout !== undefined) this.preSortLayout = s.preSortLayout;
+                    let _shuffleHistoryConverted = false;
+                    if (s.shuffleHistory !== undefined) {
+                        this.shuffleHistory = toArr(s.shuffleHistory).map(rec => {
+                            if (rec && rec.seats && !Array.isArray(rec.seats)) {
+                                rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
+                            }
+                            if (rec && Array.isArray(rec.seats)) {
+                                const hadObj = rec.seats.some(x => x && typeof x === 'object');
+                                if (hadObj) _shuffleHistoryConverted = true;
+                                rec.seats = rec.seats.map(x => (x && typeof x === 'object') ? (x.name || null) : (x || null));
+                            }
+                            return rec;
+                        });
+                    }
+                    if (s.shuffleHistoryByMode !== undefined) {
+                        const restored = {};
+                        Object.entries(s.shuffleHistoryByMode || {}).forEach(([mode, mData]) => {
+                            if (mode === '__empty' || !mData) return;
+                            const records = toArr(mData.records).map(rec => {
+                                if (rec && rec.intendedPairs && !Array.isArray(rec.intendedPairs)) {
+                                    rec = { ...rec, intendedPairs: toArr(rec.intendedPairs).map(p => !p ? [] : (Array.isArray(p) ? p : Object.values(p))) };
+                                }
+                                if (rec && rec.seats && !Array.isArray(rec.seats)) {
+                                    rec = { ...rec, seats: Array.from({length: 30}, (_, i) => rec.seats[i] || null) };
+                                }
+                                if (rec && Array.isArray(rec.seats)) {
+                                    const hadObj = rec.seats.some(x => x && typeof x === 'object');
+                                    if (hadObj) _shuffleHistoryConverted = true;
+                                    rec = { ...rec, seats: rec.seats.map(x => (x && typeof x === 'object') ? (x.name || null) : (x || null)) };
+                                }
+                                return rec;
+                            });
+                            restored[mode] = { ...mData, records };
+                        });
+                        this.shuffleHistoryByMode = restored;
+                    }
+                    // ★ 옛 형식(객체) 감지 시 새 형식(이름 문자열)으로 즉시 서버에 저장 (한 번 변환되면 트래픽도 ~10배 절감)
+                    if (_shuffleHistoryConverted && this._seatsLoaded && typeof update !== 'undefined') {
+                        const _convPayload = {
+                            shuffleHistory: this.shuffleHistory,
+                            shuffleHistoryByMode: this.shuffleHistoryByMode
+                        };
+                        update(ref(db, DB_KEY + '_seats'), _convPayload)
+                            .then(() => console.log('[자리배치기록 형식 변환] 객체 → 이름 문자열로 서버 저장 완료'))
+                            .catch(e => console.warn('변환 저장 실패:', e));
+                    }
+                    // ★ shuffleHistoryByMode 비어있는데 shuffleHistory에 기록이 있으면 자동 재구성
+                    // (백업 복구 후 모드별 인덱스가 비어 짝꿍 회피가 동작 안 하는 문제 해결)
+                    const byModeEmpty = !this.shuffleHistoryByMode || Object.keys(this.shuffleHistoryByMode).length === 0;
+                    if (byModeEmpty && Array.isArray(this.shuffleHistory) && this.shuffleHistory.length > 0) {
+                        const rebuilt = {};
+                        for (const rec of this.shuffleHistory) {
+                            if (!rec || !rec.mode) continue;
+                            if (!rebuilt[rec.mode]) rebuilt[rec.mode] = { records: [], currentRound: 0, cycleCount: 0 };
+                            const recs = rebuilt[rec.mode].records;
+                            if (!rec.id || !recs.some(r => r.id === rec.id)) {
+                                recs.push({ ...rec, isManual: true });
+                                rebuilt[rec.mode].currentRound = (rebuilt[rec.mode].currentRound || 0) + 1;
+                            }
+                        }
+                        if (Object.keys(rebuilt).length > 0) {
+                            console.log('[shuffleHistoryByMode 자동 재구성]', Object.keys(rebuilt).map(m => `${m}:${rebuilt[m].records.length}`).join(', '));
+                            this.shuffleHistoryByMode = rebuilt;
+                            // 서버에도 즉시 반영
+                            if (typeof update !== 'undefined' && this._seatsLoaded) {
+                                update(ref(db, DB_KEY + '_seats'), { shuffleHistoryByMode: rebuilt }).catch(()=>{});
+                            }
+                        }
+                    }
+                    // lastDbSnapshot에 자리 데이터 병합 (다음 diff에서 stale로 인식되지 않도록)
+                    try {
+                        const snap = this.lastDbSnapshot ? JSON.parse(this.lastDbSnapshot) : {};
+                        Object.assign(snap, s);
+                        this.lastDbSnapshot = JSON.stringify(snap);
+                    } catch(e) {}
+                });
+            },
+
             // ★ 칠판 데이터 별도 저장 (디바운스 1.5s) — 자주 바뀌므로 메인 데이터와 분리
             saveBoardToFirebase() {
                 if (this.isSyncing || this.isInitialLoad) return;
@@ -11071,6 +11336,12 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         console.error('칠판 저장 실패:', e);
                         this.isBoardSaving = false;
                     });
+                // 메인 DB에 작은 미리보기 별도 기록 (대시보드 알림장용)
+                const previewSrc = (this.blackboardContent || '').slice(0, 2000);
+                if (this.boardPreview !== previewSrc) {
+                    this.boardPreview = previewSrc;
+                    if (typeof this.saveToFirebase === 'function') this.saveToFirebase();
+                }
             },
             queueSaveBoard() {
                 if (this._boardSaveTimer) clearTimeout(this._boardSaveTimer);
@@ -11173,6 +11444,7 @@ this.view = 'main'; // ★ 무조건 좌석 배치도(main)가 가장 먼저 뜨
                                 this.scheduleVersions[0].data = parsed.daySchedules;
                             }
 if (parsed.bombMessage !== undefined) this.bombMessage = parsed.bombMessage;
+if (parsed.boardPreview !== undefined) this.boardPreview = parsed.boardPreview || '';
 if (parsed.bombMsgX !== undefined) this.bombMsgX = parsed.bombMsgX;
 if (parsed.bombMsgY !== undefined) this.bombMsgY = parsed.bombMsgY;
 if (parsed.bombMsgW !== undefined) this.bombMsgW = parsed.bombMsgW;
@@ -11204,9 +11476,10 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             // [2. 각종 리스트/히스토리 완벽 복구]
                             this.timeBankHistory = toArray(parsed.timeBankHistory);
                             this.alarmList = toArray(parsed.alarmList);
-                            this.waitingRoom = toArray(parsed.waitingRoom);
-                            this.manualLocks = toArray(parsed.manualLocks);
-                            this.separationPairs = toArray(parsed.separationPairs);
+                            // ★ Phase C 분리 필드: 메인 DB에 없으면 Vue 상태 유지 (_seats가 제공)
+                            if (parsed.waitingRoom !== undefined) this.waitingRoom = toArray(parsed.waitingRoom);
+                            if (parsed.manualLocks !== undefined) this.manualLocks = toArray(parsed.manualLocks);
+                            if (parsed.separationPairs !== undefined) this.separationPairs = toArray(parsed.separationPairs);
                             // ★ Phase B 마이그레이션: 도구 필드가 메인 DB에 남아있으면 _tools로 이전 후 메인에서 정리
                             const _MIGRATE_TOOLS = ['tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
                                 'participantList','deductWinnerCount','rememberParticipants',
@@ -11224,6 +11497,20 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                 update(ref(db, DB_KEY + '_tools'), _toolMig).catch(()=>{});
                                 update(ref(db, DB_KEY), _toolNull).catch(()=>{});
                             }
+                            // ★ Phase C 마이그레이션: 자리/이력 필드가 메인 DB에 남아있으면 _seats로 이전 후 메인에서 정리
+                            const _MIGRATE_SEATS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout'];
+                            const _seatMig = {}; const _seatNull = {}; let _needSeatMig = false;
+                            _MIGRATE_SEATS.forEach(k => {
+                                if (parsed[k] !== undefined && parsed[k] !== null) {
+                                    _seatMig[k] = parsed[k];
+                                    _seatNull[k] = null;
+                                    _needSeatMig = true;
+                                }
+                            });
+                            if (_needSeatMig && typeof update !== 'undefined') {
+                                update(ref(db, DB_KEY + '_seats'), _seatMig).catch(()=>{});
+                                update(ref(db, DB_KEY), _seatNull).catch(()=>{});
+                            }
                             
                             // 자리바꾸기 기록 복구 (30개 좌석 배열 유지)
                             if (parsed.shuffleHistory) {
@@ -11231,27 +11518,34 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                     if (rec.seats && !Array.isArray(rec.seats)) {
                                         rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
                                     }
+                                    if (Array.isArray(rec.seats)) {
+                                        rec.seats = rec.seats.map(s => (s && typeof s === 'object') ? (s.name || null) : (s || null));
+                                    }
                                     return rec;
                                 });
-                            } else {
+                            } else if (parsed.shuffleHistory === null) {
+                                // Phase C 분리: undefined는 Vue 유지, 명시적 null만 빈 배열
                                 this.shuffleHistory = [];
                             }
 
-                            // 모둠 및 좌석 복구
-                            const rawSeats = parsed.seats || {};
-                            this.seats = Array.from({length: 30}, (_, i) => {
-                                const s = rawSeats[i] || null; 
-                                if (s && s.name) return { ...s, activityScore: s.activityScore || 0, checked: s.checked || false, activityScore2: s.activityScore2 || 0, checked2: s.checked2 || false, memo: s.memo || "", starred: s.starred || false, order: s.order || null };
+                            // 모둠 및 좌석 복구 — Phase C 분리: 메인 DB에 없으면 _seats가 제공할 때까지 Vue 유지
+                            if (parsed.seats !== undefined) {
+                                const rawSeats = parsed.seats || {};
+                                this.seats = Array.from({length: 30}, (_, i) => {
+                                    const s = rawSeats[i] || null;
+                                    if (s && s.name) return { ...s, activityScore: s.activityScore || 0, checked: s.checked || false, activityScore2: s.activityScore2 || 0, checked2: s.checked2 || false, memo: s.memo || "", starred: s.starred || false, order: s.order || null };
+                                    return null;
+                                });
+                            }
+                            if (parsed.seatConfig !== undefined) this.seatConfig = parsed.seatConfig || Array(30).fill(null);
 
-                                return null;
-                            });
-                            this.seatConfig = parsed.seatConfig || Array(30).fill(null);
-
-                            const rawGroups = parsed.groups || [];
-                            this.groups = Array(6).fill().map((_, i) => {
-                                const savedG = rawGroups[i] || {};
-                                return { score: savedG.score || 0, checked: savedG.checked || false, memo: savedG.memo || "", starred: savedG.starred || false, members: savedG.members || [], showMembers: savedG.showMembers || false };
-                            });
+                            if (parsed.groups !== undefined) {
+                                const rawGroups = parsed.groups || [];
+                                this.groups = Array(6).fill().map((_, i) => {
+                                    const savedG = rawGroups[i] || {};
+                                    return { score: savedG.score || 0, checked: savedG.checked || false, memo: savedG.memo || "", starred: savedG.starred || false, members: savedG.members || [], showMembers: savedG.showMembers || false };
+                                });
+                            }
 
                             // [3. 도구(모달) 상태 복구] — Phase B로 분리됨, ensureToolsSubscribed에서 처리
                             if (parsed.alarmVolume !== undefined) this.alarmVolume = parsed.alarmVolume;
@@ -11290,6 +11584,9 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                         if (rec.seats && !Array.isArray(rec.seats)) {
                                             rec = { ...rec, seats: Array.from({length: 30}, (_, i) => rec.seats[i] || null) };
                                         }
+                                        if (Array.isArray(rec.seats)) {
+                                            rec = { ...rec, seats: rec.seats.map(s => (s && typeof s === 'object') ? (s.name || null) : (s || null)) };
+                                        }
                                         return rec;
                                     });
                                     const current = this.shuffleHistoryByMode[mode];
@@ -11302,9 +11599,8 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                     }
                                 }
                                 this.shuffleHistoryByMode = restoredByMode;
-                            } else if (parsed.shuffleHistoryByMode === null || parsed.shuffleHistoryByMode === undefined) {
-                                // ★ Firebase가 {}를 null로 저장한 경우 — 명시적으로 빈 객체 유지
-                                // (shuffleHistory 기록으로 재구성하지 않음: 의도적 삭제/리셋일 수 있음)
+                            } else if (parsed.shuffleHistoryByMode === null) {
+                                // 명시적 null만 빈 객체 처리. undefined(Phase C 분리)는 Vue 상태 유지.
                                 this.shuffleHistoryByMode = {};
                             }
                             if (parsed.activityTabs) this.activityTabs = toArray(parsed.activityTabs);
@@ -11377,29 +11673,34 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                         }
                     });
 
-                    // ★ 칠판 데이터 별도 구독 (_board) — 메인 데이터와 분리되어 트래픽 절감
-                    const boardRef = ref(db, DB_KEY + '_board');
-                    onValue(boardRef, (snap) => {
-                        if (this.isBoardSaving) return; // 내가 보낸 echo 무시
-                        const b = snap.val() || {};
-                        this._trackDown(b, 'board');
-                        this.lastBoardSnapshot = JSON.stringify({
-                            blackboardContent: b.blackboardContent || '',
-                            paths: b.paths || []
-                        });
-                        // 타이핑 중이면 칠판 텍스트 덮어쓰지 않음
-                        const editor = document.getElementById('board-editor');
-                        if (document.activeElement !== editor && !this.isComposing) {
-                            const newContent = b.blackboardContent || '';
-                            if (this.blackboardContent !== newContent) {
-                                this.blackboardContent = newContent;
-                                if (editor) editor.innerHTML = newContent;
-                            }
-                        }
-                        this.paths = b.paths || [];
-                        this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
-                    });
+                    // ★ 칠판 데이터 구독은 ensureBoardSubscribed()로 지연 — 칠판 진입 시에만 호출
                 }
+            },
+            // ★ 칠판 lazy 구독 — 칠판 탭 진입 시에만 _board ref 구독
+            ensureBoardSubscribed() {
+                if (this._boardSubscribed) return;
+                if (typeof db === 'undefined' || typeof onValue === 'undefined' || typeof ref === 'undefined') return;
+                this._boardSubscribed = true;
+                const boardRef = ref(db, DB_KEY + '_board');
+                onValue(boardRef, (snap) => {
+                    if (this.isBoardSaving) return;
+                    const b = snap.val() || {};
+                    this._trackDown(b, 'board');
+                    this.lastBoardSnapshot = JSON.stringify({
+                        blackboardContent: b.blackboardContent || '',
+                        paths: b.paths || []
+                    });
+                    const editor = document.getElementById('board-editor');
+                    if (document.activeElement !== editor && !this.isComposing) {
+                        const newContent = b.blackboardContent || '';
+                        if (this.blackboardContent !== newContent) {
+                            this.blackboardContent = newContent;
+                            if (editor) editor.innerHTML = newContent;
+                        }
+                    }
+                    this.paths = b.paths || [];
+                    this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
+                });
             },
          getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200 text-slate-800';
@@ -11848,7 +12149,7 @@ openAnimalRaceModal() {
                 if (!confirm('이 탭의 모든 기록이 삭제됩니다. 계속할까요?')) return;
                 this.activityTabs = this.activityTabs.filter(t => t.id !== tabId);
                 if (this.currentTabId === tabId) this.currentTabId = this.activityTabs[0].id;
-                delete this.tabData[tabId]; this.saveToLocal();
+                delete this.tabData[tabId]; this.saveToLocal(); this.saveToFirebase();
             },
             saveTabName(tabId, name) {
                 const tab = this.activityTabs.find(t => t.id === tabId);
@@ -12052,6 +12353,17 @@ if(this.allMode) {
                 );
                 this.dashboardSettings.holidaySchoolYear = null;
             }
+            // 지난 달 일정 자동 삭제 (year 명시된 항목만; year 없는 반복 항목은 유지)
+            const _now = new Date();
+            const _curY = _now.getFullYear(), _curM = _now.getMonth() + 1;
+            const _before = (this.dashboardSettings.monthlyPlans || []).length;
+            this.dashboardSettings.monthlyPlans = (this.dashboardSettings.monthlyPlans || []).filter(p => {
+                if (!p || typeof p.year !== 'number') return true;
+                if (p.year > _curY) return true;
+                if (p.year < _curY) return false;
+                return (p.month || 0) >= _curM;
+            });
+            if ((this.dashboardSettings.monthlyPlans || []).length !== _before) this.saveToFirebase();
         },
         closeMainDashboard() {
             this.showMainDashboard = false;
@@ -12742,46 +13054,67 @@ saveNameList() {
 },
 
 // 🔒 데이터 내보내기
-            exportData() {
+            async exportData() {
                 try {
+                    // ★ Phase C: 분리된 ref(_seats/_board/_tools)에서 최신 서버 데이터를 가져와 누락 방지
+                    // (lazy 구독으로 Vue에 안 올라온 데이터가 누락되는 문제 해결)
+                    let seatsServer = {}, boardServer = {}, toolsServer = {};
+                    if (typeof db !== 'undefined' && typeof get !== 'undefined' && typeof ref !== 'undefined') {
+                        try {
+                            const [s, b, t] = await Promise.all([
+                                get(ref(db, DB_KEY + '_seats')),
+                                get(ref(db, DB_KEY + '_board')),
+                                get(ref(db, DB_KEY + '_tools'))
+                            ]);
+                            if (s.exists()) seatsServer = s.val() || {};
+                            if (b.exists()) boardServer = b.val() || {};
+                            if (t.exists()) toolsServer = t.val() || {};
+                        } catch (e) {
+                            console.warn('내보내기: 서버 데이터 가져오기 실패, Vue 메모리 값으로 진행', e);
+                        }
+                    }
+                    // 서버 값 우선, 없으면 Vue 메모리 폴백
+                    const _pick = (server, vueVal) => (server !== undefined && server !== null) ? server : vueVal;
                     // ★ 요청하신 모든 데이터가 빠짐없이 저장되도록 객체 완벽 구성
                     const backupData = {
 
-                        // 1. 좌석 및 명단 관련
-                        seats: this.seats,
-                        waitingRoom: this.waitingRoom,
-                        seatConfig: this.seatConfig,
-                        manualLocks: this.manualLocks,
-                        separationPairs: this.separationPairs,
-                        shuffleHistory: this.shuffleHistory,
+                        // 1. 좌석 및 명단 관련 (_seats ref)
+                        seats: _pick(seatsServer.seats, this.seats),
+                        waitingRoom: _pick(seatsServer.waitingRoom, this.waitingRoom),
+                        seatConfig: _pick(seatsServer.seatConfig, this.seatConfig),
+                        manualLocks: _pick(seatsServer.manualLocks, this.manualLocks),
+                        separationPairs: _pick(seatsServer.separationPairs, this.separationPairs),
+                        shuffleHistory: _pick(seatsServer.shuffleHistory, this.shuffleHistory),
+                        shuffleHistoryByMode: _pick(seatsServer.shuffleHistoryByMode, this.shuffleHistoryByMode),
+                        preSortLayout: _pick(seatsServer.preSortLayout, this.preSortLayout),
                         
                         // 2. 활동 탭 및 모둠 관련
                         activityTabs: this.activityTabs,
                         nextTabId: this.nextTabId,
                         tabData: this.tabData,
                         missions: this.missions,
-                        groups: this.groups,
-                        groupingList: this.groupingList,
-                        savedGroupings: this.savedGroupings,
-                        
-                        // 3. 뽑기 도구 및 게임 관련 (돌 선수 숫자 포함)
-                        participantList: this.participantList, 
-                        animalRaceResults: this.animalRaceResults, 
-                        lotteryPools: this.lotteryPools,
-                        lastWinners: this.lastWinners,
-                        lotteryMode: this.lotteryMode,
-                        savedRoulettes: this.savedRoulettes, 
-                        rouletteInput: this.rouletteInput, // ★ 돌림판 텍스트 누락 추가
-                        capsules: this.capsules, // ★ 캡슐 누락 추가
+                        groups: _pick(seatsServer.groups, this.groups),
+                        groupingList: _pick(toolsServer.groupingList, this.groupingList),
+                        savedGroupings: _pick(toolsServer.savedGroupings, this.savedGroupings),
+
+                        // 3. 뽑기 도구 및 게임 관련 (_tools ref)
+                        participantList: _pick(toolsServer.participantList, this.participantList),
+                        animalRaceResults: _pick(toolsServer.animalRaceResults, this.animalRaceResults),
+                        lotteryPools: _pick(toolsServer.lotteryPools, this.lotteryPools),
+                        lastWinners: _pick(toolsServer.lastWinners, this.lastWinners),
+                        lotteryMode: _pick(toolsServer.lotteryMode, this.lotteryMode),
+                        savedRoulettes: _pick(toolsServer.savedRoulettes, this.savedRoulettes),
+                        rouletteInput: _pick(toolsServer.rouletteInput, this.rouletteInput),
+                        capsules: _pick(toolsServer.capsules, this.capsules),
 showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가    
                     
                       // 4. 판서 관련
                         defaultCheckMode: this.defaultCheckMode,             // O/X 모드 저장
                         scheduleVersions: this.scheduleVersions,             // 요일별 일정 저장
                         currentScheduleVersion: this.currentScheduleVersion, // 일정 버전 저장
-                        blackboardContent: this.blackboardContent,
-                        paths: this.paths,
-                        savedBoards: this.savedBoards, 
+                        blackboardContent: _pick(boardServer.blackboardContent, this.blackboardContent),
+                        paths: _pick(boardServer.paths, this.paths),
+                        savedBoards: _pick(toolsServer.savedBoards, this.savedBoards),
                         
                         // 5. 시간 저금통, 알람, 메인 타이머
                         timeBankSeconds: this.timeBankSeconds,
@@ -12819,9 +13152,9 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         },
                         
                         // 8. 토너먼트 상태
-                        tournamentData: {
+                        tournamentData: _pick(toolsServer.tournamentData, {
                             tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket
-                        },
+                        }),
 
                         // 9. 메인 대시보드 설정
                         dashboardSettings: this.dashboardSettings,
@@ -12955,10 +13288,11 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
     return ((b-1)*10) + ((r-1)*2) + (p-1); 
 },
 
-openBlackboard() { 
-                this.showBlackboard = true; 
-                this.focusWindow('board'); 
-                this.closePalettes(); 
+openBlackboard() {
+                this.ensureBoardSubscribed && this.ensureBoardSubscribed();
+                this.showBlackboard = true;
+                this.focusWindow('board');
+                this.closePalettes();
                 this.$nextTick(() => { 
                     const editor = this.$refs.boardEditor || document.getElementById('board-editor');
                     if(editor) {
@@ -13222,13 +13556,7 @@ saveSelection() {
 
                 // 4) 선생님이 선택한 저장 옵션에 따라 처리!
                 if (saveMode === 'overwrite' && this.shuffleHistory && this.shuffleHistory.length > 0) {
-                    const pureLayoutSnapshot = this.seats.map(s => {
-                        if (s && s.name) {
-                            return { name: s.name, number: s.number, gender: s.gender, activityScore: 0, checked: false, order: null, memo: "", starred: false };
-                        }
-                        return null;
-                    });
-                    this.shuffleHistory[0].seats = pureLayoutSnapshot;
+                    this.shuffleHistory[0].seats = this.seats.map(s => s?.name || null);
                     this.saveToLocal();
                     this.saveToFirebase();
                     
@@ -14251,14 +14579,42 @@ deleteGrouping(idx) {
             restoreHistory() {
                 if (!this.previewHistoryItem) return;
                 if(confirm("이 배치 기록을 불러오시겠습니까?")) {
-                    this.seats = JSON.parse(JSON.stringify(this.previewHistoryItem.seats));
+                    const all = this.allStudents;
+                    const byName = new Map(all.map(s => [s.name, s]));
+                    const rawSeats = this.previewHistoryItem.seats || [];
+                    let matched = 0, unmatched = [];
+                    const newSeats = Array.from({length: 30}, (_, i) => {
+                        const x = rawSeats[i];
+                        if (!x) return null;
+                        // 옛 형식(객체)
+                        if (typeof x === 'object') {
+                            const nm = x.name;
+                            const found = nm ? byName.get(nm) : null;
+                            if (found) { matched++; return { ...found, activityScore: 0, checked: false, memo: '', starred: false, order: null }; }
+                            if (nm) { unmatched.push(nm); return { name: nm, gender: x.gender || 'M', number: x.number || 0, activityScore: 0, checked: false, memo: '', starred: false, order: null }; }
+                            return null;
+                        }
+                        // 새 형식(문자열)
+                        if (typeof x === 'string') {
+                            const found = byName.get(x);
+                            if (found) { matched++; return { ...found, activityScore: 0, checked: false, memo: '', starred: false, order: null }; }
+                            unmatched.push(x);
+                            return { name: x, gender: 'M', number: 0, activityScore: 0, checked: false, memo: '', starred: false, order: null };
+                        }
+                        return null;
+                    });
+                    console.log(`[배치 복구] 매칭=${matched}, 미매칭=${unmatched.length}`, unmatched);
+                    this.seats = newSeats;
                     const seatedNames = new Set(this.seats.filter(s => s).map(s => s.name));
-                    const all = this.allStudents; 
                     this.waitingRoom = all.filter(s => !seatedNames.has(s.name));
-                    this.showHistoryPreview = false; 
-                    this.showShuffleHistory = false; 
-                    this.saveToFirebase(); // 즉시 저장으로 변경
-                    alert("배치가 복구되었습니다.");
+                    this.showHistoryPreview = false;
+                    this.showShuffleHistory = false;
+                    this.saveToFirebase();
+                    if (unmatched.length > 0) {
+                        alert(`배치를 복구했습니다.\n\n⚠ 현재 명단에 없는 이름 ${unmatched.length}명: ${unmatched.join(', ')}\n(이름만 표시됩니다)`);
+                    } else {
+                        alert("배치가 복구되었습니다.");
+                    }
                 }
             },
             // [신규] 자리 배치 기록 내보내기
@@ -14409,13 +14765,14 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                 }
             },
             endSeatDraw() { this.isDrawingSeats = false; this.dragStartIdx = null; this.saveToLocal(); },
-            openShuffleModal() { 
+            openShuffleModal() {
                 if (this.isSortedByNumber) {
                     alert("번호순 정렬 중에는 자리를 바꿀 수 없습니다.\n먼저 [원위치] 버튼을 눌러 원래 자리로 돌아가주세요!");
                     return;
                 }
-                this.showShuffleModal = true; 
-                this.showShuffleSettings = false; 
+                this.ensureSeatsSubscribed && this.ensureSeatsSubscribed();
+                this.showShuffleModal = true;
+                this.showShuffleSettings = false;
             },
 // ★ 추가: 번호순 정렬 ↔ 원위치 토글 함수
             async toggleSortByNumber() {
@@ -14669,7 +15026,8 @@ async applyShuffle() {
                     }
                 }
             } else {
-                const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+                const hSeatsRaw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+                const hSeats = hSeatsRaw.map(s => (s && typeof s === 'object') ? s : (s ? {name: s} : null));
                 for (let i = 0; i < 30; i += 2) {
                     const s1 = hSeats[i], s2 = hSeats[i + 1];
                     if (s1?.name && s2?.name) {
@@ -14683,7 +15041,8 @@ async applyShuffle() {
         const seatHistoryMap = new Map();
         allStudents.forEach(s => seatHistoryMap.set(s.name, {}));
         this.shuffleHistory.slice(0, 3).forEach((rec, hIdx) => {
-            const hSeats = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            const hSeatsRaw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            const hSeats = hSeatsRaw.map(s => (s && typeof s === 'object') ? s : (s ? {name: s} : null));
             for (let i = 0; i < 30; i++) {
                 const s = hSeats[i];
                 if (s?.name && seatHistoryMap.has(s.name)) {
@@ -15297,7 +15656,8 @@ async applyShuffle() {
                     }
                 }
                 if (!found) {
-                    const hSeats=Array.isArray(rec.seats)?rec.seats:Object.values(rec.seats||{});
+                    const hSeatsRaw=Array.isArray(rec.seats)?rec.seats:Object.values(rec.seats||{});
+                    const hSeats=hSeatsRaw.map(s => (s && typeof s === 'object') ? s : (s ? {name: s} : null));
                     for (let j=0;j<30;j+=2) {
                         const h1=hSeats[j],h2=hSeats[j+1];
                         if (h1?.name&&h2?.name&&((h1.name===s1.name&&h2.name===s2.name)||(h1.name===s2.name&&h2.name===s1.name))) { found=true; break; }
@@ -15366,9 +15726,7 @@ async applyShuffle() {
         this.showShuffleModal=false;
         const now=new Date();
         const dateStr=`${now.getMonth()+1}/${now.getDate()}`;
-        const snapshot=this.seats.map(s=>s?.name
-            ?{name:s.name,number:s.number,gender:s.gender,activityScore:0,checked:false,order:null,memo:"",starred:false}
-            :null);
+        const snapshot=this.seats.map(s=>s?.name||null);
 
         // ★ 두 기록에 동일한 id → deleteShuffle 시 modeData와 완전 동기화
         const recId = Date.now();
@@ -16261,6 +16619,9 @@ startReverseLadderGame(endColIdx) {
             this.loadFromFirebase();
             // ★ Phase B: 도구 데이터는 30초 후 자동 구독 (도구 진입 시엔 즉시)
             setTimeout(() => this.ensureToolsSubscribed && this.ensureToolsSubscribed(), 30000);
+            // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
+            // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
+            setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

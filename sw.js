@@ -1,14 +1,15 @@
 // 우리반 매니저 Service Worker — 트래픽 절감 캐시
 // 전략: stale-while-revalidate (캐시 우선 즉시 응답 + 백그라운드 갱신)
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `wclass-${CACHE_VERSION}`;
 
-// 미리 캐시할 외부 CDN 자원
+// 미리 캐시할 자원 (로컬 우선, CDN은 폴백 시 후처리됨)
 const PRECACHE = [
+    './libs/vue.global.prod.js',
+    './libs/vue.esm-browser.prod.js',
+    './libs/lunar.js',
     'https://cdn.tailwindcss.com',
-    'https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js',
-    'https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.13/lunar.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
 ];
 

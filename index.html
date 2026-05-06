@@ -2601,10 +2601,14 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </tfoot>
             </table>
             <div v-if="trafficSrcRows.length" style="margin-top:14px;padding:10px 12px;background:#FFF8E1;border-radius:8px;">
-                <div style="font-size:13px;font-weight:bold;color:#5D4037;margin-bottom:8px;">📂 오늘 소스별 다운로드</div>
+                <div style="font-size:13px;font-weight:bold;color:#5D4037;margin-bottom:8px;">📂 오늘 소스별 다운로드 (새로고침 {{ trafficRefreshCountToday }}회)</div>
                 <div v-for="r in trafficSrcRows" :key="r.src" style="display:flex;justify-content:space-between;font-size:12px;color:#5D4037;padding:3px 0;border-bottom:1px dashed #FFE0B2;">
                     <span>{{ r.label }}</span>
-                    <span style="font-family:monospace;">{{ formatBytes(r.bytes) }} <span style="color:#aaa;">({{ r.count }}회)</span></span>
+                    <span style="font-family:monospace;">{{ formatBytes(r.bytes) }} <span style="color:#aaa;">({{ r.count }}회 · 평균 {{ formatBytes(r.bytes/Math.max(1,r.count)) }}/회)</span></span>
+                </div>
+                <div style="margin-top:10px;padding-top:8px;border-top:2px solid #FFB74D;">
+                    <button @click="dumpCurrentSizes" style="background:#FF9800;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;">🔬 현재 데이터 크기 진단</button>
+                    <div v-if="currentSizesText" style="margin-top:8px;font-family:monospace;font-size:11px;color:#5D4037;background:white;border-radius:6px;padding:8px;white-space:pre-wrap;">{{ currentSizesText }}</div>
                 </div>
             </div>
             <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.7;background:#FAFAFA;padding:10px 12px;border-radius:8px;">
@@ -5757,6 +5761,7 @@ isBoardSaving: false,       // ★ 칠판 데이터 저장 중 echo 차단
 shuffleHistoryByMode: {},   // ★ 모드별 짝꿍 이력 (이성/동성/랜덤 각각 records, cycleCount, currentRound)
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
 showTrafficStats: false, // 트래픽 통계 모달
+currentSizesText: '', // 진단: 현재 데이터 크기 분석 결과
 isNoiseTimeHidden: false,
 isSortedByNumber: false,  // ★ 추가: 번호순 정렬 상태인지 확인
 preSortLayout: null,      // ★ 추가: 섞기 전 원래 자리 기억
@@ -6754,12 +6759,19 @@ trafficSrcRows() {
     try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
     const today = new Date().toISOString().slice(0,10);
     const bySrc = stats[today] && stats[today].bySrc || {};
-    const labels = { main:'🏠 메인 DB', board:'📋 칠판', eventshop:'🎁 이벤트 상점', tools:'🛠️ 도구', upload:'⬆ 업로드' };
+    const labels = { main:'🏠 메인 DB', board:'📋 칠판', tools:'🛠️ 도구', upload:'⬆ 업로드' };
     return Object.keys(bySrc).map(src => ({
         src, label: labels[src] || src,
         bytes: bySrc[src].bytes || 0,
         count: bySrc[src].count || 0
     })).sort((a,b) => b.bytes - a.bytes);
+},
+trafficRefreshCountToday() {
+    this.showTrafficStats;
+    let stats;
+    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
+    const today = new Date().toISOString().slice(0,10);
+    return (stats[today] && stats[today].initCount) || 0;
 },
 
             topStudents() {
@@ -7821,6 +7833,51 @@ resetTrafficStats() {
     try { localStorage.removeItem('trafficStats'); } catch(e) {}
     this.showTrafficStats = false;
     this.$nextTick(() => { this.showTrafficStats = true; });
+},
+dumpCurrentSizes() {
+    // 현재 메모리에 있는 각 데이터의 크기 추정 → 어느 필드가 무거운지 진단
+    const measure = (obj) => JSON.stringify(obj || {}).length;
+    const lines = [];
+    const fmt = (b) => b < 1024 ? b+' B' : b < 1024*1024 ? (b/1024).toFixed(1)+' KB' : (b/1024/1024).toFixed(2)+' MB';
+    // 주요 필드별 크기
+    const fields = {
+        seats: this.seats,
+        waitingRoom: this.waitingRoom,
+        groups: this.groups,
+        shuffleHistory: this.shuffleHistory,
+        shuffleHistoryByMode: this.shuffleHistoryByMode,
+        tabData: this.tabData,
+        activityTabs: this.activityTabs,
+        daySchedules: this.daySchedules,
+        scheduleVersions: this.scheduleVersions,
+        alarmList: this.alarmList,
+        missions: this.missions,
+        timeBankHistory: this.timeBankHistory,
+        savedBoards: this.savedBoards,
+        capsules: this.capsules,
+        dashboardSettings: this.dashboardSettings,
+        manualLocks: this.manualLocks,
+        separationPairs: this.separationPairs,
+        // 칠판 (별도 ref)
+        '🎨 blackboardContent (칠판)': this.blackboardContent,
+        '🎨 paths (칠판 stroke)': this.paths,
+    };
+    const sizes = Object.entries(fields)
+        .map(([k,v]) => ({ name: k, size: measure(v) }))
+        .sort((a,b) => b.size - a.size);
+    const total = sizes.reduce((s,r) => s + r.size, 0);
+    lines.push('📊 현재 메모리 데이터 크기 (큰 순)');
+    lines.push('');
+    sizes.forEach(r => {
+        if (r.size < 100) return; // 100B 미만 생략
+        const pct = ((r.size / total) * 100).toFixed(1);
+        lines.push(`${r.name.padEnd(30)} ${fmt(r.size).padStart(10)}  (${pct}%)`);
+    });
+    lines.push('─────────────────────────────────────');
+    lines.push(`전체: ${fmt(total)}`);
+    lines.push('');
+    lines.push('💡 가장 큰 항목이 트래픽의 주범입니다.');
+    this.currentSizesText = lines.join('\n');
 },
 
 // 트래픽 통계 (다운/업로드 byte) — localStorage에 일자별 누적

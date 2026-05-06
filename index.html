@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>우리반 매니저</title>
-<link rel="preload" as="image" href="./bomb.png">
+<link rel="preload" as="image" href="./bomb.webp">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // 라이브러리 폴백 — 로컬 → 실패 시 CDN 자동 시도
@@ -594,7 +594,7 @@ font-variant-numeric: tabular-nums !important;
     position: fixed;
     min-width: 300px; 
     min-height: 190px;
-background-image: url('./bomb.png') !important;
+background-image: url('./bomb.webp') !important;
     background-size: 100% 100% !important; /* 배경 이미지가 창 크기에 딱 맞게 조절됨 */
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -2600,6 +2600,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </tr>
                 </tfoot>
             </table>
+            <div v-if="trafficSrcRows.length" style="margin-top:14px;padding:10px 12px;background:#FFF8E1;border-radius:8px;">
+                <div style="font-size:13px;font-weight:bold;color:#5D4037;margin-bottom:8px;">📂 오늘 소스별 다운로드</div>
+                <div v-for="r in trafficSrcRows" :key="r.src" style="display:flex;justify-content:space-between;font-size:12px;color:#5D4037;padding:3px 0;border-bottom:1px dashed #FFE0B2;">
+                    <span>{{ r.label }}</span>
+                    <span style="font-family:monospace;">{{ formatBytes(r.bytes) }} <span style="color:#aaa;">({{ r.count }}회)</span></span>
+                </div>
+            </div>
             <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.7;background:#FAFAFA;padding:10px 12px;border-radius:8px;">
                 <b style="color:#9E9E9E;">📥 초기 동기화</b>: 새로고침할 때 Firebase가 자동으로 보내는 전체 데이터. <b>피할 수 없는 트래픽</b>입니다.<br>
                 <b style="color:#1565C0;">🔄 변경 동기화</b>: 실시간 변경으로 발생하는 트래픽. 최적화 효과는 여기서 확인.<br>
@@ -2848,34 +2855,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
        <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
             <div class="relative w-full mb-8 px-2">
                 <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="openMainDashboard()">
-                    <span @click.stop="showKioskRequests = !showKioskRequests"
-                          class="relative text-3xl leading-none hover:scale-110 transition-transform cursor-pointer"
-                          title="요청 알림">🏫<span v-if="allRequests.length > 0"
-                              class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-black leading-none pointer-events-none">{{ allRequests.length > 9 ? '9+' : allRequests.length }}</span>
-                    </span>
+                    <span class="relative text-3xl leading-none">🏫</span>
                     <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메인화면" @contextmenu.prevent.stop>우리반 매니저</h1>
                 </div>
-                <!-- 🔔 클릭 투과 방지 오버레이 -->
-                <div v-if="showKioskRequests" class="fixed inset-0 z-[49]" @click="showKioskRequests = false" @mousedown.stop @touchstart.stop></div>
-                <!-- 🔔 통합 요청 패널 -->
-                <div v-show="showKioskRequests" class="absolute top-full left-0 mt-3 bg-white rounded-2xl shadow-xl border-2 border-slate-100 z-[50] animate-fade-in origin-top" style="min-width:300px;max-height:400px;overflow-y:auto;overflow-x:hidden;" @click.stop @mousedown.stop @touchstart.stop>
-                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                        <span class="font-black text-slate-700 text-sm flex items-center gap-1">🔔 요청 목록
-                            <span v-if="allRequests.length > 0" class="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 ml-1">{{ allRequests.length }}</span>
-                        </span>
-                    </div>
-                    <div v-if="allRequests.length === 0" class="py-6 text-center text-slate-400 text-sm font-bold">요청이 없습니다</div>
-                    <div v-for="(req, idx) in allRequests" :key="idx"
-                         @click.stop="openUrl(req.url)"
-                         class="flex items-center gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors hover:bg-orange-50">
-                        <span class="text-xs text-slate-400 font-bold shrink-0 w-10">{{ req.time }}</span>
-                        <span class="font-black text-slate-700 text-sm shrink-0 max-w-[60px] truncate">{{ req.nm }}</span>
-                        <span class="text-xs font-bold ml-1 flex-1 truncate"
-                              :class="req.type==='auc'?'text-purple-600':req.type==='dex'?'text-yellow-600':req.type==='gac'?'text-pink-600':req.type==='print'?'text-blue-600':req.type==='item-today'?'text-emerald-600':'text-orange-600'">
-                            {{ req.type==='auc'?'🔨 '+req.label:req.type==='dex'?'📜 '+req.label:req.type==='gac'?'🎰 '+req.label:req.type==='print'?'🖨️ '+req.label:req.type==='item-today'?'📅 '+req.label:'🎁 '+req.label }}
-                        </span>
-                </div>
-            </div>
 
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
@@ -6126,7 +6108,7 @@ bombMsgH: 100,
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
 
-isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, showKioskRequests: false, storeRequests: [], tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
+isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
                 activityTabs: [{ id: 1, name: '활동1' }],
@@ -6744,15 +6726,6 @@ mergedRankData() {
         return numA - numB;
     });
 },
-allRequests() {
-    const list = [];
-    // 이벤트 상점 요청 (승인+미완료+오늘 사용 예정만 storeRequests에 들어옴)
-    this.storeRequests.forEach(r => list.push({
-        time: r.time || '', nm: r.nm, label: r.label, type: r.type,
-        ts: r.ts || 0, url: 'https://csgo0404-ai.github.io/class-store/'
-    }));
-    return list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
-},
 trafficStatsRows() {
     this.showTrafficStats;
     let stats;
@@ -6775,6 +6748,19 @@ trafficStatsRows() {
 trafficTotalInitDown() { return this.trafficStatsRows.reduce((s,r) => s + r.initDown, 0); },
 trafficTotalSyncDown() { return this.trafficStatsRows.reduce((s,r) => s + r.syncDown, 0); },
 trafficTotalUp()       { return this.trafficStatsRows.reduce((s,r) => s + r.up, 0); },
+trafficSrcRows() {
+    this.showTrafficStats;
+    let stats;
+    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
+    const today = new Date().toISOString().slice(0,10);
+    const bySrc = stats[today] && stats[today].bySrc || {};
+    const labels = { main:'🏠 메인 DB', board:'📋 칠판', eventshop:'🎁 이벤트 상점', tools:'🛠️ 도구', upload:'⬆ 업로드' };
+    return Object.keys(bySrc).map(src => ({
+        src, label: labels[src] || src,
+        bytes: bySrc[src].bytes || 0,
+        count: bySrc[src].count || 0
+    })).sort((a,b) => b.bytes - a.bytes);
+},
 
             topStudents() {
                 const withTotal = this.allStudents.map(s => {
@@ -7845,23 +7831,29 @@ _trackDown(data, refKey) {
         if (!this._initSeen) this._initSeen = {};
         const isInit = !this._initSeen[refKey || 'main'];
         if (isInit) this._initSeen[refKey || 'main'] = true;
-        this._addTraffic('down', bytes, isInit ? 'init' : 'sync');
+        this._addTraffic('down', bytes, isInit ? 'init' : 'sync', refKey || 'main');
     } catch(e){}
 },
-_trackUp(data) { try { this._addTraffic('up', JSON.stringify(data||{}).length, 'sync'); } catch(e){} },
-_addTraffic(dir, bytes, kind) {
+_trackUp(data) { try { this._addTraffic('up', JSON.stringify(data||{}).length, 'sync', 'upload'); } catch(e){} },
+_addTraffic(dir, bytes, kind, refKey) {
     if (!bytes || bytes < 1) return;
     const today = new Date().toISOString().slice(0,10);
     let stats;
     try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0, initDown:0, initCount:0 };
+    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0, initDown:0, initCount:0, bySrc:{} };
+    if (!stats[today].bySrc) stats[today].bySrc = {};
     if (kind === 'init') {
         stats[today].initDown = (stats[today].initDown||0) + bytes;
         stats[today].initCount = (stats[today].initCount||0) + 1;
     }
     stats[today][dir] = (stats[today][dir]||0) + bytes;
     stats[today][dir+'Count'] = (stats[today][dir+'Count']||0) + 1;
-    // 30일치만 보관
+    // 소스별 누적
+    if (refKey) {
+        if (!stats[today].bySrc[refKey]) stats[today].bySrc[refKey] = { bytes:0, count:0 };
+        stats[today].bySrc[refKey].bytes += bytes;
+        stats[today].bySrc[refKey].count += 1;
+    }
     const cutoff = new Date(Date.now() - 30*86400*1000).toISOString().slice(0,10);
     Object.keys(stats).forEach(d => { if (d < cutoff) delete stats[d]; });
     try { localStorage.setItem('trafficStats', JSON.stringify(stats)); } catch(e) {}
@@ -11351,93 +11343,6 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                         this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
                     });
                 }
-            },
-            loadStoreRequests() {
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
-                if (!this._reqTimes) this._reqTimes = {};
-                const storeRef = ref(db, 'ClassData/EventShop');
-                const toArr = v => Array.isArray(v) ? v : Object.values(v || {});
-                const nowStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; };
-                const seenAt = (key) => { if (!this._reqTimes[key]) this._reqTimes[key] = { time: nowStr(), ts: Date.now() }; return this._reqTimes[key]; };
-                onValue(storeRef, (snap) => {
-                    try {
-                        const raw = snap.val() || {};
-                        this._trackDown(raw, 'eventshop');
-                        const list = [];
-                        // 경매 요청
-                        toArr(raw.auc).forEach(a => {
-                            if (!a || a.st !== 'req') return;
-                            const t = new Date(a.id || Date.now());
-                            const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-                            list.push({ time: timeStr, nm: a.reqNm || '?', label: '경매 요청', type: 'auc', ts: a.id || 0 });
-                        });
-                        // 아이템 승인 요청 / 캐릭터 제작 요청
-                        const _today = new Date();
-                        const _todayStr = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}-${String(_today.getDate()).padStart(2,'0')}`;
-                        toArr(raw.stu).forEach(s => {
-                            if (!s) return;
-                            toArr(s.inv).forEach(item => {
-                                if (!item) return;
-                                // 캐릭터 제작 요청은 제외
-                                if ((item.n || '').startsWith('캐릭터 제작:')) return;
-                                const isPending = item.st === 'req' || item.st === 'shop_req';
-                                if (!isPending) return;
-                                if (item.reqDone) return;
-                                let label, type;
-                                if (!item.reqApproved) {
-                                    label = `아이템 승인 (${item.n})`;
-                                    type = 'item';
-                                } else {
-                                    if (item.useDate !== _todayStr) return;
-                                    label = `오늘 사용 예정 (${item.n})`;
-                                    type = 'item-today';
-                                }
-                                const key = `inv_${s.nm}_${item.n}`;
-                                const seen = seenAt(key);
-                                list.push({ time: seen.time, nm: s.nm || '?', label, type, ts: seen.ts });
-                            });
-                            // 인쇄 요청
-                            toArr(s.printReqs).forEach(r => {
-                                if (!r) return;
-                                const t = new Date(r.ts || Date.now());
-                                const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-                                list.push({
-                                    time: timeStr, nm: s.nm || '?',
-                                    label: `인쇄 요청 (${r.week || ''})`,
-                                    type: 'print', ts: r.ts || 0
-                                });
-                            });
-                        });
-                        // 인형 뽑기 (오프라인) 대기 요청
-                        Object.entries(raw.gacQueue || {}).forEach(([gacNm, queue]) => {
-                            toArr(queue).forEach(e => {
-                                if (!e || e.st !== 'wait') return;
-                                const t = new Date(e.ts || Date.now());
-                                const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-                                list.push({
-                                    time: timeStr, nm: e.nm || '?',
-                                    label: `${gacNm} 뽑기 요청`,
-                                    type: 'gac', ts: e.ts || 0
-                                });
-                            });
-                        });
-                        // 도감 100% 달성
-                        const targetItms = toArr(raw.itm).filter(i => i && i.s === true);
-                        if (targetItms.length > 0) {
-                            toArr(raw.stu).forEach(s => {
-                                if (!s) return;
-                                const col = toArr(s.col);
-                                const myCount = targetItms.filter(i => col.includes(i.n)).length;
-                                if (myCount >= targetItms.length) {
-                                    const key = `dex_${s.nm}`;
-                                    const seen = seenAt(key);
-                                    list.push({ time: seen.time, nm: s.nm || '?', label: '도감 100% 달성', type: 'dex', ts: seen.ts });
-                                }
-                            });
-                        }
-                        this.storeRequests = list;
-                    } catch(e) {}
-                });
             },
          getScoreBg(score) {
                 if (score === 0) return 'bg-white border-slate-200 text-slate-800';
@@ -16297,7 +16202,6 @@ startReverseLadderGame(endColIdx) {
             this.loadFromCacheFirst();
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
-            this.loadStoreRequests();
             // ★ Phase B: 도구 데이터는 30초 후 자동 구독 (도구 진입 시엔 즉시)
             setTimeout(() => this.ensureToolsSubscribed && this.ensureToolsSubscribed(), 30000);
 

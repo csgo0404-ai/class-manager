@@ -5804,6 +5804,14 @@ tabBoardContents: {},  // 탭별 판서 내용 저장 (tabId → {content, paths
         currentPath: null,   // 현재 그리고 있는 획
         selectedPath: null,
 isInitialLoad: true,
+// ★ Phase B/C lazy 구독 상태 플래그 — undefined 대신 명시 초기화
+_toolsLoaded: false,
+_seatsLoaded: false,
+_toolsSubscribed: false,
+_seatsSubscribed: false,
+_boardSubscribed: false,
+_explicitClear: false,
+_toolsHadDataFor: {},
 showBombTimer: false,
 showNoiseMeter: false,
 isVideoVisible: false,
@@ -16752,8 +16760,9 @@ startReverseLadderGame(endColIdx) {
             this.loadFromCacheFirst();
             // 1. 서버 데이터 로드
             this.loadFromFirebase();
-            // ★ Phase B: 도구 데이터는 30초 후 자동 구독 (도구 진입 시엔 즉시)
-            setTimeout(() => this.ensureToolsSubscribed && this.ensureToolsSubscribed(), 30000);
+            // ★ Phase B: 도구 데이터는 마운트 직후 자동 구독 (저장 race 방지)
+            // 30초 지연 시 도구 저장이 _toolsLoaded 가드에 막혀 서버에 안 써지는 문제 해결
+            setTimeout(() => this.ensureToolsSubscribed && this.ensureToolsSubscribed(), 150);
             // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
             // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
             setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);

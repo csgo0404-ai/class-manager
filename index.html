@@ -11190,6 +11190,19 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (!this._toolsLoaded) {
                         Object.keys(toolUpdates).forEach(k => delete toolUpdates[k]);
                     }
+                    // ★ 추가 가드: 한 번이라도 데이터가 있었던 필드는 빈 값으로 덮어쓰기 차단
+                    // (deleteAllBoards 같은 명시적 삭제는 _explicitClear 플래그로 우회 가능)
+                    if (this._toolsLoaded && this._toolsHadDataFor && !this._explicitClear) {
+                        Object.keys(toolUpdates).forEach(k => {
+                            const v = toolUpdates[k];
+                            const isEmpty = (Array.isArray(v) && v.length === 0)
+                                || (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+                            if (isEmpty && this._toolsHadDataFor[k]) {
+                                console.warn(`[저장 차단] ${k} 빈 값으로 덮어쓰려고 함 (이전에 데이터 있었음). 명시 삭제는 deleteAll 함수 사용.`);
+                                delete toolUpdates[k];
+                            }
+                        });
+                    }
 
                     // ★ 안전장치: undefined 값이 하나라도 있으면 Firebase update() 전체가 reject되어 모든 저장 실패
                     // 사전 정리하고 콘솔 경고
@@ -11237,6 +11250,15 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 onValue(toolsRef, (snap) => {
                     const t = snap.val() || {};
                     this._toolsLoaded = true; // ★ 데이터 증발 방지: 첫 응답 도착 표시
+                    // 필드별로 한번이라도 데이터가 있었음을 기록 (빈 값 덮어쓰기 방어)
+                    if (!this._toolsHadDataFor) this._toolsHadDataFor = {};
+                    Object.keys(t).forEach(k => {
+                        const v = t[k];
+                        const isEmpty = (Array.isArray(v) && v.length === 0)
+                            || (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
+                            || v === null || v === undefined;
+                        if (!isEmpty) this._toolsHadDataFor[k] = true;
+                    });
                     this._trackDown(t, 'tools');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
                     if (t.tournamentData) {
@@ -14313,7 +14335,7 @@ handleBoardStudentBadgeClick(e) {
                 });
             },
             deleteBoard(idx) { if(confirm("정말 삭제할까요?")) { this.savedBoards.splice(idx, 1); this.saveToLocal(); } },
-            deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this.savedBoards = []; this.saveToLocal(); } },
+            deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this._explicitClear = true; this.savedBoards = []; this.saveToLocal(); setTimeout(() => { this._explicitClear = false; }, 2000); } },
            /* 판서 창 드래그 (이탈 방지 포함) */
 startBoardDrag(e) {
     if (e.target.closest('button') || e.target.closest('.zoom-text-input')) return;

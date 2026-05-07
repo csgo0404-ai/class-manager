@@ -2613,10 +2613,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         📥 전체 복구
                         <input type="file" accept=".json,application/json" @change="restoreFromBackupFile" style="display:none;">
                     </label>
-                    <label style="background:#1976D2;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;display:inline-block;">
-                        🎯 벌칙/자리/판서만
-                        <input type="file" accept=".json,application/json" @change="restoreLimitedFromBackupFile" style="display:none;">
-                    </label>
                     <div v-if="currentSizesText" style="margin-top:8px;font-family:monospace;font-size:11px;color:#5D4037;background:white;border-radius:6px;padding:8px;white-space:pre-wrap;">{{ currentSizesText }}</div>
                 </div>
             </div>
@@ -11188,6 +11184,10 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (!this._seatsLoaded) {
                         Object.keys(seatUpdates).forEach(k => delete seatUpdates[k]);
                     }
+                    // ★ 동일 가드: _tools(판서/벌칙/룰렛/캡슐 등) 첫 응답 전엔 빈 배열 덮어쓰기 차단
+                    if (!this._toolsLoaded) {
+                        Object.keys(toolUpdates).forEach(k => delete toolUpdates[k]);
+                    }
 
                     // ★ 안전장치: undefined 값이 하나라도 있으면 Firebase update() 전체가 reject되어 모든 저장 실패
                     // 사전 정리하고 콘솔 경고
@@ -11234,6 +11234,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 const toolsRef = ref(db, DB_KEY + '_tools');
                 onValue(toolsRef, (snap) => {
                     const t = snap.val() || {};
+                    this._toolsLoaded = true; // ★ 데이터 증발 방지: 첫 응답 도착 표시
                     this._trackDown(t, 'tools');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
                     if (t.tournamentData) {

@@ -11372,13 +11372,31 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
             // ★ 칠판 데이터 별도 저장 (디바운스 1.5s) — 자주 바뀌므로 메인 데이터와 분리
             saveBoardToFirebase() {
                 if (this.isSyncing || this.isInitialLoad) return;
-                if (this.lastBoardSnapshot == null) return;
+                if (this.lastBoardSnapshot == null) {
+                    console.warn('[칠판 저장 보류] _board 구독 대기 중 — 곧 재시도');
+                    if (this._boardSaveTimer) clearTimeout(this._boardSaveTimer);
+                    this._boardSaveTimer = setTimeout(() => { this.saveBoardToFirebase(); this._boardSaveTimer = null; }, 800);
+                    return;
+                }
                 if (typeof db === 'undefined' || typeof update === 'undefined' || typeof ref === 'undefined') return;
                 const cur = { blackboardContent: this.blackboardContent || '', paths: this.paths || [] };
                 const curStr = JSON.stringify(cur);
                 if (curStr === this.lastBoardSnapshot) return;
+                // ★ 빈 값으로 덮어쓰기 방어: 서버에 내용 있는데 Vue가 비었으면 의심스러움
+                try {
+                    const prev = JSON.parse(this.lastBoardSnapshot);
+                    const prevContent = (prev.blackboardContent || '').trim();
+                    const prevPaths = Array.isArray(prev.paths) ? prev.paths.length : 0;
+                    const curContent = (cur.blackboardContent || '').trim();
+                    const curPaths = Array.isArray(cur.paths) ? cur.paths.length : 0;
+                    if ((prevContent.length > 50 || prevPaths > 0) && curContent === '' && curPaths === 0) {
+                        console.warn('[칠판 저장 차단] 서버에 데이터 있는데 Vue는 비어있음. 사용자 의도 확인 필요. (강제 저장 원하면 명시적으로 빈 칠판 → 저장)');
+                        return;
+                    }
+                } catch(e) {}
                 this.isBoardSaving = true;
                 this._trackUp(cur);
+                console.log(`[칠판 저장] 길이=${(cur.blackboardContent||'').length}, paths=${(cur.paths||[]).length}`);
                 update(ref(db, DB_KEY + '_board'), cur)
                     .then(() => {
                         this.lastBoardSnapshot = curStr;
@@ -16714,6 +16732,20 @@ startReverseLadderGame(endColIdx) {
             // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
             // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
             setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);
+            // ★ 칠판도 마운트 직후 자동 구독 — lastBoardSnapshot null 인 동안 저장 차단되는 race 방지
+            // (대시보드 알림장 미리보기는 boardPreview로 표시되므로 첫 렌더는 그대로)
+            setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
+            // ★ 새로고침/창 닫기 직전 디바운스 중인 판서 즉시 flush
+            window.addEventListener('beforeunload', () => {
+                try {
+                    if (this._boardSaveTimer) {
+                        clearTimeout(this._boardSaveTimer);
+                        this._boardSaveTimer = null;
+                        // 비동기 update지만 브라우저가 보내려고 시도함 (보장은 안 됨)
+                        this.saveBoardToFirebase && this.saveBoardToFirebase();
+                    }
+                } catch(e) {}
+            });
             // ★ 판서 데이터도 마운트 직후 자동 구독 (칠판 열 때까지 비어있는 현상 방지)
             setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
 

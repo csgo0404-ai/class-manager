@@ -8620,14 +8620,16 @@ startGroupShuffle() {
             handleBoardInput(e) {
                 if (this.isRestoringHistory || this.isComposing) return;
                 this.blackboardContent = e.target.innerHTML;
-                this.lastKnownCaret = this.getCaretOffset(e.target); // 입력 즉시 커서 저장
-                
+                this.lastKnownCaret = this.getCaretOffset(e.target);
+
                 this.saveHistory();
+                // 즉시 칠판 저장 큐 시작 (saveToLocal 체인 우회 — 새로고침 손실 최소화)
+                if (this.queueSaveBoard) this.queueSaveBoard();
 
                 if (this.historyTimeout) clearTimeout(this.historyTimeout);
                 this.historyTimeout = setTimeout(() => {
                     this.saveToLocal();
-                }, 300); 
+                }, 300);
             },
 
             // 한글 조합이 끝났을 때 즉시 히스토리 저장
@@ -11414,10 +11416,11 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
             },
             queueSaveBoard() {
                 if (this._boardSaveTimer) clearTimeout(this._boardSaveTimer);
+                // 1.5s → 600ms로 단축 (새로고침 전 저장 보장 확률↑, 그림 스트로크는 paths 단일 필드라 트래픽 영향 적음)
                 this._boardSaveTimer = setTimeout(() => {
                     this.saveBoardToFirebase();
                     this._boardSaveTimer = null;
-                }, 1500);
+                }, 600);
             },
 
             
@@ -16736,16 +16739,22 @@ startReverseLadderGame(endColIdx) {
             // (대시보드 알림장 미리보기는 boardPreview로 표시되므로 첫 렌더는 그대로)
             setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
             // ★ 새로고침/창 닫기 직전 디바운스 중인 판서 즉시 flush
-            window.addEventListener('beforeunload', () => {
+            const _flushBoardSave = () => {
                 try {
                     if (this._boardSaveTimer) {
                         clearTimeout(this._boardSaveTimer);
                         this._boardSaveTimer = null;
-                        // 비동기 update지만 브라우저가 보내려고 시도함 (보장은 안 됨)
                         this.saveBoardToFirebase && this.saveBoardToFirebase();
                     }
                 } catch(e) {}
+            };
+            window.addEventListener('beforeunload', _flushBoardSave);
+            // visibilitychange는 beforeunload보다 모바일/탭 전환에서 신뢰성 높음
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') _flushBoardSave();
             });
+            // pagehide도 추가 (Safari/iOS에서 beforeunload 안 뜸)
+            window.addEventListener('pagehide', _flushBoardSave);
             // ★ 판서 데이터도 마운트 직후 자동 구독 (칠판 열 때까지 비어있는 현상 방지)
             setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
 

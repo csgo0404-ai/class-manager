@@ -13356,6 +13356,9 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         }
                         
                         // 서버 동기화 진행
+                        // ★ import는 사용자 명시적 덮어쓰기 — _tools/_seats 가드 강제 해제하여 모든 데이터가 Firebase에 반영되도록
+                        this._toolsLoaded = true;
+                        this._seatsLoaded = true;
                         this.saveToFirebase();
                         this.playSound('magic');
                         alert("모든 백업 데이터를 성공적으로 불러왔습니다! 🎉");
@@ -16711,6 +16714,8 @@ startReverseLadderGame(endColIdx) {
             // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
             // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
             setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);
+            // ★ 판서 데이터도 마운트 직후 자동 구독 (칠판 열 때까지 비어있는 현상 방지)
+            setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

@@ -1,7 +1,7 @@
 // 우리반 매니저 Service Worker — 트래픽 절감 캐시
 // 전략: stale-while-revalidate (캐시 우선 즉시 응답 + 백그라운드 갱신)
 
-const CACHE_VERSION = 'v29';
+const CACHE_VERSION = 'v30';
 const CACHE_NAME = `wclass-${CACHE_VERSION}`;
 
 // 미리 캐시할 자원 (로컬 우선, CDN은 폴백 시 후처리됨)
@@ -105,11 +105,14 @@ self.addEventListener('fetch', (event) => {
 });
 
 // 네트워크 우선 + 캐시 폴백 (HTML 전용)
-// cache: 'no-cache' — 캐시는 있되 매번 ETag로 서버 검증 (304 응답 시 본문 미전송 → 트래픽 절감)
+// fetch 옵션 미지정 → 브라우저 HTTP 캐시(Cache-Control max-age) 정상 활용
+// max-age 안: 네트워크 요청 0 (트래픽 100% 절감)
+// max-age 후: ETag 검증, 304면 본문 미전송 (트래픽 ~수백 바이트만)
+// 서버에서 Cache-Control 헤더 설정 시 효과 극대화 (Cloudflare Pages의 _headers 파일 활용)
 async function networkFirst(req) {
     const cache = await caches.open(CACHE_NAME);
     try {
-        const res = await fetch(req, { cache: 'no-cache' });
+        const res = await fetch(req);
         if (res && res.status === 200) cache.put(req, res.clone()).catch(()=>{});
         return res;
     } catch (e) {

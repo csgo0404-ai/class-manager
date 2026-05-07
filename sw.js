@@ -1,7 +1,7 @@
 // 우리반 매니저 Service Worker — 트래픽 절감 캐시
 // 전략: stale-while-revalidate (캐시 우선 즉시 응답 + 백그라운드 갱신)
 
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v29';
 const CACHE_NAME = `wclass-${CACHE_VERSION}`;
 
 // 미리 캐시할 자원 (로컬 우선, CDN은 폴백 시 후처리됨)
@@ -17,8 +17,11 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) =>
-            // 일부 CORS 실패해도 무시
-            Promise.all(PRECACHE.map(u => cache.add(u).catch(() => {})))
+            // CDN(cross-origin) 자원은 no-cors로 요청해야 opaque response를 받아 캐시 가능
+            Promise.all(PRECACHE.map(u => {
+                const req = /^https?:\/\//.test(u) ? new Request(u, { mode: 'no-cors' }) : u;
+                return cache.add(req).catch(() => {});
+            }))
         )
     );
 });
@@ -30,7 +33,8 @@ self.addEventListener('activate', (event) => {
         ).then(() => self.clients.claim())
         .then(() => self.clients.matchAll({ type: 'window' }))
         .then((clients) => {
-            // 새 버전 활성화 알림만 보냄. (자동 navigate는 reload 루프 위험이 있어 제거)
+            // 알림만 보내고 reload는 안 함 — c.navigate()로 강제 reload 시 첫 로드 직후 더블 리로드가 생겨
+            // 진행 중인 저장(특히 칠판 디바운스)이 날아감. HTML은 networkFirst라 다음 새로고침에서 자동 갱신됨.
             clients.forEach((c) => {
                 try { c.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }); } catch(_){}
             });
@@ -60,6 +64,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Firebase Storage 이미지 캐시 (아바타·뱃지·펫 등)
+    if (url.hostname === 'firebasestorage.googleapis.com' || url.hostname.endsWith('.firebasestorage.app')) {
+        event.respondWith(staleWhileRevalidate(req));
+        return;
+    }
+
     // Google Fonts CSS/WOFF 캐시
     if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
         event.respondWith(staleWhileRevalidate(req));
@@ -79,37 +89,32 @@ self.addEventListener('fetch', (event) => {
 
     // 같은 origin
     if (url.origin === self.location.origin) {
-        // HTML/JS/CSS는 네트워크 우선(짧은 타임아웃 후 캐시 폴백) — 옛 버전이 박히는 문제 방지
+        // HTML 본체 / 네비게이션 요청은 네트워크 우선 (옛 버전이 박히는 문제 방지)
         const isHtml = req.mode === 'navigate'
             || url.pathname.endsWith('.html')
             || url.pathname.endsWith('/')
             || (req.headers.get('accept') || '').includes('text/html');
-        const isCode = url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.mjs');
-        if (isHtml || isCode) {
-            event.respondWith(networkFirst(req, 5000));
+        if (isHtml) {
+            event.respondWith(networkFirst(req));
             return;
         }
-        // 그 외 (이미지/오디오 등) — stale-while-revalidate
+        // 그 외 (JS/CSS/이미지 등) — stale-while-revalidate
         event.respondWith(staleWhileRevalidate(req));
         return;
     }
 });
 
-// 네트워크 우선 + 타임아웃 + 캐시 폴백
-async function networkFirst(req, timeoutMs = 5000) {
+// 네트워크 우선 + 캐시 폴백 (HTML 전용)
+// cache: 'no-cache' — 캐시는 있되 매번 ETag로 서버 검증 (304 응답 시 본문 미전송 → 트래픽 절감)
+async function networkFirst(req) {
     const cache = await caches.open(CACHE_NAME);
     try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), timeoutMs);
-        const res = await fetch(req, { cache: 'no-store', signal: ctrl.signal });
-        clearTimeout(t);
+        const res = await fetch(req, { cache: 'no-cache' });
         if (res && res.status === 200) cache.put(req, res.clone()).catch(()=>{});
         return res;
     } catch (e) {
         const cached = await cache.match(req);
-        if (cached) return cached;
-        // 캐시도 없으면 무한 로딩 대신 즉시 에러로 끊어줌
-        return new Response('offline', { status: 504, statusText: 'Gateway Timeout' });
+        return cached || Response.error();
     }
 }
 

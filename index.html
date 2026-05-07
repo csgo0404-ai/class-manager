@@ -7671,12 +7671,15 @@ closeLocalVideo() {
 playCustomSound(src) {
     // 다른 소리든 같은 소리든 무조건 초기화 후 새롭게 재생
     if (this.currentAudio) {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
+        try { this.currentAudio.pause(); this.currentAudio.currentTime = 0; } catch(_){}
     }
     this.currentAudio = new Audio(src);
     this.currentAudioSrc = src;
-    this.currentAudio.play().catch(e => console.log('재생 오류:', e));
+    // 직전 pause로 인한 AbortError는 정상이라 무시
+    const _a = this.currentAudio;
+    Promise.resolve().then(() => _a.play()).catch(e => {
+        if (e && e.name !== 'AbortError') console.log('재생 오류:', e);
+    });
 
     this.currentAudio.onended = () => {
         this.currentAudio = null;
@@ -10643,8 +10646,10 @@ toggleTimer() {
                 // [2] 2.1초 ~ 1초 구간: '타이머 효과음'
                 if (currentTotalSecs <= 4 && currentTotalSecs > 1.0 && !this.isEndingSoundPlayed) {
                     if (this.timerAudio) {
-                        this.timerAudio.currentTime = 0; 
-                        this.timerAudio.play().catch(e => console.log("재생 오류:", e));
+                        try { this.timerAudio.currentTime = 0; } catch(_){}
+                        this.timerAudio.play().catch(e => {
+                            if (e && e.name !== 'AbortError') console.log("재생 오류:", e);
+                        });
                     }
                     this.isEndingSoundPlayed = true; 
                 }

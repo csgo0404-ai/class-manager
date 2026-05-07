@@ -1,0 +1,41 @@
+# Cloudflare Pages 헤더 설정 — 트래픽 절감
+# 새로 푸시할 때마다 자동 적용
+
+# HTML 본체 — 5분 캐시 후 ETag 검증
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate
+
+/
+  Cache-Control: public, max-age=300, must-revalidate
+
+# Service Worker는 항상 최신 검증 (배포 직후 즉시 반영되도록)
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# manifest.json — 짧은 캐시
+/manifest.json
+  Cache-Control: public, max-age=3600
+
+# 라이브러리(JS) — 1년 immutable (파일명에 버전이 들어가지 않더라도 거의 안 바뀜)
+/libs/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 사운드/이미지 — 1년 immutable
+/*.mp3
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=2592000
+
+/*.jpg
+  Cache-Control: public, max-age=2592000
+
+/*.svg
+  Cache-Control: public, max-age=2592000
+
+# JSON 데이터 파일은 짧은 캐시 (백업 파일이 자주 바뀔 수 있음)
+/*.json
+  Cache-Control: public, max-age=600

@@ -4200,7 +4200,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <div v-else-if="savedBoards && savedBoards.length > 0">
                         <div v-for="(board, idx) in savedBoards.slice(0,3)" :key="idx" class="mb-2 pb-2 border-b border-[#f5e6d0] last:border-0">
                             <div class="text-xs font-black text-[#a1887f] mb-0.5">{{ board.name || board.title || '판서 '+(idx+1) }}</div>
-                            <div class="dash-preview text-[#5d4037]" v-html="dashboardTrimBoardContent(board.content || '')"></div>
+                            <div class="dash-preview text-[#5d4037]" v-html="dashboardTrimBoardContent(board.content || board.preview || '')"></div>
                         </div>
                     </div>
                     <div v-else class="text-center text-[#a1887f] font-bold text-sm py-4">판서 내용이 없습니다</div>
@@ -5730,7 +5730,7 @@ tabindex="0">
 </div>
  <script type="module">   
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, get, child, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, get, child, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     let createApp;
     try {
         ({ createApp } = await import('./libs/vue.esm-browser.prod.js'));
@@ -7085,7 +7085,23 @@ invertCurrentSelection() {
                 this.saveToLocal();
             },
 stopNoiseMeasurement() {
-            this.stopAndReset(); // 누락되었던 에러 해결용 함수
+            // ★ 닫기/탭전환 시 호출 — 마이크/오디오 자원만 해제하고 누적 시간(noiseRecordSeconds)은 보존.
+            //    명시적 리셋(0초로) 은 stopAndReset()을 직접 호출.
+            this.isMeasuring = false;
+            this.stopNoiseTimer(); // 내부에서 saveToLocal로 누적 시간 저장
+            if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
+            if (this.noiseStream) { this.noiseStream.getTracks().forEach(t => t.stop()); this.noiseStream = null; }
+            if (this.microphone) { try { this.microphone.disconnect(); } catch(_){} this.microphone = null; }
+            if (this.audioContext) { try { this.audioContext.close(); } catch(_){} this.audioContext = null; }
+            this.noiseAnalyzer = null;
+            // 게이지·표시값은 화면 닫혔으니 비워둠 (저장 대상 아님)
+            this.noiseGauge = 0;
+            this.currentVolume = 0;
+            this.displayedDb = 0;
+            this._volBuf = [];
+            this._frameSkip = 0;
+            this._peakVol = 0;
+            this._lastDispUpdate = 0;
         },
 handleRockTool(tool) {
     this.rockActiveTool = tool;
@@ -7399,17 +7415,20 @@ autoSaveBoardToList() {
             this.savedBoards[targetIndex].preview = previewText;
             this.savedBoards[targetIndex].paths = JSON.parse(JSON.stringify(this.paths));
             this.currentBoardId = this.savedBoards[targetIndex].id;
+            this._saveBoardBody && this._saveBoardBody(this.savedBoards[targetIndex]);
         } else {
             // ★ [수정 완료] 목록 맨 뒤(최하단)에 새 판서로 추가 (unshift -> push)
             const newId = Date.now();
-            this.savedBoards.push({ 
-                id: newId, 
-                title: title, 
-                content: this.blackboardContent, 
+            const newBoard = {
+                id: newId,
+                title: title,
+                content: this.blackboardContent,
                 preview: previewText,
                 paths: JSON.parse(JSON.stringify(this.paths))
-            });
+            };
+            this.savedBoards.push(newBoard);
             this.currentBoardId = newId;
+            this._saveBoardBody && this._saveBoardBody(newBoard);
         }
         // saveToLocal()은 다른 곳에서 호출되므로 생략 (성능 최적화)
     },
@@ -7589,7 +7608,8 @@ resumeActivities() {
             } else {
                 const remaining = (this.timerTargetTime - currentNow) / 1000;
                 if (remaining <= 4 && remaining > 1.0 && !this.isEndingSoundPlayed) {
-                     if (this.timerAudio) { this.timerAudio.currentTime = 0; this.timerAudio.play().catch(()=>{}); }
+                     if (!this.timerAudio) this.timerAudio = new Audio('./timer.mp3');
+                     this.timerAudio.currentTime = 0; this.timerAudio.play().catch(()=>{});
                      this.isEndingSoundPlayed = true;
                 }
                 if (remaining <= 1.0) {
@@ -7905,30 +7925,44 @@ async restoreLimitedFromBackupFile(event) {
         const text = await file.text();
         const data = JSON.parse(text);
         const summary = [];
-        const toolsObj = {}, seatsObj = {};
+        const toolsObj = {}, historyObj = {};
         if (Array.isArray(data.savedRoulettes) && data.savedRoulettes.length > 0) {
             toolsObj.savedRoulettes = data.savedRoulettes;
             summary.push(`[복구] 돌림판/벌칙 — ${data.savedRoulettes.length}개`);
         } else summary.push(`[건너뜀] 돌림판/벌칙 — 백업에 없음`);
         if (Array.isArray(data.shuffleHistory) && data.shuffleHistory.length > 0) {
-            seatsObj.shuffleHistory = data.shuffleHistory;
+            historyObj.shuffleHistory = data.shuffleHistory;
             summary.push(`[복구] 자리배치기록 — ${data.shuffleHistory.length}개`);
         } else summary.push(`[건너뜀] 자리배치기록 — 백업에 없음`);
         if (data.shuffleHistoryByMode && typeof data.shuffleHistoryByMode === 'object' && Object.keys(data.shuffleHistoryByMode).length > 0) {
-            seatsObj.shuffleHistoryByMode = data.shuffleHistoryByMode;
+            historyObj.shuffleHistoryByMode = data.shuffleHistoryByMode;
         }
+        let _boardBodies = null;
         if (Array.isArray(data.savedBoards) && data.savedBoards.length > 0) {
-            toolsObj.savedBoards = data.savedBoards;
-            summary.push(`[복구] 판서저장 — ${data.savedBoards.length}개`);
+            // ★ Phase D: 인덱스/본문 분리 — 인덱스는 _tools, 본문은 _boards/{id}
+            _boardBodies = [];
+            const indexOnly = data.savedBoards.map(b => {
+                const id = b.id || (Date.now() + Math.random());
+                if (b.content !== undefined || b.paths !== undefined) {
+                    _boardBodies.push({ id, content: b.content || '', paths: b.paths || [] });
+                }
+                return { id, title: b.title || '', preview: b.preview || '' };
+            });
+            toolsObj.savedBoards = indexOnly;
+            summary.push(`[복구] 판서저장 — ${indexOnly.length}개 (인덱스+본문 분리)`);
         } else summary.push(`[건너뜀] 판서저장 — 백업에 없음`);
-        if (Object.keys(toolsObj).length === 0 && Object.keys(seatsObj).length === 0) {
+        if (Object.keys(toolsObj).length === 0 && Object.keys(historyObj).length === 0) {
             alert('복구할 항목이 없습니다.\n\n' + summary.join('\n'));
             return;
         }
         if (!confirm(`다음 항목을 복구합니다:\n\n${summary.join('\n')}\n\n계속할까요?`)) return;
         const ops = [];
         if (Object.keys(toolsObj).length) ops.push(update(ref(db, DB_KEY + '_tools'), toolsObj));
-        if (Object.keys(seatsObj).length) ops.push(update(ref(db, DB_KEY + '_seats'), seatsObj));
+        if (Object.keys(historyObj).length) ops.push(update(ref(db, DB_KEY + '_history'), historyObj));
+        // ★ Phase D: 판서 본문은 _boards/{id}에 개별 set
+        if (_boardBodies && _boardBodies.length && typeof set !== 'undefined') {
+            _boardBodies.forEach(bb => ops.push(set(ref(db, DB_KEY + '_boards/' + bb.id), { content: bb.content, paths: bb.paths })));
+        }
         await Promise.all(ops);
         alert('✅ 복구 완료. 새로고침 후 확인해주세요.');
     } catch (e) {
@@ -7946,17 +7980,32 @@ async restoreFromBackupFile(event) {
         const text = await file.text();
         const data = JSON.parse(text);
         const TOOL_FIELDS = ['savedBoards','savedRoulettes','savedGroupings','groupingList','lotteryPools','lastWinners','lotteryMode','rouletteInput','capsules','tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants'];
-        const SEAT_FIELDS = ['shuffleHistoryByMode','shuffleHistory','seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
+        const SEAT_FIELDS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
+        const HISTORY_FIELDS = ['shuffleHistoryByMode','shuffleHistory'];
         const BOARD_FIELDS = ['blackboardContent','paths'];
         const summary = [];
-        const toolsObj = {}, seatsObj = {}, boardObj = {};
+        const toolsObj = {}, seatsObj = {}, historyObj = {}, boardObj = {};
+        let _boardBodies2 = [];
         TOOL_FIELDS.forEach(k => {
             if (data[k] !== undefined && data[k] !== null) {
                 const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
                                 (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
                 if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
-                toolsObj[k] = data[k];
-                summary.push(`[복구] _tools.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+                // ★ Phase D: savedBoards는 인덱스/본문 분리
+                if (k === 'savedBoards' && Array.isArray(data[k])) {
+                    const indexOnly = data[k].map(b => {
+                        const id = b.id || (Date.now() + Math.random());
+                        if (b.content !== undefined || b.paths !== undefined) {
+                            _boardBodies2.push({ id, content: b.content || '', paths: b.paths || [] });
+                        }
+                        return { id, title: b.title || '', preview: b.preview || '' };
+                    });
+                    toolsObj[k] = indexOnly;
+                    summary.push(`[복구] _tools.${k} 인덱스 (${indexOnly.length}개) + 본문 ${_boardBodies2.length}개`);
+                } else {
+                    toolsObj[k] = data[k];
+                    summary.push(`[복구] _tools.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+                }
             }
         });
         SEAT_FIELDS.forEach(k => {
@@ -7966,6 +8015,15 @@ async restoreFromBackupFile(event) {
                 if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
                 seatsObj[k] = data[k];
                 summary.push(`[복구] _seats.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
+            }
+        });
+        HISTORY_FIELDS.forEach(k => {
+            if (data[k] !== undefined && data[k] !== null) {
+                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
+                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
+                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
+                historyObj[k] = data[k];
+                summary.push(`[복구] _history.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
             }
         });
         BOARD_FIELDS.forEach(k => {
@@ -7983,7 +8041,12 @@ async restoreFromBackupFile(event) {
         const ops = [];
         if (Object.keys(toolsObj).length) ops.push(update(ref(db, DB_KEY + '_tools'), toolsObj));
         if (Object.keys(seatsObj).length) ops.push(update(ref(db, DB_KEY + '_seats'), seatsObj));
+        if (Object.keys(historyObj).length) ops.push(update(ref(db, DB_KEY + '_history'), historyObj));
         if (Object.keys(boardObj).length) ops.push(update(ref(db, DB_KEY + '_board'), boardObj));
+        // ★ Phase D: 판서 본문 _boards/{id}에 개별 set
+        if (_boardBodies2.length && typeof set !== 'undefined') {
+            _boardBodies2.forEach(bb => ops.push(set(ref(db, DB_KEY + '_boards/' + bb.id), { content: bb.content, paths: bb.paths })));
+        }
         await Promise.all(ops);
         alert('✅ 복구 완료. 새로고침 후 확인해주세요.');
     } catch (e) {
@@ -8010,15 +8073,17 @@ async scanFirebaseUnused() {
         'alarmVolume','bgmVolume','sfxVolume','showCheckedStudentPanel',
         'dashboardSettings','uiState','mixedOrder','sameOrder'
     ]);
-    const KNOWN_SEATS = new Set(['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout']);
+    const KNOWN_SEATS = new Set(['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout']);
+    const KNOWN_HISTORY = new Set(['shuffleHistory','shuffleHistoryByMode']);
     const KNOWN_BOARD = new Set(['blackboardContent','paths']);
     const KNOWN_TOOLS = new Set(['tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','savedRoulettes','rouletteInput','savedGroupings','groupingList','savedBoards','capsules','lotteryPools','lastWinners','lotteryMode']);
     try {
-        const [mainSnap, seatsSnap, boardSnap, toolsSnap] = await Promise.all([
+        const [mainSnap, seatsSnap, boardSnap, toolsSnap, historySnap] = await Promise.all([
             get(ref(db, DB_KEY)),
             get(ref(db, DB_KEY + '_seats')),
             get(ref(db, DB_KEY + '_board')),
-            get(ref(db, DB_KEY + '_tools'))
+            get(ref(db, DB_KEY + '_tools')),
+            get(ref(db, DB_KEY + '_history'))
         ]);
         const findUnknown = (snap, known, label) => {
             if (!snap.exists()) return [];
@@ -8031,6 +8096,7 @@ async scanFirebaseUnused() {
         const unknowns = [
             ...findUnknown(mainSnap, KNOWN_MAIN, 'main'),
             ...findUnknown(seatsSnap, KNOWN_SEATS, '_seats'),
+            ...findUnknown(historySnap, KNOWN_HISTORY, '_history'),
             ...findUnknown(boardSnap, KNOWN_BOARD, '_board'),
             ...findUnknown(toolsSnap, KNOWN_TOOLS, '_tools')
         ];
@@ -8044,9 +8110,9 @@ async scanFirebaseUnused() {
         const msg = `사용하지 않는 필드 ${unknowns.length}개 (총 ${this.formatBytes ? this.formatBytes(totalBytes) : (totalBytes+'B')}):\n\n${list}\n\n이 필드들을 삭제하시겠습니까? (되돌릴 수 없음)`;
         if (!confirm(msg)) return;
         if (!confirm('정말 삭제할까요? 이 작업은 영구적입니다.')) return;
-        const byRef = { main:{}, _seats:{}, _board:{}, _tools:{} };
+        const byRef = { main:{}, _seats:{}, _history:{}, _board:{}, _tools:{} };
         unknowns.forEach(u => { byRef[u.ref][u.key] = null; });
-        const refMap = { main: DB_KEY, _seats: DB_KEY+'_seats', _board: DB_KEY+'_board', _tools: DB_KEY+'_tools' };
+        const refMap = { main: DB_KEY, _seats: DB_KEY+'_seats', _history: DB_KEY+'_history', _board: DB_KEY+'_board', _tools: DB_KEY+'_tools' };
         const ops = [];
         Object.entries(byRef).forEach(([label, nullObj]) => {
             if (Object.keys(nullObj).length) ops.push(update(ref(db, refMap[label]), nullObj));
@@ -10668,7 +10734,8 @@ toggleTimer() {
 
                 // [2] 2.1초 ~ 1초 구간: '타이머 효과음'
                 if (currentTotalSecs <= 4 && currentTotalSecs > 1.0 && !this.isEndingSoundPlayed) {
-                    if (this.timerAudio) {
+                    if (!this.timerAudio) this.timerAudio = new Audio('./timer.mp3');
+                    {
                         try { this.timerAudio.currentTime = 0; } catch(_){}
                         this.timerAudio.play().catch(e => {
                             if (e && e.name !== 'AbortError') console.log("재생 오류:", e);
@@ -11125,7 +11192,11 @@ bombMsgH: this.bombMsgH,
                         capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
                         seatConfig: this.seatConfig, manualLocks: this.manualLocks, groups: this.groups, 
                         separationPairs: this.separationPairs, shuffleHistory: this.shuffleHistory, 
-                        savedBoards: this.savedBoards, savedRoulettes: this.savedRoulettes, 
+                        // ★ Phase D: savedBoards는 인덱스만 저장 (본문은 _boards/{id}에 별도)
+                        savedBoards: (this.savedBoards || []).map(b => ({
+                            id: b.id, title: b.title, preview: b.preview
+                        })),
+                        savedRoulettes: this.savedRoulettes, 
                         lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode,
                         savedGroupings: this.savedGroupings, rouletteInput: this.rouletteInput,
                         groupingList: this.groupingList,
@@ -11197,8 +11268,18 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         }
                     });
 
-                    // ★ Phase C: 자리/이력 필드를 별도 ref(_seats)로 분리 — 초기 동기화 큰 폭 절감
-                    const SEAT_KEYS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout'];
+                    // ★ Phase E: 자리배치기록은 별도 ref(_history)로 분리 — 자리 데이터 첫 로드 가속
+                    const HISTORY_KEYS = ['shuffleHistory','shuffleHistoryByMode'];
+                    const historyUpdates = {};
+                    HISTORY_KEYS.forEach(k => {
+                        if (updates[k] !== undefined) {
+                            historyUpdates[k] = updates[k];
+                            delete updates[k];
+                        }
+                    });
+
+                    // ★ Phase C: 자리 필드를 별도 ref(_seats)로 분리 — 초기 동기화 큰 폭 절감
+                    const SEAT_KEYS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
                     const seatUpdates = {};
                     SEAT_KEYS.forEach(k => {
                         if (updates[k] !== undefined) {
@@ -11239,9 +11320,15 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             }
                         });
                     };
+                    // ★ Phase E 가드: _history 첫 응답 전엔 빈 데이터로 덮어쓰기 차단
+                    if (!this._historyLoaded) {
+                        Object.keys(historyUpdates).forEach(k => delete historyUpdates[k]);
+                    }
+
                     _stripUndef(updates, 'main');
                     _stripUndef(toolUpdates, 'tools');
                     _stripUndef(seatUpdates, 'seats');
+                    _stripUndef(historyUpdates, 'history');
 
                     this._trackUp(updates);
                     const mainSave = Object.keys(updates).length
@@ -11253,10 +11340,13 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     const seatSave = Object.keys(seatUpdates).length
                         ? (this._trackUp(seatUpdates), update(ref(db, DB_KEY + '_seats'), seatUpdates))
                         : Promise.resolve();
+                    const historySave = Object.keys(historyUpdates).length
+                        ? (this._trackUp(historyUpdates), update(ref(db, DB_KEY + '_history'), historyUpdates))
+                        : Promise.resolve();
 
-                    Promise.all([mainSave, toolSave, seatSave])
+                    Promise.all([mainSave, toolSave, seatSave, historySave])
                         .then(() => {
-                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates));
+                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates, historyUpdates));
                             try { localStorage.setItem('dbCache_v1', this.lastDbSnapshot); } catch(e) {}
                             setTimeout(() => { this.isSavingNow = false; }, 300);
                         }).catch((error) => {
@@ -11308,7 +11398,40 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (t.rouletteInput !== undefined) this.rouletteInput = t.rouletteInput || "1\n2\n3\n4\n5\n6";
                     if (t.savedGroupings !== undefined) this.savedGroupings = toArr(t.savedGroupings);
                     if (t.groupingList !== undefined) this.groupingList = toArr(t.groupingList);
-                    if (t.savedBoards !== undefined) this.savedBoards = toArr(t.savedBoards);
+                    if (t.savedBoards !== undefined) {
+                        const arr = toArr(t.savedBoards);
+                        // ★ Phase D 마이그레이션: 옛 데이터(content/paths 포함)면 본문을 _boards/{id}로 이동 후 인덱스만 남김
+                        const hasFullBody = arr.some(b => b && (b.content !== undefined || (b.paths && b.paths.length)));
+                        if (hasFullBody && !this._boardsMigrated) {
+                            this._boardsMigrated = true;
+                            const bodyOps = [];
+                            const indexOnly = arr.map(b => {
+                                const item = { id: b.id || Date.now() + Math.random(), title: b.title || '', preview: b.preview || '' };
+                                if (b.content !== undefined || b.paths !== undefined) {
+                                    if (typeof db !== 'undefined' && typeof set !== 'undefined' && typeof ref !== 'undefined') {
+                                        bodyOps.push(set(ref(db, DB_KEY + '_boards/' + item.id), {
+                                            content: b.content || '',
+                                            paths: b.paths || []
+                                        }).catch(()=>{}));
+                                    }
+                                }
+                                return item;
+                            });
+                            Promise.all(bodyOps)
+                                .then(() => {
+                                    if (typeof update !== 'undefined') {
+                                        return update(ref(db, DB_KEY + '_tools'), { savedBoards: indexOnly });
+                                    }
+                                })
+                                .then(() => console.log('[Phase D 마이그레이션] savedBoards 본문 → _boards/{id} 분리 완료, 인덱스로 축소'))
+                                .catch(e => console.warn('Phase D 마이그레이션 실패:', e));
+                            // 메모리에는 본문 포함 그대로 유지 (이번 세션은 그대로 동작)
+                            this.savedBoards = arr;
+                        } else {
+                            // 신규 형식: 인덱스만 (본문은 클릭 시 lazy 로드)
+                            this.savedBoards = arr;
+                        }
+                    }
                     if (t.capsules !== undefined) this.capsules = toArr(t.capsules);
                     if (t.lotteryPools !== undefined) this.lotteryPools = t.lotteryPools || { all:[], M:[], F:[] };
                     if (t.lastWinners !== undefined) this.lastWinners = t.lastWinners || { all:null, M:null, F:null };
@@ -11340,23 +11463,64 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (s.separationPairs !== undefined) this.separationPairs = toArr(s.separationPairs);
                     if (s.groups !== undefined) this.groups = toArr(s.groups);
                     if (s.preSortLayout !== undefined) this.preSortLayout = s.preSortLayout;
-                    let _shuffleHistoryConverted = false;
-                    if (s.shuffleHistory !== undefined) {
-                        this.shuffleHistory = toArr(s.shuffleHistory).map(rec => {
+                    // ★ Phase E 마이그레이션: 옛날 _seats에 shuffleHistory가 있으면 _history로 이동 후 _seats에서 삭제
+                    if ((s.shuffleHistory !== undefined || s.shuffleHistoryByMode !== undefined) && !this._historyMigrated) {
+                        this._historyMigrated = true;
+                        // 메모리에도 즉시 로드 (마이그레이션 완료 전이라도 화면 표시)
+                        if (s.shuffleHistory !== undefined) this.shuffleHistory = toArr(s.shuffleHistory);
+                        if (s.shuffleHistoryByMode !== undefined) this.shuffleHistoryByMode = s.shuffleHistoryByMode;
+                        const migPayload = {};
+                        if (s.shuffleHistory !== undefined) migPayload.shuffleHistory = s.shuffleHistory;
+                        if (s.shuffleHistoryByMode !== undefined) migPayload.shuffleHistoryByMode = s.shuffleHistoryByMode;
+                        if (typeof update !== 'undefined' && typeof remove !== 'undefined') {
+                            update(ref(db, DB_KEY + '_history'), migPayload)
+                                .then(() => Promise.all([
+                                    remove(ref(db, DB_KEY + '_seats/shuffleHistory')).catch(()=>{}),
+                                    remove(ref(db, DB_KEY + '_seats/shuffleHistoryByMode')).catch(()=>{})
+                                ]))
+                                .then(() => console.log('[Phase E 마이그레이션] _seats → _history 완료'))
+                                .catch(e => console.warn('Phase E 마이그레이션 실패:', e));
+                        }
+                    }
+                    // lastDbSnapshot에 자리 데이터 병합 (다음 diff에서 stale로 인식되지 않도록)
+                    try {
+                        const snap = this.lastDbSnapshot ? JSON.parse(this.lastDbSnapshot) : {};
+                        Object.assign(snap, s);
+                        this.lastDbSnapshot = JSON.stringify(snap);
+                    } catch(e) {}
+                });
+            },
+
+            // ★ Phase E: 자리배치기록 별도 구독 (_history ref) — _seats와 분리하여 첫 로드 가속
+            ensureHistorySubscribed() {
+                if (this._historySubscribed) return;
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
+                this._historySubscribed = true;
+                const histRef = ref(db, DB_KEY + '_history');
+                onValue(histRef, (snap) => {
+                    this._historyLoaded = true;
+                    if (this.isSavingNow) return;
+                    const h = snap.val() || {};
+                    this._trackDown(h, 'history');
+                    const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+
+                    let _converted = false;
+                    if (h.shuffleHistory !== undefined) {
+                        this.shuffleHistory = toArr(h.shuffleHistory).map(rec => {
                             if (rec && rec.seats && !Array.isArray(rec.seats)) {
                                 rec.seats = Array.from({length: 30}, (_, i) => rec.seats[i] || null);
                             }
                             if (rec && Array.isArray(rec.seats)) {
                                 const hadObj = rec.seats.some(x => x && typeof x === 'object');
-                                if (hadObj) _shuffleHistoryConverted = true;
+                                if (hadObj) _converted = true;
                                 rec.seats = rec.seats.map(x => (x && typeof x === 'object') ? (x.name || null) : (x || null));
                             }
                             return rec;
                         });
                     }
-                    if (s.shuffleHistoryByMode !== undefined) {
+                    if (h.shuffleHistoryByMode !== undefined) {
                         const restored = {};
-                        Object.entries(s.shuffleHistoryByMode || {}).forEach(([mode, mData]) => {
+                        Object.entries(h.shuffleHistoryByMode || {}).forEach(([mode, mData]) => {
                             if (mode === '__empty' || !mData) return;
                             const records = toArr(mData.records).map(rec => {
                                 if (rec && rec.intendedPairs && !Array.isArray(rec.intendedPairs)) {
@@ -11367,7 +11531,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                                 }
                                 if (rec && Array.isArray(rec.seats)) {
                                     const hadObj = rec.seats.some(x => x && typeof x === 'object');
-                                    if (hadObj) _shuffleHistoryConverted = true;
+                                    if (hadObj) _converted = true;
                                     rec = { ...rec, seats: rec.seats.map(x => (x && typeof x === 'object') ? (x.name || null) : (x || null)) };
                                 }
                                 return rec;
@@ -11376,18 +11540,14 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         });
                         this.shuffleHistoryByMode = restored;
                     }
-                    // ★ 옛 형식(객체) 감지 시 새 형식(이름 문자열)으로 즉시 서버에 저장 (한 번 변환되면 트래픽도 ~10배 절감)
-                    if (_shuffleHistoryConverted && this._seatsLoaded && typeof update !== 'undefined') {
-                        const _convPayload = {
+                    if (_converted && typeof update !== 'undefined') {
+                        update(ref(db, DB_KEY + '_history'), {
                             shuffleHistory: this.shuffleHistory,
                             shuffleHistoryByMode: this.shuffleHistoryByMode
-                        };
-                        update(ref(db, DB_KEY + '_seats'), _convPayload)
-                            .then(() => console.log('[자리배치기록 형식 변환] 객체 → 이름 문자열로 서버 저장 완료'))
-                            .catch(e => console.warn('변환 저장 실패:', e));
+                        }).then(() => console.log('[자리배치기록 형식 변환] 객체 → 이름 문자열로 _history 저장 완료'))
+                          .catch(e => console.warn('변환 저장 실패:', e));
                     }
-                    // ★ shuffleHistoryByMode 비어있는데 shuffleHistory에 기록이 있으면 자동 재구성
-                    // (백업 복구 후 모드별 인덱스가 비어 짝꿍 회피가 동작 안 하는 문제 해결)
+                    // shuffleHistoryByMode 비어있는데 shuffleHistory에 기록이 있으면 자동 재구성
                     const byModeEmpty = !this.shuffleHistoryByMode || Object.keys(this.shuffleHistoryByMode).length === 0;
                     if (byModeEmpty && Array.isArray(this.shuffleHistory) && this.shuffleHistory.length > 0) {
                         const rebuilt = {};
@@ -11403,18 +11563,11 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         if (Object.keys(rebuilt).length > 0) {
                             console.log('[shuffleHistoryByMode 자동 재구성]', Object.keys(rebuilt).map(m => `${m}:${rebuilt[m].records.length}`).join(', '));
                             this.shuffleHistoryByMode = rebuilt;
-                            // 서버에도 즉시 반영
-                            if (typeof update !== 'undefined' && this._seatsLoaded) {
-                                update(ref(db, DB_KEY + '_seats'), { shuffleHistoryByMode: rebuilt }).catch(()=>{});
+                            if (typeof update !== 'undefined') {
+                                update(ref(db, DB_KEY + '_history'), { shuffleHistoryByMode: rebuilt }).catch(()=>{});
                             }
                         }
                     }
-                    // lastDbSnapshot에 자리 데이터 병합 (다음 diff에서 stale로 인식되지 않도록)
-                    try {
-                        const snap = this.lastDbSnapshot ? JSON.parse(this.lastDbSnapshot) : {};
-                        Object.assign(snap, s);
-                        this.lastDbSnapshot = JSON.stringify(snap);
-                    } catch(e) {}
                 });
             },
 
@@ -13219,21 +13372,36 @@ saveNameList() {
                 try {
                     // ★ Phase C: 분리된 ref(_seats/_board/_tools)에서 최신 서버 데이터를 가져와 누락 방지
                     // (lazy 구독으로 Vue에 안 올라온 데이터가 누락되는 문제 해결)
-                    let seatsServer = {}, boardServer = {}, toolsServer = {};
+                    let seatsServer = {}, boardServer = {}, toolsServer = {}, historyServer = {}, boardsBodyServer = {};
                     if (typeof db !== 'undefined' && typeof get !== 'undefined' && typeof ref !== 'undefined') {
                         try {
-                            const [s, b, t] = await Promise.all([
+                            const [s, b, t, h, bb] = await Promise.all([
                                 get(ref(db, DB_KEY + '_seats')),
                                 get(ref(db, DB_KEY + '_board')),
-                                get(ref(db, DB_KEY + '_tools'))
+                                get(ref(db, DB_KEY + '_tools')),
+                                get(ref(db, DB_KEY + '_history')),
+                                get(ref(db, DB_KEY + '_boards'))   // ★ Phase D: 판서 본문 전부
                             ]);
                             if (s.exists()) seatsServer = s.val() || {};
                             if (b.exists()) boardServer = b.val() || {};
                             if (t.exists()) toolsServer = t.val() || {};
+                            if (h.exists()) historyServer = h.val() || {};
+                            if (bb.exists()) boardsBodyServer = bb.val() || {};
                         } catch (e) {
                             console.warn('내보내기: 서버 데이터 가져오기 실패, Vue 메모리 값으로 진행', e);
                         }
                     }
+                    // ★ Phase D: 인덱스 + 본문 합쳐서 완전한 savedBoards 재구성
+                    const _toolsBoards = (toolsServer.savedBoards) ? (Array.isArray(toolsServer.savedBoards) ? toolsServer.savedBoards : Object.values(toolsServer.savedBoards)) : [];
+                    const _mergedBoards = _toolsBoards.map(b => {
+                        const body = boardsBodyServer[b.id] || {};
+                        return {
+                            id: b.id, title: b.title, preview: b.preview,
+                            content: body.content || (b.content || ''),
+                            paths: Array.isArray(body.paths) ? body.paths : (body.paths ? Object.values(body.paths) : (b.paths || []))
+                        };
+                    });
+                    if (_mergedBoards.length) toolsServer = Object.assign({}, toolsServer, { savedBoards: _mergedBoards });
                     // 서버 값 우선, 없으면 Vue 메모리 폴백
                     const _pick = (server, vueVal) => (server !== undefined && server !== null) ? server : vueVal;
                     // ★ 요청하신 모든 데이터가 빠짐없이 저장되도록 객체 완벽 구성
@@ -13245,8 +13413,9 @@ saveNameList() {
                         seatConfig: _pick(seatsServer.seatConfig, this.seatConfig),
                         manualLocks: _pick(seatsServer.manualLocks, this.manualLocks),
                         separationPairs: _pick(seatsServer.separationPairs, this.separationPairs),
-                        shuffleHistory: _pick(seatsServer.shuffleHistory, this.shuffleHistory),
-                        shuffleHistoryByMode: _pick(seatsServer.shuffleHistoryByMode, this.shuffleHistoryByMode),
+                        // ★ Phase E: shuffleHistory* 는 _history ref 우선, 폴백으로 옛 _seats 값 유지
+                        shuffleHistory: _pick(historyServer.shuffleHistory, _pick(seatsServer.shuffleHistory, this.shuffleHistory)),
+                        shuffleHistoryByMode: _pick(historyServer.shuffleHistoryByMode, _pick(seatsServer.shuffleHistoryByMode, this.shuffleHistoryByMode)),
                         preSortLayout: _pick(seatsServer.preSortLayout, this.preSortLayout),
                         
                         // 2. 활동 탭 및 모둠 관련
@@ -13428,9 +13597,21 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         }
                         
                         // 서버 동기화 진행
-                        // ★ import는 사용자 명시적 덮어쓰기 — _tools/_seats 가드 강제 해제하여 모든 데이터가 Firebase에 반영되도록
+                        // ★ import는 사용자 명시적 덮어쓰기 — _tools/_seats/_history 가드 강제 해제하여 모든 데이터가 Firebase에 반영되도록
                         this._toolsLoaded = true;
                         this._seatsLoaded = true;
+                        this._historyLoaded = true;
+                        // ★ Phase D: 판서 본문은 _boards/{id}에 개별 저장 (saveToFirebase는 인덱스만 저장)
+                        if (Array.isArray(this.savedBoards) && typeof set !== 'undefined') {
+                            this.savedBoards.forEach(b => {
+                                if (b && b.id && (b.content !== undefined || b.paths !== undefined)) {
+                                    set(ref(db, DB_KEY + '_boards/' + b.id), {
+                                        content: b.content || '',
+                                        paths: b.paths || []
+                                    }).catch(()=>{});
+                                }
+                            });
+                        }
                         this.saveToFirebase();
                         this.playSound('magic');
                         alert("모든 백업 데이터를 성공적으로 불러왔습니다! 🎉");
@@ -13810,7 +13991,11 @@ saveSelection() {
     });
 },
 
-            duplicateBoardFromList(board) {
+            async duplicateBoardFromList(board) {
+                // ★ Phase D: 본문 lazy 로드
+                if ((board.content === undefined || board.paths === undefined) && this._loadBoardBody) {
+                    await this._loadBoardBody(board);
+                }
                 let contentModified = false;
                 let newContent = board.content;
                 
@@ -13867,6 +14052,7 @@ saveSelection() {
                 };
 
 this.savedBoards.push(newBoard);
+                this._saveBoardBody && this._saveBoardBody(newBoard);
                 this.saveToLocal();
                 this.playSound('magic', false, 0.5);
                 
@@ -14341,31 +14527,79 @@ handleBoardStudentBadgeClick(e) {
                 this.lastDragEndTime = Date.now(); // 드래그가 끝난 시간 기록
             },
 
-            loadBoard(board) {
+            async loadBoard(board) {
                 // ★ 드래그 종료 직후 0.3초 내에 발생한 '클릭' 이벤트는 무시하여 덮어쓰기 방지!
                 if (Date.now() - (this.lastDragEndTime || 0) < 300) return;
-                
+
                 if (!confirm('이 판서를 불러오시겠습니까? 현재 작성 중인 내용은 지워집니다.')) return;
-                
-                this.currentBoardId = board.id; 
-                this.blackboardContent = board.content;
+
+                // ★ Phase D: 본문(content/paths)이 메모리에 없으면 _boards/{id}에서 lazy fetch
+                if ((board.content === undefined || board.paths === undefined) && this._loadBoardBody) {
+                    await this._loadBoardBody(board);
+                }
+
+                this.currentBoardId = board.id;
+                this.blackboardContent = board.content || '';
                 this.paths = board.paths ? JSON.parse(JSON.stringify(board.paths)) : [];
-                
+
                 const editor = document.getElementById('board-editor');
                 if (editor) {
                     editor.innerHTML = this.blackboardContent;
                 }
-                
+
                 this.redrawCanvas();
                 this.showBoardList = false;
-                
+
                 this.$nextTick(() => {
                     this.saveHistory();
                     this.saveToLocal();
                 });
             },
-            deleteBoard(idx) { if(confirm("정말 삭제할까요?")) { this.savedBoards.splice(idx, 1); this.saveToLocal(); } },
-            deleteAllBoards() { if(confirm("모두 삭제할까요?")) { this._explicitClear = true; this.savedBoards = []; this.saveToLocal(); setTimeout(() => { this._explicitClear = false; }, 2000); } },
+            // ★ Phase D 도우미: 판서 본문(_boards/{id})을 별도 ref에 저장
+            _saveBoardBody(board) {
+                if (!board || !board.id) return;
+                if (typeof db === 'undefined' || typeof set === 'undefined' || typeof ref === 'undefined') return;
+                const body = { content: board.content || '', paths: board.paths || [] };
+                set(ref(db, DB_KEY + '_boards/' + board.id), body)
+                    .catch(e => console.warn('[판서 본문 저장 실패]', board.id, e));
+            },
+            // ★ Phase D 도우미: 판서 본문을 lazy 로드 (목록 클릭 시)
+            async _loadBoardBody(board) {
+                if (!board || !board.id) return;
+                if (board.content !== undefined && board.paths !== undefined) return; // 이미 로드됨
+                if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
+                try {
+                    const snap = await get(ref(db, DB_KEY + '_boards/' + board.id));
+                    if (snap.exists()) {
+                        const body = snap.val() || {};
+                        board.content = body.content || '';
+                        board.paths = Array.isArray(body.paths) ? body.paths : (body.paths ? Object.values(body.paths) : []);
+                    } else {
+                        board.content = board.content || '';
+                        board.paths = board.paths || [];
+                    }
+                } catch (e) { console.warn('[판서 본문 로드 실패]', board.id, e); board.content = ''; board.paths = []; }
+            },
+            deleteBoard(idx) {
+                if(!confirm("정말 삭제할까요?")) return;
+                const removed = this.savedBoards[idx];
+                this.savedBoards.splice(idx, 1);
+                if (removed && removed.id && typeof remove !== 'undefined') {
+                    remove(ref(db, DB_KEY + '_boards/' + removed.id)).catch(()=>{});
+                }
+                this.saveToLocal();
+            },
+            deleteAllBoards() {
+                if(!confirm("모두 삭제할까요?")) return;
+                this._explicitClear = true;
+                const ids = (this.savedBoards || []).map(b => b && b.id).filter(Boolean);
+                this.savedBoards = [];
+                if (typeof remove !== 'undefined') {
+                    ids.forEach(id => remove(ref(db, DB_KEY + '_boards/' + id)).catch(()=>{}));
+                }
+                this.saveToLocal();
+                setTimeout(() => { this._explicitClear = false; }, 2000);
+            },
            /* 판서 창 드래그 (이탈 방지 포함) */
 startBoardDrag(e) {
     if (e.target.closest('button') || e.target.closest('.zoom-text-input')) return;
@@ -16788,6 +17022,8 @@ startReverseLadderGame(endColIdx) {
             // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
             // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
             setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);
+            // ★ Phase E: 자리배치기록(_history) 자동 구독 — 마이그레이션 완료 후 안정적으로 구독되도록 약간 지연
+            setTimeout(() => this.ensureHistorySubscribed && this.ensureHistorySubscribed(), 500);
             // ★ 칠판도 마운트 직후 자동 구독 — lastBoardSnapshot null 인 동안 저장 차단되는 race 방지
             // (대시보드 알림장 미리보기는 boardPreview로 표시되므로 첫 렌더는 그대로)
             setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
@@ -16875,8 +17111,8 @@ startReverseLadderGame(endColIdx) {
                 this.alarmWorker.postMessage('start');
             } catch(e) { console.warn('알람 Worker 초기화 실패 (폴백 사용):', e); }
 
-            this.timerAudio = new Audio('./timer.mp3');
-            this.timerAudio.load();
+            // ★ timerAudio는 첫 사용 시점에 생성되도록 lazy 처리 (초기 트래픽 절감)
+            //   사용처: this._ensureTimerAudio() ?? (this.timerAudio = new Audio('./timer.mp3'))
 
             // 모든 버튼 클릭 시 효과음
             document.addEventListener('mouseover', (e) => {

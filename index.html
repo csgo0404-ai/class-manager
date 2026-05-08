@@ -2627,6 +2627,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </div>
 </div>
 
+<!-- 다중 탭 경고 배너 (동적 생성) -->
+
 <div class="loading-overlay" :class="{'hide': !isInitialLoad}">
         <div class="loading-icon mb-6">🏫</div>
         <h1 class="text-white font-black text-5xl tracking-widest animate-pulse">
@@ -5810,6 +5812,8 @@ _toolsSubscribed: false,
 _seatsSubscribed: false,
 _boardSubscribed: false,
 _explicitClear: false,
+showMultiTabWarning: false,
+multiTabAcknowledged: false,
 _toolsHadDataFor: {},
 showBombTimer: false,
 showNoiseMeter: false,
@@ -8182,6 +8186,69 @@ _smartPoll(fn, activeMs = 5000) {
 
 // 1. 소리 재생 (루프 기능 추가)
 // [수정] 소리 재생 (현재 재생 중인 오디오를 변수에 등록하도록 수정)
+// 다중 탭 감지 — 같은 사이트가 다른 탭에 이미 열려 있으면 경고 모달 표시
+// BroadcastChannel API로 탭 간 통신, 트래픽/RTDB 충돌 방지
+_setupMultiTabDetection() {
+    if (!('BroadcastChannel' in window)) return;
+    try {
+        const channel = new BroadcastChannel('classroom-manager-tabs');
+        const myId = Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+        this._tabId = myId;
+        this._tabChannel = channel;
+        this._otherTabs = new Map();
+        this._multiTabDismissed = false;
+        const updateBanner = () => {
+            const has = this._otherTabs.size > 0 && !this._multiTabDismissed;
+            let el = document.getElementById('_multiTabBanner');
+            if (has && !el) {
+                el = document.createElement('div');
+                el.id = '_multiTabBanner';
+                el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#FF5252,#D32F2F);color:white;padding:10px 16px;font-family:Jua;font-size:13px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+                el.innerHTML = '⚠️ 다른 탭이 열려 있어요. 동시 편집 시 데이터 손실 가능 — 한 탭만 사용하세요. <button onclick="window.__dismissMultiTabBanner&&window.__dismissMultiTabBanner();" style="margin-left:12px;padding:3px 10px;background:white;color:#D32F2F;border:none;border-radius:5px;cursor:pointer;font-family:Jua;font-size:12px;">알겠어요</button>';
+                document.body.appendChild(el);
+                document.body.style.paddingTop = '40px';
+            } else if (!has && el) {
+                el.remove();
+                document.body.style.paddingTop = '';
+            }
+        };
+        window.__dismissMultiTabBanner = () => {
+            this._multiTabDismissed = true;
+            const el = document.getElementById('_multiTabBanner');
+            if (el) el.remove();
+            document.body.style.paddingTop = '';
+        };
+        channel.onmessage = (e) => {
+            const m = e.data;
+            if (!m || m.tabId === myId) return;
+            if (m.type === 'hb') {
+                this._otherTabs.set(m.tabId, m.ts);
+                updateBanner();
+            } else if (m.type === 'bye') {
+                this._otherTabs.delete(m.tabId);
+                updateBanner();
+            }
+        };
+        // 2초마다 heartbeat 발신 + 만료된 탭 정리
+        if (this._tabHbTimer) clearInterval(this._tabHbTimer);
+        this._tabHbTimer = setInterval(() => {
+            try { channel.postMessage({ type:'hb', tabId: myId, ts: Date.now() }); } catch(_){}
+            const now = Date.now();
+            for (const [tid, ts] of this._otherTabs) {
+                if (now - ts > 6000) this._otherTabs.delete(tid);
+            }
+            updateBanner();
+        }, 2000);
+        // 페이지 닫을 때 다른 탭에 알림 + 채널 정리
+        window.addEventListener('beforeunload', () => {
+            try { channel.postMessage({ type:'bye', tabId: myId }); } catch(_){}
+            try { channel.close(); } catch(_){}
+        });
+    } catch(e) {
+        console.warn('다중 탭 감지 비활성:', e);
+    }
+},
+
 // 사운드 lazy 생성 — 처음 재생 시점에만 Audio 인스턴스화 (첫 페이지 로드 시 mp3 다운로드 0)
 // SW 캐시(sw.js)가 mp3를 영구 저장하므로 두 번째부터는 네트워크 요청도 0
 _getAudio(key) {
@@ -17012,6 +17079,10 @@ startReverseLadderGame(endColIdx) {
 },
 
        mounted() {
+            // 사운드 lazy 캐시 (Vue reactivity 추적 회피용 plain object)
+            this._soundCache = {};
+            // 다중 탭 감지 — 다른 탭에 이미 열려 있으면 경고
+            this._setupMultiTabDetection && this._setupMultiTabDetection();
             // ★ Phase A: localStorage 캐시 선렌더 — Firebase 응답 전에 UI 즉시 표시
             this.loadFromCacheFirst();
             // 1. 서버 데이터 로드

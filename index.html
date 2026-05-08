@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <title>우리반 매니저</title>
-<link rel="preload" as="image" href="./bomb.webp">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // 라이브러리 폴백 — 로컬 → 실패 시 CDN 자동 시도
@@ -2870,9 +2869,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
-                <div @click="view = 'main'; showMainDashboard = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
-                <div @click="view = 'order'; showMainDashboard = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
-                <div @click="view = 'group'; showMainDashboard = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
+                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
+                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
+                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
                 
                <button @click="openRankModal" class="w-full h-[150px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col"> 
                     <h3 class="font-black text-emerald-600 mb-2 text-center text-base shrink-0">🏆 명예의 전당</h3>
@@ -4632,7 +4631,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button @mousedown.prevent="isPickerMaximized = !isPickerMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl">
                 <i :class="isPickerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i>
             </button>
-            <button @mousedown.prevent="showPickerMaster = false" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl">
+            <button @mousedown.prevent="showPickerMaster = false; if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -5455,7 +5454,7 @@ tabindex="0">
         </h2>
         <div class="flex items-center gap-3">
             <button @mousedown.prevent.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-            <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement(); stopCamera();" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
+            <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement(); stopCamera(); if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
         </div>
     </div>
 
@@ -5970,42 +5969,40 @@ showDatePalette: false,
         ],
 
 
-// [사운드]
+// [사운드] — URL 맵만 보관. 실제 Audio 인스턴스는 _getAudio()로 lazy 생성
                 sounds: {
-    alarm: new Audio('./alarm.mp3'),
-    hover: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-    click: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), 
-    ding: new Audio('https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3'), 
-    warning: new Audio('https://assets.mixkit.co/active_storage/sfx/950/950-preview.mp3'), 
-    close: new Audio('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3'), 
-    save: new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'), 
-    beep: new Audio('https://assets.mixkit.co/active_storage/sfx/216/216-preview.mp3'), 
-    whistle: new Audio('./whistle.mp3'), 
-    drum: new Audio('./drumroll.mp3'), 
-    shuffle: new Audio('./shuffle timer.mp3'), 
-    fanfare: new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'), 
-    fail: new Audio('./game over.mp3'),  
-    police: new Audio('./police.mp3'),
-    magic: new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3'), 
-    explode: new Audio('./explode.mp3'), 
-    firework: new Audio('https://assets.mixkit.co/active_storage/sfx/2021/2021-preview.mp3'), 
-    shake_plastic: new Audio('https://assets.mixkit.co/active_storage/sfx/2063/2063-preview.mp3'), 
-    pop: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
-    tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2585/2585-preview.mp3'),
-    tock: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
-    jump: new Audio('https://assets.mixkit.co/active_storage/sfx/223/223-preview.mp3'),
-    slide: new Audio('./slide.mp3'),
-    dice_roll: new Audio('./dice roll.mp3'), // 주사위
-    move: new Audio('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3'),
-    finish: new Audio('./decide.mp3'),
-    end: new Audio('./end.mp3'),
-    completed: new Audio('./completed.mp3'),
-    pacman: new Audio('./pac-man.mp3'),
-making: new Audio('./making.mp3'),
-    
-    // 배경음 (기존에 잘 변환해두신 것 유지)
-    bgm_rock: new Audio('./Rock race.mp3'),
-    bgm_animal: new Audio('./Animal race.mp3')
+    alarm: './alarm.mp3',
+    hover: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+    click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+    ding: 'https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3',
+    warning: 'https://assets.mixkit.co/active_storage/sfx/950/950-preview.mp3',
+    close: 'https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3',
+    save: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
+    beep: 'https://assets.mixkit.co/active_storage/sfx/216/216-preview.mp3',
+    whistle: './whistle.mp3',
+    drum: './drumroll.mp3',
+    shuffle: './shuffle timer.mp3',
+    fanfare: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3',
+    fail: './game over.mp3',
+    police: './police.mp3',
+    magic: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3',
+    explode: './explode.mp3',
+    firework: 'https://assets.mixkit.co/active_storage/sfx/2021/2021-preview.mp3',
+    shake_plastic: 'https://assets.mixkit.co/active_storage/sfx/2063/2063-preview.mp3',
+    pop: 'https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3',
+    tick: 'https://assets.mixkit.co/active_storage/sfx/2585/2585-preview.mp3',
+    tock: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+    jump: 'https://assets.mixkit.co/active_storage/sfx/223/223-preview.mp3',
+    slide: './slide.mp3',
+    dice_roll: './dice roll.mp3',
+    move: 'https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3',
+    finish: './decide.mp3',
+    end: './end.mp3',
+    completed: './completed.mp3',
+    pacman: './pac-man.mp3',
+    making: './making.mp3',
+    bgm_rock: './Rock race.mp3',
+    bgm_animal: './Animal race.mp3'
 },
 
         // ── 메인 대시보드 ──
@@ -8119,6 +8116,18 @@ _smartPoll(fn, activeMs = 5000) {
 
 // 1. 소리 재생 (루프 기능 추가)
 // [수정] 소리 재생 (현재 재생 중인 오디오를 변수에 등록하도록 수정)
+// 사운드 lazy 생성 — 처음 재생 시점에만 Audio 인스턴스화 (첫 페이지 로드 시 mp3 다운로드 0)
+// SW 캐시(sw.js)가 mp3를 영구 저장하므로 두 번째부터는 네트워크 요청도 0
+_getAudio(key) {
+    if (!this._soundCache) this._soundCache = {};
+    if (!this._soundCache[key]) {
+        const url = this.sounds[key];
+        if (!url) return null;
+        this._soundCache[key] = new Audio(url);
+    }
+    return this._soundCache[key];
+},
+
 playSound(key, loop = false, volume = 0.5) {
     if (!this.sounds[key]) return;
 
@@ -8131,7 +8140,8 @@ playSound(key, loop = false, volume = 0.5) {
         if (!isBasicUi && !this.soundSettings.game) return;
     }
 
-    const audio = this.sounds[key];
+    const audio = this._getAudio(key);
+    if (!audio) return;
 
     // 2. [핵심 수정] 중요 소리(알람, 타이머, BGM)만 '독점(Exclusive)' 처리
     // 일반 효과음(클릭, 띠링, 팡파레 등)은 배경음을 끊지 않고 겹쳐서 재생됨
@@ -8171,7 +8181,9 @@ playSound(key, loop = false, volume = 0.5) {
 
 stopSound(key) {
         if (!this.sounds[key]) return;
-        const audio = this.sounds[key];
+        // 아직 한 번도 재생 안 한 사운드는 캐시에 없음 → 멈출 것 없음
+        if (!this._soundCache || !this._soundCache[key]) return;
+        const audio = this._soundCache[key];
         audio.pause();
         audio.currentTime = 0;
         audio.loop = false;
@@ -8806,8 +8818,8 @@ startGroupShuffle() {
                     this.noiseRecordInterval = setInterval(() => {
                         if (this.isMeasuring && this.noiseGauge < 100) {
                             this.noiseRecordSeconds++;
-                            // ★ 1초가 지날 때마다 즉시 서버와 로컬에 모두 저장!
-                            this.saveToLocal(); 
+                            // ★ saveToLocal 제거 — 측정 중 RTDB 쓰기/다운 0
+                            //   측정 종료 시 stopNoiseTimer / stopAndReset에서 1회만 저장
                         }
                     }, 1000);
                 }
@@ -8816,6 +8828,8 @@ startGroupShuffle() {
                 if (this.noiseRecordInterval) {
                     clearInterval(this.noiseRecordInterval);
                     this.noiseRecordInterval = null;
+                    // ★ 측정 종료 시 1회만 결과값(누적 시간) 저장
+                    if (typeof this.saveToLocal === 'function') this.saveToLocal();
                 }
             },
 
@@ -9088,6 +9102,8 @@ handleWarning() {
     
 // 소음 측정기 열기 (좌측 하단 버튼용)
     openNoiseMeter() {
+    // 대시보드에서 열릴 때 미니창이 위에 뜨지 않도록 대시보드 닫기
+    if (this.showMainDashboard) { this.showMainDashboard = false; this.returnToDashboardOnClose = true; }
     this.showNoiseMeter = true;
     this.noiseMode = 'sound'; // 열릴 때 항상 사운드 모드
     this.stopNoiseMeasurement(); // 마이크는 일단 꺼둠
@@ -10133,6 +10149,7 @@ initializeLotteryPool(mode) {
 
 // 뽑기 마스터 모달 열기 (좌측 하단 버튼용)
     openPickerMaster() {
+                if (this.showMainDashboard) { this.showMainDashboard = false; this.returnToDashboardOnClose = true; }
                 this.showPickerMaster = true;
                 this.focusWindow('picker');
                 
@@ -12478,6 +12495,10 @@ if(this.allMode) {
             return now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1;
         },
         openMainDashboard() {
+            // 미니창들 자동 닫기 — 대시보드 위에 떠있지 않도록
+            this.showPickerMaster = false;
+            this.showBlackboard = false;
+            this.showNoiseMeter = false;
             this.showMainDashboard = true;
             this.updateDashboardTime();
             if (this.dashboardInterval) clearInterval(this.dashboardInterval);
@@ -13433,6 +13454,7 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
 
 openBlackboard() {
                 this.ensureBoardSubscribed && this.ensureBoardSubscribed();
+                if (this.showMainDashboard) { this.showMainDashboard = false; this.returnToDashboardOnClose = true; }
                 this.showBlackboard = true;
                 this.focusWindow('board');
                 this.closePalettes();

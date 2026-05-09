@@ -3095,7 +3095,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 <button v-if="view !== 'order'" title="선택 초기화" @click="resetCurrentSelection" class="w-14 h-14 bg-yellow-400 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
 
 
-                <button v-if="view !== 'order'" @click="clearMemos" title="메모 삭제" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
+                <button v-if="view !== 'order'" @click="clearMemos" @contextmenu.prevent="view==='group' && resetAllGroupNames()" :title="view==='group' ? '클릭: 메모 삭제 / 우클릭: 모둠 이름 모두 초기화' : '메모 삭제'" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
                 
                 <template v-if="view === 'main'">
                     <button @click="showStudentNumber = !showStudentNumber; saveToLocal();" 
@@ -3174,11 +3174,27 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                  
               
 
-                    <div v-for="(g, idx) in groups" :key="idx" @click="handleGroupClick(idx)"
+                    <div v-for="(g, idx) in groups" :key="idx" @click="handleGroupClick(idx)" @contextmenu.prevent="startEditGroupName(idx)"
                          class="w-[280px] h-[220px] shadow-2xl rounded-[3rem] border-4 flex flex-col items-center justify-center relative transition-all cursor-pointer overflow-hidden"
                         :class="[ g.checked ? 'bg-[#8f6a49] border-[#5c3d1e] ring-4 ring-[#5c3d1e] ring-offset-2 shadow-[0_0_15px_rgba(92,61,30,0.8)]' : (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), { 'aura-gold': allMode } ]">
                         <div class="content-reverse card-container">
-                           <div class="font-black text-2xl mb-2" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ idx + 1 }}모둠</div>
+                           <div v-if="editingGroupIdx !== idx" class="mb-2 text-center select-none" title="모둠 카드 우클릭으로 이름 변경 (빈값 저장 시 초기화)">
+                                <div class="font-black text-[30px] leading-tight" :class="g.checked ? 'text-white/90' : (g.score >= 7 ? 'text-slate-700' : (g.score !== 0 ? 'text-white/90' : 'text-slate-600'))" :style="(!g.checked && g.score >= 7) ? 'color:#334155 !important; text-shadow:none !important;' : ''">{{ idx + 1 }}모둠</div>
+                                <div v-if="groupCustomName(idx)" class="font-black text-3xl leading-tight mt-1" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ groupCustomName(idx) }}</div>
+                            </div>
+                            <div v-else class="mb-2 text-center" @click.stop>
+                                <div class="font-black text-[30px] leading-tight text-slate-600">{{ idx + 1 }}모둠</div>
+                                <input ref="groupNameInput"
+                                       v-model="editingGroupName"
+                                       @blur="saveGroupName(idx)"
+                                       @keydown.enter.prevent.stop="saveGroupName(idx)"
+                                       @keydown.esc.prevent.stop="editingGroupIdx=null"
+                                       @click.stop
+                                       maxlength="12"
+                                       placeholder="이름 입력 (빈값=초기화)"
+                                       class="font-black text-3xl bg-yellow-50 border-b-2 border-yellow-500 outline-none px-1 text-center mt-1"
+                                       style="width:7em;font-family:'Jua';color:#1e293b;">
+                            </div>
                             <div class="font-black text-7xl" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ g.checked ? '✓' : (g.score !== 0 ? (g.score > 0 ? '+' : '') + g.score : '') }}</div>
                            <div v-if="isMemoVisible" class="memo-container" @click.stop>
                                 <textarea v-model="g.memo" 
@@ -3581,17 +3597,27 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 
                 <div v-if="animalRaceResults.length > 0" class="mt-8 bg-slate-700/50 p-6 rounded-3xl border-2 border-slate-600">
                     <h3 class="text-white text-2xl font-black mb-4"><i class="fa-solid fa-trophy text-yellow-400 mr-2"></i>경기 결과</h3>
-                    <div class="flex gap-4 overflow-x-auto pb-2">
-                        <div v-for="(res, rankIdx) in animalRaceResults" :key="rankIdx" class="bg-slate-800 px-6 py-4 rounded-2xl border border-slate-500 flex items-center gap-4 shrink-0 transition-all shadow-lg">
-                            <div class="text-3xl">
-                                <i v-if="rankIdx === 0" class="fa-solid fa-medal text-yellow-400"></i>
+                    <div class="flex gap-4 overflow-x-auto pt-3 pb-3 px-1">
+                        <div v-for="(res, rankIdx) in animalRaceResults" :key="rankIdx"
+                             @click="toggleRaceComplete(res)"
+                             class="pl-2 pr-3 py-3 rounded-2xl border flex items-center gap-1 shrink-0 transition-all shadow-lg cursor-pointer hover:scale-105"
+                             :class="raceCompleted[res] ? 'bg-slate-600 border-slate-400 opacity-70' : 'bg-slate-800 border-slate-500'"
+                             :title="raceCompleted[res] ? '클릭: 완료 해제' : '클릭: 완료 표시'">
+                            <div class="text-3xl flex items-center justify-center" style="width:1.4em;">
+                                <i v-if="raceCompleted[res]" class="fa-solid fa-circle-check text-slate-300"></i>
+                                <i v-else-if="rankIdx === 0" class="fa-solid fa-medal text-yellow-400"></i>
                                 <i v-else-if="rankIdx === 1" class="fa-solid fa-medal text-slate-300"></i>
                                 <i v-else-if="rankIdx === 2" class="fa-solid fa-medal text-orange-400"></i>
                                 <i v-else class="fa-solid fa-award text-slate-500"></i>
                             </div>
-                            <div class="flex flex-col">
-                                <span class="text-xs font-black text-slate-400 uppercase tracking-tighter">{{ rankIdx + 1 }}st Place</span>
-                                <span class="text-white text-xl font-black">{{ res + 1 }}모둠</span>
+                            <div class="flex flex-col" style="width:5.4em;">
+                                <span class="text-sm font-black leading-tight whitespace-nowrap text-slate-400">
+                                    <span class="uppercase tracking-tighter">{{ ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'][rankIdx] || ((rankIdx+1)+'th') }}</span>
+                                    : <span>{{ res + 1 }}모둠</span>
+                                </span>
+                                <span v-if="groupCustomName(res)"
+                                      class="text-white font-black leading-tight whitespace-nowrap"
+                                      :style="{ fontSize: raceNameFontSize(res) }">{{ groupCustomName(res) }}</span>
                             </div>
                         </div>
                     </div>
@@ -3641,7 +3667,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div v-for="(group, idx) in groupingList" :key="idx" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" :class="{'slot-stopped': isGroupStopped(idx)}">
-                    <div class="bg-slate-800 text-white p-3 font-black text-center text-lg">{{ idx + 1 }}모둠</div>
+                    <div class="bg-slate-800 text-white p-3 text-center">
+                        <div class="font-black text-xs text-white/70 leading-tight">{{ idx + 1 }}모둠</div>
+                        <div v-if="groupCustomName(idx)" class="font-black text-[30px] leading-tight">{{ groupCustomName(idx) }}</div>
+                    </div>
                     <div class="p-4 flex-1 flex flex-col gap-2 min-h-[120px]">
                         <div v-for="(member, mIdx) in group" :key="mIdx" class="flex items-center gap-2 border-b border-slate-100 last:border-0 pb-2 last:pb-0" :class="{'slot-spinning': !isGroupStopped(idx)}">
                             <span class="w-2 h-2 rounded-full bg-blue-400"></span><span class="font-bold text-slate-700 text-lg" :style="{color: !isGroupStopped(idx) ? getRandomColor() : ''}">{{ member.name }}</span>
@@ -5856,6 +5885,9 @@ freeParticipants: [],
                 penaltyCount: 1,
                 seats: Array(30).fill(null), waitingRoom: [],
                 groups: Array(6).fill().map(() => ({ score: 0, checked: false, memo: "", starred: false, members: [], showMembers: false })),
+                groupNames: [],
+                editingGroupIdx: null,
+                editingGroupName: '',
                 groupingList: [], 
                 showGroupingResultModal: false, 
                 stoppedGroups: [], 
@@ -6159,7 +6191,8 @@ userSelectedMode: null,
                 showAnimalRaceCountdown: false, 
                 countdownText: '', 
                 animalRaceResults: [],          
-                animalRaceFinished: false, animalTimeScale: 1.0,     
+                animalRaceFinished: false, animalTimeScale: 1.0,
+                raceCompleted: [],
                 animalRunners: Array(6).fill().map(() => ({ pos: 0, speed: 0, finished: false, state: 'run', timer: 0 })), 
                 groupColors: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#a55eea', '#ff6b81'],
                 animalIcons: ['fa-solid fa-cat', 'fa-solid fa-dog', 'fa-solid fa-hippo', 'fa-solid fa-horse', 'fa-solid fa-frog', 'fa-solid fa-dove'],
@@ -7983,7 +8016,7 @@ async restoreFromBackupFile(event) {
     try {
         const text = await file.text();
         const data = JSON.parse(text);
-        const TOOL_FIELDS = ['savedBoards','savedRoulettes','savedGroupings','groupingList','lotteryPools','lastWinners','lotteryMode','rouletteInput','capsules','tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants'];
+        const TOOL_FIELDS = ['savedBoards','savedRoulettes','savedGroupings','groupingList','lotteryPools','lastWinners','lotteryMode','rouletteInput','capsules','tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','raceCompleted'];
         const SEAT_FIELDS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
         const HISTORY_FIELDS = ['shuffleHistoryByMode','shuffleHistory'];
         const BOARD_FIELDS = ['blackboardContent','paths'];
@@ -8080,7 +8113,7 @@ async scanFirebaseUnused() {
     const KNOWN_SEATS = new Set(['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout']);
     const KNOWN_HISTORY = new Set(['shuffleHistory','shuffleHistoryByMode']);
     const KNOWN_BOARD = new Set(['blackboardContent','paths']);
-    const KNOWN_TOOLS = new Set(['tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','savedRoulettes','rouletteInput','savedGroupings','groupingList','savedBoards','capsules','lotteryPools','lastWinners','lotteryMode']);
+    const KNOWN_TOOLS = new Set(['tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','savedRoulettes','rouletteInput','savedGroupings','groupingList','savedBoards','capsules','lotteryPools','lastWinners','lotteryMode','groupNames','raceCompleted']);
     try {
         const [mainSnap, seatsSnap, boardSnap, toolsSnap, historySnap] = await Promise.all([
             get(ref(db, DB_KEY)),
@@ -11326,7 +11359,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     const TOOL_KEYS = ['tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
                         'participantList','deductWinnerCount','rememberParticipants',
                         'savedRoulettes','rouletteInput','savedGroupings','groupingList',
-                        'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode'];
+                        'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode','raceCompleted'];
                     const toolUpdates = {};
                     TOOL_KEYS.forEach(k => {
                         if (updates[k] !== undefined) {
@@ -11503,6 +11536,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (t.lotteryPools !== undefined) this.lotteryPools = t.lotteryPools || { all:[], M:[], F:[] };
                     if (t.lastWinners !== undefined) this.lastWinners = t.lastWinners || { all:null, M:null, F:null };
                     if (t.lotteryMode !== undefined) this.lotteryMode = t.lotteryMode || 'all';
+                    if (t.groupNames !== undefined) this.groupNames = toArr(t.groupNames);
+                    if (t.raceCompleted !== undefined) this.raceCompleted = (Array.isArray(t.raceCompleted) ? t.raceCompleted : []);
                 });
             },
 
@@ -11823,7 +11858,7 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             const _MIGRATE_TOOLS = ['tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
                                 'participantList','deductWinnerCount','rememberParticipants',
                                 'savedRoulettes','rouletteInput','savedGroupings','groupingList',
-                                'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode'];
+                                'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode','raceCompleted'];
                             const _toolNull = {}; let _needToolNull = false;
                             _MIGRATE_TOOLS.forEach(k => {
                                 if (parsed[k] !== undefined && parsed[k] !== null) {
@@ -12344,9 +12379,11 @@ openRankModal() {
     this.isGameRunning = false; 
     if(this.animationId) cancelAnimationFrame(this.animationId);
 
-    this.animalRaceResults = []; 
-    this.animalRaceFinished = false; 
-    this.isAnimalRacing = true; 
+    this.animalRaceResults = [];
+    this.animalRaceFinished = false;
+    this.isAnimalRacing = true;
+    this.raceCompleted = [];
+    this._saveRaceCompletedToFirebase();
     
     // 2. 데이터 안전장치
     if (!this.animalRunners || this.animalRunners.length === 0) {
@@ -12594,7 +12631,7 @@ if(this.allMode) {
     this.saveToLocal(); }
 },
      
-            handleGroupClick(idx) { if(!this.groups[idx].showMembers) { this.applyTool(this.groups[idx], false); this.saveToLocal(); } },
+            handleGroupClick(idx) { if(this.editingGroupIdx === idx) return; if(!this.groups[idx].showMembers) { this.applyTool(this.groups[idx], false); this.saveToLocal(); } },
             resetCurrentScores() {
                 if(confirm("점수를 초기화할까요?")) {
                     if(this.view === 'group') {
@@ -12645,8 +12682,67 @@ if(this.allMode) {
                 if (!target) return;
                 target.starred = !target.starred;
                 // 강조될 땐 '띠링!', 꺼질 땐 '띡!' 소리 피드백
-                this.playSound(target.starred ? 'ding' : 'click', false, 0.4); 
+                this.playSound(target.starred ? 'ding' : 'click', false, 0.4);
                 this.saveToLocal();
+            },
+
+            // ── 모둠 이름 인라인 편집 + 지연 로드 ──
+            groupCustomName(idx) {
+                return ((this.groupNames && this.groupNames[idx]) || '').trim();
+            },
+            toggleRaceComplete(idx) {
+                if (!Array.isArray(this.raceCompleted)) this.raceCompleted = [];
+                while (this.raceCompleted.length <= idx) this.raceCompleted.push(false);
+                this.raceCompleted.splice(idx, 1, !this.raceCompleted[idx]);
+                this.playSound(this.raceCompleted[idx] ? 'ding' : 'click', false, 0.4);
+                this._saveRaceCompletedToFirebase();
+            },
+            _saveRaceCompletedToFirebase() {
+                try {
+                    const arr = (this.raceCompleted || []).slice();
+                    while (arr.length && !arr[arr.length - 1]) arr.pop();
+                    return update(ref(db, DB_KEY + '_tools'), { raceCompleted: arr })
+                        .catch(e => console.warn('[raceCompleted] save 실패', e));
+                } catch(e) { console.warn('[raceCompleted] save 예외', e); }
+            },
+            raceNameFontSize(idx) {
+                const len = (this.groupCustomName(idx) || '').length;
+                if (len <= 5) return '16px';
+                if (len === 6) return '14px';
+                if (len === 7) return '12px';
+                return '11px';
+            },
+            startEditGroupName(idx) {
+                this.editingGroupIdx = idx;
+                this.editingGroupName = ((this.groupNames && this.groupNames[idx]) || '').trim();
+                this.$nextTick(() => {
+                    const r = this.$refs.groupNameInput;
+                    const el = Array.isArray(r) ? r.find(e => e) : r;
+                    if (el) { el.focus(); el.select(); }
+                });
+            },
+            saveGroupName(idx) {
+                if (this.editingGroupIdx !== idx) return;
+                const v = (this.editingGroupName || '').trim().slice(0, 12);
+                if (!Array.isArray(this.groupNames)) this.groupNames = [];
+                while (this.groupNames.length < this.groups.length) this.groupNames.push('');
+                this.groupNames.splice(idx, 1, v);
+                this.editingGroupIdx = null;
+                this._saveGroupNamesToFirebase();
+            },
+            resetAllGroupNames() {
+                if (!confirm('모든 모둠 이름을 초기화할까요?')) return;
+                this.groupNames = [];
+                this._saveGroupNamesToFirebase();
+            },
+            _saveGroupNamesToFirebase() {
+                try {
+                    const arr = (this.groupNames || []).slice();
+                    while (arr.length && !arr[arr.length - 1]) arr.pop();
+                    return update(ref(db, DB_KEY + '_tools'), { groupNames: arr })
+                        .then(() => { console.log('[groupNames] saved', arr); })
+                        .catch(e => { console.warn('[groupNames] save 실패', e); });
+                } catch(e) { console.warn('[groupNames] save 예외', e); }
             },
 
             getModeName(mode) {

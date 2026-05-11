@@ -4829,9 +4829,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <button @click="shuffleCapsules" 
+        <button @click="initCapsulesFromCheckedTab"
+                :disabled="getCheckedStudentsFromCurrentTab().length === 0"
+                class="w-20 h-20 bg-white/10 text-white rounded-2xl transition-all shadow-md flex items-center justify-center border-2 border-white/20 cursor-pointer backdrop-blur-sm active:scale-95 box-border
+                       hover:bg-emerald-500 hover:border-emerald-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
+                :title="'현재 탭(' + (getCurrentTabName() || '-') + ')에서 체크된 학생으로 캡슐 교체'">
+            <i class="fa-solid fa-check text-3xl"></i>
+        </button>
+
+        <button @click="shuffleCapsules"
                 class="w-20 h-20 bg-white/10 text-white rounded-2xl transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm active:scale-90 box-border
-                       hover:bg-red-500 hover:border-red-400 hover:text-white" 
+                       hover:bg-red-500 hover:border-red-400 hover:text-white"
                 title="섞기">
             <i class="fa-solid fa-shuffle text-3xl group-hover:rotate-180 transition-transform duration-500"></i>
         </button>
@@ -4927,11 +4935,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             style="font-family: 'Jua', sans-serif;">
                         모둠
                     </button>
-                    <button @click="ladderPeopleMode = 'custom'" 
-                            :class="ladderPeopleMode === 'custom' ? 'bg-[#8b4513] text-[#facc15] border-[#5e3008]' : 'bg-[#e2c7a5] text-[#5e3008] border-[#8b4513]'" 
+                    <button @click="ladderPeopleMode = 'custom'"
+                            :class="ladderPeopleMode === 'custom' ? 'bg-[#8b4513] text-[#facc15] border-[#5e3008]' : 'bg-[#e2c7a5] text-[#5e3008] border-[#8b4513]'"
                             class="flex-1 h-12 rounded-xl font-black shadow-sm border-4 text-xl flex items-center justify-center transition-none"
                             style="font-family: 'Jua', sans-serif;">
                         직접
+                    </button>
+                    <button @click="ladderPeopleMode = 'checked'"
+                            :class="ladderPeopleMode === 'checked' ? 'bg-[#8b4513] text-[#facc15] border-[#5e3008]' : 'bg-[#e2c7a5] text-[#5e3008] border-[#8b4513]'"
+                            class="flex-1 h-12 rounded-xl font-black shadow-sm border-4 text-xl flex items-center justify-center transition-none"
+                            style="font-family: 'Jua', sans-serif;">
+                        체크
                     </button>
                 </div>
 
@@ -4947,7 +4961,19 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 1모둠부터 6모둠까지<br>자동으로 사다리에 참가합니다.
             </div>
         </div>
-        
+
+        <div v-else-if="ladderPeopleMode === 'checked'" class="flex-1 w-full flex flex-col items-center justify-center text-[#5e3008] font-bold border-4 border-dashed border-[#d4a373] rounded-2xl bg-[#fff8e1] gap-4 p-4">
+            <div class="text-3xl font-black font-game">📋 체크된 학생 자동 참가</div>
+            <div class="text-lg text-[#8b4513] bg-[#e2c7a5] px-6 py-4 rounded-xl font-game shadow-sm text-center leading-snug">
+                현재 탭: <span class="text-[#5e3008]">{{ getCurrentTabName() || '없음' }}</span><br>
+                체크된 학생 <span class="text-[#5e3008]">{{ getCheckedStudentsFromCurrentTab().length }}명</span>이 학생 번호순으로 참가합니다.
+            </div>
+            <div v-if="getCheckedStudentsFromCurrentTab().length > 0"
+                 class="w-full max-h-32 overflow-y-auto custom-scrollbar bg-white rounded-xl border-2 border-[#d4a373] p-3 text-base text-[#5e3008] font-game leading-relaxed">
+                {{ getCheckedStudentsFromCurrentTab().map(s => s.name).join(', ') }}
+            </div>
+        </div>
+
         <div v-else class="flex-1 w-full flex flex-col bg-white rounded-xl border-4 border-[#d4a373] overflow-hidden">
             <div class="flex justify-between items-center p-3 border-b-2 border-[#d4a373] bg-[#fff8e1] shrink-0">
                 <span class="font-black text-[#8b4513] text-lg">{{ ladderSelectionList.length }}명 선택됨</span>
@@ -5108,10 +5134,23 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <i class="fa-solid fa-clipboard-list"></i>
                     </div>
                     <h3 class="text-3xl font-black font-game pointer-events-none">사다리 결과</h3>
+
+                    <div class="mt-3 inline-flex rounded-xl overflow-hidden border-4 border-[#5e3008] shadow-md" @mousedown.stop>
+                        <button @click="ladderResultSort = 'student'"
+                                :class="ladderResultSort === 'student' ? 'bg-[#5e3008] text-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008]'"
+                                class="px-5 py-2 font-black text-base font-game cursor-pointer transition-colors">
+                            <i class="fa-solid fa-user mr-1"></i> 학생순
+                        </button>
+                        <button @click="ladderResultSort = 'result'"
+                                :class="ladderResultSort === 'result' ? 'bg-[#5e3008] text-[#facc15]' : 'bg-[#e2c7a5] text-[#5e3008]'"
+                                class="px-5 py-2 font-black text-base font-game cursor-pointer transition-colors border-l-4 border-[#5e3008]">
+                            <i class="fa-solid fa-trophy mr-1"></i> 결과순
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar bg-[#fdf6e3]">
-                    <div v-for="(item, idx) in ladderFinalList" :key="idx" 
+                    <div v-for="(item, idx) in sortedLadderFinalList" :key="item.rank + '-' + item.name"
                          class="jungle-list-item flex items-center justify-between p-4 rounded-2xl shadow-sm cursor-default">
                         
                         <div class="flex items-center gap-4">
@@ -5912,7 +5951,8 @@ showLotteryFilter: false,
         pickerW: 900,
         pickerH: 700,
         ladderContentMode: 'winner',     
-        ladderPeopleMode: 'all',        
+        ladderPeopleMode: 'all',
+        ladderResultSort: 'result', // 'student' | 'result'
         ladderResults: [],
 ballHideTimeout: null,
         ladderLines: [],
@@ -6285,6 +6325,30 @@ soundSettings: {
             }
         },
 computed: {
+sortedLadderFinalList() {
+    const list = Array.isArray(this.ladderFinalList) ? this.ladderFinalList : [];
+    if (this.ladderResultSort === 'result') {
+        // 직접 모드: 결과 텍스트 가나다 오름차순
+        if (this.ladderContentMode === 'custom') {
+            return [...list].sort((a, b) =>
+                String(a.result).localeCompare(String(b.result), 'ko', { numeric: true })
+                || (a.rank - b.rank)
+            );
+        }
+        // 벌칙 모드: 걸린(isBad) 사람이 먼저 / 그 외: 당첨(non-bad) 먼저
+        const badFirst = this.ladderContentMode === 'penalty';
+        return [...list].sort((a, b) => {
+            if (a.isBad !== b.isBad) {
+                if (badFirst) return a.isBad ? -1 : 1;
+                return a.isBad ? 1 : -1;
+            }
+            return String(a.result).localeCompare(String(b.result), 'ko', { numeric: true })
+                || (a.rank - b.rank);
+        });
+    }
+    // 'student' = 학생 번호(rank) 오름차순
+    return [...list].sort((a, b) => a.rank - b.rank);
+},
 cycleProgressInfo() {
     const modeLabel = this.shuffleMode === 'mixed' ? '이성' : this.shuffleMode === 'same' ? '동성' : '랜덤';
     const modeData = this.shuffleHistoryByMode && this.shuffleHistoryByMode[modeLabel];
@@ -9970,13 +10034,19 @@ generateLadder() {
     let participants = [];
 
     // 1. 인원 설정 로직
+    let keepOrder = false; // true면 가나다 정렬을 건너뛰고 입력 순서 유지
     if (this.ladderPeopleMode === 'custom') {
         if (!this.customLadderNames.trim()) return alert("인원을 입력해주세요.");
         participants = this.customLadderNames.split('\n').map(n => n.trim()).filter(n => n);
-        this.customLadderNames = ''; 
+        this.customLadderNames = '';
     } else if (this.ladderPeopleMode === 'group') {
         // ★ [신규] 모둠 모드일 때 1~6모둠을 자동으로 참가시킵니다.
         participants = ['1모둠', '2모둠', '3모둠', '4모둠', '5모둠', '6모둠'];
+        keepOrder = true;
+    } else if (this.ladderPeopleMode === 'checked') {
+        participants = this.getCheckedStudentsFromCurrentTab().map(s => s.name);
+        if (participants.length === 0) return alert('현재 탭에 체크된 학생이 없습니다.');
+        keepOrder = true; // 학생 번호(자리 순서) 유지
     } else {
         if (this.ladderSelectionList.length === 0) {
              this.ladderSelectionList = this.allStudents.map(s => s.name);
@@ -9988,8 +10058,8 @@ generateLadder() {
         return alert("참가자가 2명 이상이어야 합니다.");
     }
 
-    // [수정] 오름차순 정렬
-    this.ladderStudents = [...participants].sort((a, b) => a.localeCompare(b));
+    // [수정] 오름차순 정렬 (모둠/체크 모드는 입력 순서 유지)
+    this.ladderStudents = keepOrder ? [...participants] : [...participants].sort((a, b) => a.localeCompare(b));
 
     // 2. 결과 설정 로직
     let results = [];
@@ -11109,6 +11179,31 @@ changeZoom(delta) {
     
     this.capsuleRevealedCount = 0;
 },
+
+    // 현재 탭에서 체크된 학생으로 캡슐 교체
+    initCapsulesFromCheckedTab() {
+        const students = this.getCheckedStudentsFromCurrentTab();
+        if (students.length === 0) {
+            alert('현재 탭에 체크된 학생이 없습니다.');
+            return;
+        }
+        // 랜덤 섞기
+        const shuffled = [...students];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const timestamp = Date.now();
+        this.capsules = shuffled.map((student, index) => ({
+            id: `cap_${timestamp}_${index}`,
+            student: { name: student.name, gender: student.gender },
+            revealed: false
+        }));
+        this.capsuleRevealedCount = 0;
+        this.capsuleSwitchState = 'closed';
+        this.playSound('finish', false, 0.5);
+        this.saveToLocal();
+    },
 
     // 개별 캡슐 뒤집기
     toggleCapsule(id) {
@@ -12247,6 +12342,27 @@ getCheckedTabsOrdered(name) {
             if (!b.d.checkOrder) return -1;
             return a.d.checkOrder - b.d.checkOrder;
         });
+},
+getCheckedStudentsFromCurrentTab() {
+    const tab = this.tabData?.[this.currentTabId];
+    if (!tab) return [];
+    const result = [];
+    (this.seats || []).forEach(s => {
+        if (s && s.name && tab[s.name]?.checked) {
+            result.push({ name: s.name, number: s.number, gender: s.gender });
+        }
+    });
+    // 학생 번호 오름차순(번호 없는 학생은 뒤로, 이름 보조 정렬)
+    result.sort((a, b) => {
+        const na = (a.number ?? Infinity), nb = (b.number ?? Infinity);
+        if (na !== nb) return na - nb;
+        return String(a.name).localeCompare(String(b.name), 'ko');
+    });
+    return result;
+},
+getCurrentTabName() {
+    const t = (this.activityTabs || []).find(x => x.id === this.currentTabId);
+    return t ? t.name : '';
 },
 getTotalScore(name) {
     return this.activityTabs.reduce((sum, tab) =>

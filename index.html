@@ -1496,7 +1496,8 @@ span[contenteditable="true"] {
 /* [시계 & 저금통 공통 스타일] */
 .sidebar-widget {
     width: 100%;
-    min-height: 100px;
+    height: 123px;
+    min-height: 123px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1783,6 +1784,49 @@ body .blackboard-editor u { text-decoration: underline !important; }
 .animate-pop-in {
     animation: tournament-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+/* 뽑기 카드 플립 */
+@keyframes snack-bubble-rise {
+    0%   { transform: translateY(0) scale(1);   opacity: 0.7; }
+    80%  { transform: translateY(-52px) scale(1.1); opacity: 0.5; }
+    100% { transform: translateY(-64px) scale(0.5); opacity: 0; }
+}
+.snack-bubble { animation: snack-bubble-rise linear infinite; border-radius: 50%; position: absolute; pointer-events: none; }
+.snack-float-enter-active { animation: snack-float-up 0.9s ease-out forwards; }
+.snack-float-leave-active { position: absolute; opacity: 0; }
+@keyframes snack-float-up {
+    0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    60%  { opacity: 1; transform: translateX(-50%) translateY(-28px) scale(1.08); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-48px) scale(0.9); }
+}
+.snack-stack-enter-active { animation: snack-stack-in 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+.snack-stack-leave-active { transition: all 0.2s ease-in; position: absolute; }
+.snack-stack-leave-to { opacity: 0; transform: scale(0.7); }
+@keyframes snack-stack-in {
+    0%   { opacity: 0; transform: scale(0.4) translateY(12px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.snack-input-card { transition: all 0.15s ease; }
+.snack-input-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(20,184,166,0.25); }
+
+@keyframes heart-reveal-pop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    65%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.heart-reveal-pop { animation: heart-reveal-pop 0.28s cubic-bezier(0.34,1.56,0.64,1) both; }
+.heart-card { perspective: 500px; }
+.heart-card-inner {
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.heart-card-inner.flipped { transform: rotateY(180deg); }
+.heart-card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+.heart-card-back { transform: rotateY(180deg); }
 
 @keyframes tournament-pop {
     0% { opacity: 0; transform: scale(0.5); }
@@ -2871,47 +2915,86 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
-                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
-                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
-                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; showBlackboard = false; showNoiseMeter = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
-                
-               <button @click="openRankModal" class="w-full h-[150px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-4 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col"> 
-                    <h3 class="font-black text-emerald-600 mb-2 text-center text-base shrink-0">🏆 명예의 전당</h3>
-                   <div class="flex flex-row justify-between gap-2 flex-1 w-full relative px-1">
-                        <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 flex flex-col items-center justify-center rank-item-transparent h-full">
-                            <div v-if="s.name !== '?'" class="flex flex-col items-center justify-center gap-1 w-full bg-gradient-to-b from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-2xl shadow-sm py-2 px-1 text-slate-800 transition-all">
-                                <span class="text-3xl drop-shadow-sm leading-none">
-                                    <span v-if="s.displayRank === 1">🥇</span>
-                                    <span v-else-if="s.displayRank === 2">🥈</span>
-                                    <span v-else-if="s.displayRank === 3">🥉</span>
-                                </span>
-                                <span class="font-black text-sm truncate w-full text-center">{{ s.name }}</span>
-                            </div>
-                            
-                            <div v-else class="flex flex-col items-center justify-center gap-1 w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-2 px-1 text-slate-400 opacity-60">
-                                <span class="text-3xl opacity-50 leading-none">🏅</span>
-                                <span class="font-black text-sm truncate w-full text-center">?</span>
+                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
+                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
+                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
+
+                <!-- 명예의 전당 (설정에서 표시 여부 조정) — 미션 상단 -->
+                <div v-if="showHallOfFame" class="shrink-0">
+                    <button @click="openRankModal" class="w-full h-[123px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-3 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col">
+                        <h3 class="font-black text-emerald-600 mb-1.5 text-center text-sm shrink-0">🏆 명예의 전당</h3>
+                        <div class="flex flex-row justify-between gap-2 flex-1 w-full relative px-1">
+                            <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 flex flex-col items-center justify-center rank-item-transparent h-full">
+                                <div v-if="s.name !== '?'" class="flex flex-col items-center justify-center gap-1 w-full bg-gradient-to-b from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-2xl shadow-sm py-1.5 px-1 text-slate-800 transition-all">
+                                    <span class="text-2xl drop-shadow-sm leading-none">
+                                        <span v-if="s.displayRank === 1">🥇</span>
+                                        <span v-else-if="s.displayRank === 2">🥈</span>
+                                        <span v-else-if="s.displayRank === 3">🥉</span>
+                                    </span>
+                                    <span class="font-black text-xs truncate w-full text-center">{{ s.name }}</span>
+                                </div>
+                                <div v-else class="flex flex-col items-center justify-center gap-1 w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-1.5 px-1 text-slate-400 opacity-60">
+                                    <span class="text-2xl opacity-50 leading-none">🏅</span>
+                                    <span class="font-black text-xs truncate w-full text-center">?</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                                    </button>
+                    </button>
+                </div>
 
-                <!-- 우리 반 도전 미션 -->
-                <div class="w-full bg-blue-50 border-4 border-blue-200 rounded-[2rem] cursor-default" style="padding: 0.6rem 0.85rem;">
-                    <div class="w-full flex items-center justify-center mb-3">
-                        <h3 @click.stop="openAddMissionModal" class="font-black text-blue-600 text-base flex items-center gap-1.5 cursor-pointer hover:text-blue-800 active:scale-95 transition-all select-none" title="클릭: 미션 추가">🚀 우리 반 미션</h3>
-                    </div>
-                    <div v-for="(m, idx) in missions" :key="m.id" class="mission-card group">
-                        <span @click.stop="openEditMissionModal(idx)" class="font-black text-blue-600 text-xs flex-1 min-w-0 leading-tight cursor-pointer hover:text-blue-800 transition-colors" :title="m.name + ' (클릭: 수정)'">
-                            {{ m.name }}<span class="font-bold ml-1 text-blue-500" style="font-size:0.65rem;">({{ getMissionDayText(m) }})</span>
-                        </span>
-                        <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <template v-if="m.type === 'count'">
-                                <button @click.stop="adjustMissionDay(idx, -1)" class="w-6 h-6 rounded-lg bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black leading-none text-sm" title="-1일">−</button>
-                                <button @click.stop="adjustMissionDay(idx, 1)" class="w-6 h-6 rounded-lg bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black leading-none text-sm" title="+1일">+</button>
-                            </template>
-                            <button @click.stop="resetMission(idx)" class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center font-black leading-none" title="초기화" style="font-size:14px;">↺</button>
-                            <button @click.stop="removeMission(idx)" class="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs" title="삭제"><i class="fa-solid fa-xmark"></i></button>
+                <!-- 우리반 간식 창고 -->
+                <div class="sidebar-widget mt-0 relative overflow-hidden transition-all duration-700 cursor-pointer"
+                     :style="snackBankFullSidebar ? 'background:linear-gradient(160deg,#fff1f2,#fecdd3);' : 'background:linear-gradient(160deg,#f0f9ff,#e0f2fe);'"
+                     :class="snackBankFullSidebar ? 'border-red-300 hover:border-red-400 shadow-[0_0_16px_4px_rgba(239,68,68,0.25)]' : 'border-sky-200 hover:border-sky-300'"
+                     @click="ensureSnackSubscribed && ensureSnackSubscribed(); showSnackBankListModal = true">
+
+                    <!-- 항아리 + 텍스트 가로 배치 -->
+                    <div class="relative z-10 w-full flex items-center gap-3">
+                        <!-- 항아리 SVG (내부만 차오름) — 뽑기 진행 중이면 뽑기창, 아니면 랭킹창 -->
+                        <div class="shrink-0 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+                             style="width:82px;height:94px;"
+                             @click.stop="ensureSnackSubscribed && ensureSnackSubscribed(); snackDrawList && snackDrawList.length > 0 ? showSnackDrawModal = true : (snackBankFull ? drawSnack() : showSnackDrawModal = true)">
+                            <svg viewBox="0 0 90 100" width="82" height="94" style="overflow:visible;">
+                                <defs>
+                                    <clipPath id="jarClipMd">
+                                        <path d="M22 28 Q18 32 16 42 Q13 58 14 72 Q15 86 45 88 Q75 86 76 72 Q77 58 74 42 Q72 32 68 28 Z"/>
+                                    </clipPath>
+                                </defs>
+                                <!-- 채움: clip-path로 항아리 내부에만 -->
+                                <rect x="10"
+                                      :y="100 - (100 * Math.min(1, snackBankCount / Math.max(1, allStudents.length)))"
+                                      width="70" height="100"
+                                      clip-path="url(#jarClipMd)"
+                                      style="transition: y 0.7s ease-out, fill 0.7s;"
+                                      :fill="snackJarFillColor"/>
+                                <!-- 항아리 몸체 -->
+                                <path d="M22 28 Q18 32 16 42 Q13 58 14 72 Q15 86 45 88 Q75 86 76 72 Q77 58 74 42 Q72 32 68 28 Z"
+                                      fill="none" :stroke="snackJarStrokeColor" stroke-width="3.5" stroke-linejoin="round"/>
+                                <rect x="20" y="22" width="50" height="10" rx="5"
+                                      fill="none" :stroke="snackJarStrokeColor" stroke-width="3"/>
+                                <rect x="26" y="12" width="38" height="12" rx="6"
+                                      :fill="snackBankFullSidebar ? '#fca5a5' : (snackBankCount > 0 ? '#bfdbfe' : '#f1f5f9')"
+                                      :stroke="snackJarStrokeColor" stroke-width="2.5"/>
+                                <text x="45" y="64" text-anchor="middle" dominant-baseline="middle"
+                                      fill="white"
+                                      style="font-size:13px; font-weight:900; font-family:inherit; paint-order:stroke; stroke:rgba(0,0,0,0.25); stroke-width:3px; stroke-linejoin:round;">
+                                    {{ snackBankCount }}/{{ allStudents.length }}
+                                </text>
+                            </svg>
+                        </div>
+                        <!-- 텍스트 -->
+                        <div class="flex-1 flex flex-col items-start gap-0.5">
+                            <h3 class="font-black text-base flex items-center gap-1.5 transition-colors duration-700"
+                                :class="snackBankFullSidebar ? 'text-red-500' : 'text-blue-500'">
+                                <span class="text-xl">🍭</span> 간식 창고
+                            </h3>
+                            <div class="text-center transition-colors duration-700 truncate w-full"
+                                 :class="snackBankFullSidebar ? 'text-red-400' : 'text-blue-400'">
+                                <template v-if="snackContributorDisplay.name">
+                                    <span class="font-black text-base">{{ snackContributorDisplay.name }}</span><span class="font-bold text-xs">{{ snackContributorDisplay.particle }} 쏜다!</span>
+                                </template>
+                                <span v-else class="text-sm font-black opacity-50">??가 쏜다!</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3034,6 +3117,342 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
                 
                 <button @click="showTimeBankHistoryModal = false" class="mt-6 w-full py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-slate-700 transition-all">닫기</button>
+            </div>
+        </div>
+
+        <!-- 간식 저금통: 통 내용 + 랭킹 -->
+        <div v-if="showSnackBankListModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackBankList()">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl border-8 border-blue-300 animate-pop-in flex flex-col gap-3"
+                 style="width:min(88vw,88vh); height:min(88vw,88vh); max-width:500px; max-height:500px; padding:clamp(14px,2.5vw,24px); overflow:hidden;">
+                <div class="flex items-center justify-between shrink-0">
+                    <h3 class="text-2xl font-black text-blue-500 flex items-center gap-2">🍭 간식 창고 랭킹</h3>
+                    <div class="flex items-center gap-2">
+                        <button @click="showSnackResetConfirm = true"
+                                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-amber-100 flex items-center justify-center text-slate-400 hover:text-amber-600 transition-colors"
+                                title="초기화">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                        </button>
+                        <button @click="closeSnackBankList()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 font-black">✕</button>
+                    </div>
+                </div>
+                <div class="overflow-y-auto custom-scrollbar flex-1 min-h-0">
+                    <div v-if="snackRanking.length === 0" class="h-full flex items-center justify-center text-slate-300 font-black">기록 없음</div>
+                    <template v-else>
+                        <!-- 기부 1개 이상인 학생 중 상위 3명 큰 카드 -->
+                        <div class="grid gap-2 mb-3" style="grid-template-columns: repeat(3, 1fr);">
+                            <div v-for="(r, pos) in snackRanking.filter(r => r.count > 0).slice(0, 3)" :key="'top'+pos"
+                                 class="flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-2xl border-2 text-center"
+                                 :class="r.rank === 1 ? 'border-yellow-400' : r.rank === 2 ? 'border-blue-300' : 'border-amber-400'"
+                                 :style="r.rank === 1 ? 'background:linear-gradient(135deg,#fef9c3,#fde68a);' : r.rank === 2 ? 'background:linear-gradient(135deg,#dbeafe,#bfdbfe);' : 'background:linear-gradient(135deg,#ffedd5,#fed7aa);'">
+                                <span class="text-2xl leading-none">
+                                    <span v-if="r.rank === 1">🥇</span><span v-else-if="r.rank === 2">🥈</span><span v-else>🥉</span>
+                                </span>
+                                <span class="font-black text-slate-800 text-sm truncate w-full">{{ r.name }}</span>
+                                <span class="font-black text-teal-600 text-xs">🍭{{ r.count }}</span>
+                            </div>
+                            <!-- 3명 미만이면 빈 자리 채우기 -->
+                            <div v-for="p in Math.max(0, 3 - snackRanking.length)" :key="'empty'+p"
+                                 class="rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-2xl py-3">—</div>
+                        </div>
+                        <!-- 기부 1개 이상 중 4번째 이후: 리스트 -->
+                        <div class="flex flex-col gap-1">
+                            <div v-for="r in snackRanking.filter(r => r.count > 0).slice(3)" :key="r.name"
+                                 class="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white border border-slate-200">
+                                <span class="text-xs font-black text-slate-400 w-6 text-center shrink-0">{{ r.rank }}</span>
+                                <span class="font-black text-slate-700 flex-1 truncate text-sm">{{ r.name }}</span>
+                                <span class="font-black text-teal-600 text-xs shrink-0">🍭{{ r.count }}</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <button @click="openSnackInput" class="w-full py-2.5 bg-blue-400 hover:bg-blue-500 text-white font-black rounded-2xl shrink-0">간식 넣기</button>
+            </div>
+        </div>
+
+        <!-- 간식 창고 초기화 확인 모달 -->
+        <div v-if="showSnackResetConfirm" class="fixed inset-0 bg-black/60 z-[110006] flex items-center justify-center backdrop-blur-sm" @click.self="showSnackResetConfirm = false">
+            <div class="bg-white rounded-[2rem] shadow-2xl border-4 border-amber-300 animate-pop-in flex flex-col items-center gap-5 p-8"
+                 style="width:min(90vw,360px);">
+                <div class="text-5xl">🔄</div>
+                <div class="text-center">
+                    <div class="text-xl font-black text-slate-800 mb-1">간식 창고를 초기화할까요?</div>
+                    <div class="text-sm text-slate-500 font-bold">창고의 간식과 뽑기 기록이 모두 삭제됩니다.</div>
+                </div>
+                <div class="flex gap-3 w-full">
+                    <button @click="showSnackResetConfirm = false"
+                            class="flex-1 py-3 rounded-2xl font-black bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-95">
+                        취소
+                    </button>
+                    <button @click="snackBank=[]; snackBankHistory=[]; snackDrawList=[]; revealedMap={}; snackDrawIdx=0; _snackBankBackup=null; showSnackResetConfirm=false; if(saveToLocal) saveToLocal(); if(saveToFirebase) saveToFirebase();"
+                            class="flex-1 py-3 rounded-2xl font-black text-white transition-all active:scale-95"
+                            style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+                        초기화
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 간식 넣기 모달 (리디자인) -->
+        <div v-if="showSnackInputModal" class="fixed inset-0 bg-black/60 z-[110001] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackInput()">
+            <div class="rounded-[2.5rem] p-6 w-[940px] max-w-[96vw] shadow-2xl border-4 border-teal-200 animate-pop-in flex flex-col gap-4"
+                 style="background:linear-gradient(135deg,#f0fdfa 0%,#ecfdf5 45%,#f0f9ff 100%); height:min(90vh,680px); overflow:hidden;">
+
+                <!-- 헤더 -->
+                <div class="flex items-center gap-3">
+                    <div class="text-3xl">🍭</div>
+                    <h3 class="text-2xl font-black text-teal-700 flex-1">간식 넣기</h3>
+                    <button @click="showSnackTypeManageModal = true" title="간식 종류 관리"
+                            class="w-10 h-10 rounded-full bg-white/80 hover:bg-teal-100 font-black text-xl active:scale-90 border border-teal-200 shadow-sm flex items-center justify-center">⚙️</button>
+                </div>
+
+                <!-- 본문: 좌(학생) + 우(간식+현황) -->
+                <div class="flex gap-5 flex-1 min-h-0">
+
+                    <!-- ── 좌측: 학생 선택 ── -->
+                    <div class="flex flex-col gap-2 flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-teal-700 text-sm">① 학생 선택</span>
+                            <div class="flex gap-1">
+                                <button @click="snackSelectedStudents = allStudents.map(s=>s.name)"
+                                        class="px-2 py-0.5 bg-teal-100 hover:bg-teal-200 rounded-lg text-[11px] font-black text-teal-700">전체</button>
+                                <button @click="snackSelectedStudents = []"
+                                        class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] font-black text-slate-500">해제</button>
+                            </div>
+                        </div>
+
+                        <!-- 학생 그리드 -->
+                        <div class="grid gap-0.5 overflow-y-auto custom-scrollbar flex-1 pr-0.5"
+                             style="grid-template-columns:repeat(4,1fr); max-height:calc(90vh - 260px);">
+                            <button v-for="s in sortedStudentsByNumber" :key="s.name"
+                                    @click="toggleSnackStudent(s.name, $event)"
+                                    @contextmenu.prevent="toggleSnackStudent(s.name, $event, true)"
+                                    class="relative flex items-center justify-center rounded-xl font-black text-sm transition-all active:scale-90 border-2 select-none overflow-hidden"
+                                    style="min-height:48px;"
+                                    :class="snackSelectedStudents.includes(s.name)
+                                        ? 'bg-teal-500 text-white border-teal-400 shadow-md'
+                                        : 'bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50'">
+                                <span v-if="snackSelectedStudents.includes(s.name)"
+                                      class="absolute top-0.5 right-1 text-[9px] text-teal-200 font-black">✓</span>
+                                {{ s.name }}
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ── 우측: 간식 + 쌓이는 현황 ── -->
+                    <div class="flex flex-col gap-3 flex-1 min-w-0">
+                        <span class="font-black text-teal-700 text-sm">② 간식 선택</span>
+
+                        <!-- 간식 카드 -->
+                        <div class="grid gap-2" style="grid-template-columns:repeat(4,1fr);">
+                            <button v-for="sn in snackTypes" :key="sn.name"
+                                    @click="clickSnackType(sn, $event)"
+                                    @contextmenu.prevent="clickSnackType(sn, $event, true)"
+                                    class="snack-input-card py-2.5 px-1 rounded-xl font-black text-sm transition-all active:scale-95 cursor-pointer border-2 bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50"
+                                    style="min-height:48px;">
+                                <span class="truncate w-full block text-center">{{ sn.name }}</span>
+                            </button>
+                        </div>
+
+                        <!-- 📦 쌓이는 간식 현황 -->
+                        <div class="rounded-2xl border-2 border-dashed border-teal-200 p-3 flex flex-col overflow-hidden"
+                             style="background:rgba(255,255,255,0.45); flex:1 1 0; min-height:0;">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-[11px] font-black text-teal-500">📦 간식 창고</span>
+                                <span v-if="snackSessionItems.length > 0"
+                                      class="bg-teal-100 text-teal-600 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                                    {{ snackSessionItems.length }}
+                                </span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto custom-scrollbar">
+                                <transition-group v-if="snackSessionItems.length > 0"
+                                                  name="snack-stack" tag="div"
+                                                  class="flex flex-wrap gap-1.5 content-start">
+                                    <div v-for="fi in snackSessionItems" :key="fi.id"
+                                         class="flex items-center gap-1 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+                                         style="background:linear-gradient(90deg,#0d9488,#14b8a6);">
+                                        <span class="text-teal-100">{{ fi.student }}</span>
+                                        <span class="text-white/80 mx-0.5">·</span>
+                                        <span>{{ fi.snack }}</span>
+                                    </div>
+                                </transition-group>
+                                <div v-else class="h-full flex items-center justify-center">
+                                    <span class="text-[11px] text-slate-300 font-bold">간식을 클릭하면 여기에 쌓여요 🍡</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 하단: 창고 진행바 + 닫기 -->
+                <div class="flex items-center gap-3 pt-1">
+                    <div class="flex-1 bg-white/80 rounded-2xl px-4 py-2.5 border border-teal-100 flex items-center gap-3">
+                        <span class="text-xs font-black text-slate-500 shrink-0">현재 창고</span>
+                        <div class="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500"
+                                 :style="{width: Math.min(100, snackBankCount / Math.max(1, allStudents.length) * 100) + '%',
+                                          background: snackBankFull ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#2dd4bf,#14b8a6)'}">
+                            </div>
+                        </div>
+                        <span class="text-xs font-black shrink-0" :class="snackBankFull ? 'text-red-500' : 'text-teal-600'">
+                            {{ snackBank.length }}/{{ allStudents.length }}
+                        </span>
+                    </div>
+                    <button @click="closeSnackInput()"
+                            class="px-7 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl text-sm active:scale-95 transition-all shrink-0">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 간식 종류 관리 -->
+        <div v-if="showSnackTypeManageModal" class="fixed inset-0 bg-black/60 z-[110002] flex items-center justify-center backdrop-blur-sm" @click.self="showSnackTypeManageModal = false">
+            <div class="bg-white rounded-[2.5rem] p-6 w-[480px] max-w-[95vw] shadow-2xl border-8 border-amber-400 animate-pop-in flex flex-col gap-4">
+                <h3 class="text-2xl font-black text-center text-amber-600">⚙️ 간식 종류 관리</h3>
+
+                <div class="max-h-[45vh] overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
+                    <div v-for="(t, idx) in snackTypes" :key="idx"
+                         class="flex items-center gap-3 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                        <!-- 일반 표시: 클릭 시 수정 모드 -->
+                        <span v-if="snackEditIdx !== idx"
+                              @click="startEditSnackType(idx)"
+                              class="flex-1 font-black text-slate-700 cursor-pointer hover:text-teal-600 transition-colors"
+                              title="클릭해서 수정">{{ t.name }}</span>
+                        <!-- 수정 모드 -->
+                        <input v-else
+                               v-model="snackEditName"
+                               @blur="saveSnackTypeEdit(idx)"
+                               @keydown.enter="saveSnackTypeEdit(idx)"
+                               @keydown.esc="snackEditIdx = -1"
+                               class="flex-1 font-black text-slate-700 bg-white border-2 border-teal-400 rounded-xl px-2 py-0.5 outline-none"
+                               autofocus>
+                        <button @click="removeSnackType(idx)" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 hover:text-white text-red-500 font-black active:scale-90">✕</button>
+                    </div>
+                    <div v-if="snackTypes.length === 0" class="py-10 text-center text-slate-300 font-black">등록된 간식이 없어요</div>
+                </div>
+
+                <div class="border-t-2 border-amber-100 pt-3 flex flex-col gap-2">
+                    <h4 class="text-sm font-black text-amber-700">➕ 새 간식 추가</h4>
+                    <div class="flex gap-2">
+                        <input v-model="snackNewName" type="text" maxlength="10" placeholder="간식 이름" @keydown.enter="addSnackType"
+                               class="flex-1 p-3 bg-slate-100 rounded-2xl text-base font-bold outline-none border-none">
+                        <button @click="addSnackType" class="px-4 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl active:scale-95">추가</button>
+                    </div>
+                    <p class="text-xs text-slate-400 font-bold">* 추가 후 이름을 클릭하면 수정 가능</p>
+                </div>
+
+                <button @click="showSnackTypeManageModal = false" class="w-full py-3 bg-slate-800 text-white font-black rounded-2xl">닫기</button>
+            </div>
+        </div>
+
+        <!-- 하트 뽑기판 (내 마음을 뽑아봐! 스타일) -->
+        <div v-if="showSnackDrawModal" class="fixed inset-0 z-[110003] flex flex-col"
+             style="background: linear-gradient(160deg, #fff0f6 0%, #ffe4ef 60%, #ffd6e8 100%);"
+             @click.self="snackDrawIdx >= snackDrawList.length && closeSnackDraw()">
+            <div class="animate-pop-in flex flex-col gap-4 p-6 w-full h-full relative overflow-auto">
+
+                <!-- 우측 상단 닫기 (투명 배경) -->
+                <button @click="closeSnackDraw"
+                        class="absolute top-4 right-6 z-20 text-pink-400 hover:text-pink-600 font-black text-4xl leading-none transition-colors active:scale-90"
+                        style="background:transparent;" title="닫기">×</button>
+
+                <!-- 하트 장식 배경 -->
+                <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                    <span style="position:absolute;top:6px;left:12px;font-size:22px;opacity:0.18;">💗</span>
+                    <span style="position:absolute;top:18px;right:20px;font-size:16px;opacity:0.15;">💕</span>
+                    <span style="position:absolute;bottom:60px;left:8px;font-size:18px;opacity:0.13;">🩷</span>
+                    <span style="position:absolute;bottom:40px;right:14px;font-size:14px;opacity:0.15;">💖</span>
+                    <span style="position:absolute;top:50%;left:4px;font-size:12px;opacity:0.12;">✨</span>
+                    <span style="position:absolute;top:40%;right:6px;font-size:12px;opacity:0.12;">✨</span>
+                </div>
+
+                <!-- 제목 -->
+                <div class="relative z-10 text-center mt-1">
+                    <div class="inline-block"
+                         style="font-family:'Dongle',sans-serif; font-weight:900; font-size:5.5rem; line-height:1; color:#e91e8c; text-shadow: 2px 2px 0 #fff, 4px 4px 0 #ffb3d9; letter-spacing:0.02em;">
+                        간식 창고 OPEN!
+                    </div>
+                </div>
+
+                <!-- 뽑기 내용이 없을 때 empty state -->
+                <div v-if="!snackDrawList || snackDrawList.length === 0"
+                     class="relative z-10 flex-1 flex flex-col items-center justify-center gap-4 text-pink-400">
+                    <div class="text-7xl opacity-40">🍭</div>
+                    <div class="font-black text-xl">간식이 부족해요</div>
+                    <div class="text-sm opacity-70 font-black">{{ snackBank.length }} / {{ allStudents.length }}개 모임 — {{ allStudents.length - snackBank.length }}개 더 필요해요</div>
+                    <button @click="closeSnackDraw"
+                            class="mt-2 px-8 py-2 font-black rounded-2xl text-white shadow-md active:scale-95 text-sm"
+                            style="background:linear-gradient(135deg,#f9a8d4,#ec4899);">닫기</button>
+                </div>
+
+                <!-- 뽑기 순서: 한 줄 정사각형 -->
+                <div v-if="snackDrawList && snackDrawList.length > 0" class="relative z-10 pb-2 px-1">
+                    <div class="grid gap-1" :style="'grid-template-columns: repeat('+snackDrawList.length+', minmax(0, 1fr))'">
+                        <div v-for="(item, qIdx) in snackDrawList" :key="'q'+qIdx"
+                             class="rounded-xl shadow border-2 transition-all relative flex flex-col items-center justify-center gap-1.5 py-2"
+                             :class="qIdx < snackDrawIdx ? 'border-slate-300 bg-slate-100 opacity-40' : 'border-pink-300'"
+                             :style="qIdx < snackDrawIdx ? '' : 'background:linear-gradient(135deg,#fce7f3,#fbcfe8);'"
+                             style="aspect-ratio:1/1;">
+                            <!-- 순위: 진분홍 숫자 -->
+                            <span class="font-black leading-none shrink-0 text-pink-500"
+                                  style="font-size:clamp(8px,1.2vw,14px);">{{ qIdx+1 }}</span>
+                            <!-- 이름 -->
+                            <span class="font-black leading-none truncate w-full text-center text-pink-900" style="font-size:clamp(7px,1.1vw,13px); padding:0 8%;" :class="qIdx < snackDrawIdx ? 'opacity-40' : ''">{{ item.student }}</span>
+                            <!-- 기부 개수: 0이면 공간만 확보 -->
+                            <span class="font-black leading-none text-pink-400"
+                                  style="font-size:clamp(6px,0.85vw,10px); min-height:1em;">
+                                <template v-if="snackContribByStudent[item.student]">🍭 {{ snackContribByStudent[item.student] }}</template>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 큰 하트 그리드 -->
+                <div v-if="snackDrawList && snackDrawList.length > 0" class="relative z-10 flex-1 rounded-3xl p-6 shadow-inner border-4 border-pink-200 overflow-auto" style="background:rgba(255,255,255,0.55);">
+                    <div class="grid gap-4 justify-items-center" style="grid-template-columns: repeat(9, 1fr);">
+                        <div v-for="(item, idx) in snackDrawList" :key="idx"
+                             @click="revealCell(idx)"
+                             class="relative w-full heart-card"
+                             :class="!revealedMap[idx] ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : 'cursor-default'"
+                             style="aspect-ratio:1/1;">
+                            <div class="heart-card-inner" :class="revealedMap[idx] ? 'flipped' : ''">
+                                <!-- 앞면: 분홍 하트 -->
+                                <div class="heart-card-face" style="pointer-events:none;">
+                                    <svg viewBox="0 0 60 56" class="absolute inset-0 w-full h-full">
+                                        <path d="M30 50 C30 50 5 35 5 18 C5 9 12 4 20 4 C25 4 29 7 30 10 C31 7 35 4 40 4 C48 4 55 9 55 18 C55 35 30 50 30 50Z"
+                                              fill="#f472b6" stroke="#ec4899" stroke-width="2"/>
+                                    </svg>
+                                    <span class="absolute inset-0 flex items-center justify-center text-white text-2xl font-black"
+                                          style="text-shadow:0 1px 3px rgba(190,24,93,0.8);">♥</span>
+                                </div>
+                                <!-- 뒷면: 결과 -->
+                                <div class="heart-card-face heart-card-back" style="pointer-events:none;">
+                                    <svg viewBox="0 0 60 56" class="absolute inset-0 w-full h-full">
+                                        <path d="M30 50 C30 50 5 35 5 18 C5 9 12 4 20 4 C25 4 29 7 30 10 C31 7 35 4 40 4 C48 4 55 9 55 18 C55 35 30 50 30 50Z"
+                                              fill="#fce7f3" stroke="#f9a8d4" stroke-width="2"/>
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center px-1 font-black text-center" style="margin-top:-4px;">
+                                        <div class="text-pink-700 leading-tight truncate w-full" style="font-size:clamp(11px,2vw,18px);">{{ snackRevealTitle(item.student) }}</div>
+                                        <div class="text-pink-500 leading-tight truncate w-full" style="font-size:clamp(10px,1.6vw,15px);">{{ item.snack }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 완료 버튼 -->
+                <div v-if="snackDrawList && snackDrawList.length > 0 && snackDrawIdx >= snackDrawList.length" class="relative z-10 flex">
+                    <button @click="completeSnackDraw"
+                            class="flex-1 py-3 font-black rounded-2xl text-lg shadow-md active:scale-95 text-white"
+                            style="background:linear-gradient(135deg,#34d399,#10b981);">
+                        완료
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -3270,7 +3689,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </div>
                 </div>
             </div>
-  
+
+
          </div>
 
             <!-- ★ 상단 인덱스 탭 패널 (floor 위에 부착) -->
@@ -3968,7 +4388,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     <!-- 설정 패널 -->
     <div v-if="dashboardShowSettings" class="flex-shrink-0 bg-[#fffdf0] border-b-4 border-[#e7d5b1] px-4 py-3 overflow-y-auto dash-scroll" style="max-height:55vh;">
         <div class="flex gap-1.5 mb-3 flex-wrap items-center">
-            <button v-for="t in [{k:'info',l:'기본 정보'},{k:'timetable',l:'시간표'},{k:'links',l:'단축링크'},{k:'plans',l:'교육활동'}]" :key="t.k"
+            <button v-for="t in [{k:'info',l:'기본 정보'},{k:'timetable',l:'시간표'},{k:'plans',l:'교육활동'}]" :key="t.k"
                     @click="dashboardSettingsTab = t.k; if(t.k==='info') openStudentTab()"
                     class="px-2 py-1 rounded-xl font-black text-xs border-b-4 transition-all"
                     :class="dashboardSettingsTab===t.k ? 'bg-[#5d4037] text-white border-[#3e2723]' : 'bg-white text-[#5d4037] border-[#e7d5b1]'">
@@ -4266,7 +4686,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <!-- 날씨 (상단) -->
                 <div class="flex-shrink-0 bg-[#fdf8ef] border-b border-[#e7d5b1] px-3 py-2 cursor-pointer hover:bg-[#fff3e0] transition-colors"
                      @click="openUrl('https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EB%82%A0%EC%94%A8&ackey=g95jjj0g')">
-                    <div v-if="dashboardWeather && !dashboardWeather.error" class="flex items-center justify-center flex-wrap gap-3 text-sm font-bold text-[#5d4037]">
+                    <div v-if="dashboardWeather && !dashboardWeather.error" class="relative flex items-center justify-center flex-wrap gap-3 text-sm font-bold text-[#5d4037]">
                         <span class="text-2xl">{{ dashboardWeather.icon }}</span>
                         <span class="flex items-baseline gap-1">
                             <span class="text-[#8d6e63] text-xs">{{ dashboardWeather.minTemp }}°C ~</span>
@@ -4279,6 +4699,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <span class="text-[#c8bdb0]">|</span>
                             <span class="font-black text-xs" :style="{color: dashboardWeather.pm25Level.color}">초미세 {{ dashboardWeather.pm25Level.label }}</span>
                         </span>
+                        <button @click.stop="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'info'; openStudentTab()"
+                                class="absolute right-0 top-1/2 -translate-y-1/2 text-xl font-black text-[#a1887f] hover:text-[#5d4037] transition-colors px-2 py-1 rounded-lg hover:bg-[#f5e6d0]"
+                                title="설정">⚙</button>
                     </div>
                     <div v-else-if="!dashboardSettings.lat" class="text-xs text-[#a1887f] font-bold text-center">⚙️ 위도/경도를 설정하면 날씨가 표시됩니다</div>
                     <div v-else class="text-xs text-[#a1887f] font-bold text-center">날씨 불러오는 중...</div>
@@ -4331,19 +4754,34 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </div>
 
-            <!-- 단축링크 카드 (20%) -->
+            <!-- 우리반 미션 카드 -->
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm px-3 py-2 overflow-hidden flex flex-col min-h-0" style="flex:2;">
-                <div class="text-xl font-black text-[#8d6e63] mb-2 flex-shrink-0 cursor-pointer hover:text-[#5d4037] transition-colors select-none"
-                     @click="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'info'; openStudentTab()">⚙ 설정</div>
-                <div class="flex-1 overflow-y-auto dash-scroll min-h-0">
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <button v-for="link in dashboardSettings.quickLinks" :key="link.url"
-                                @click="openUrl(link.url)"
-                                class="px-2 py-2 rounded-xl font-black text-base bg-[#fdf8ef] border border-[#e7d5b1] text-[#5d4037] hover:bg-[#fff3e0] hover:border-[#ffb74d] transition-all text-center truncate">
-                            {{ link.name }}
-                        </button>
-                        <div v-if="dashboardSettings.quickLinks.length === 0" class="col-span-2 text-center text-[#a1887f] text-base font-bold py-1">⚙️ 설정에서 링크를 추가해 주세요</div>
+                <div class="text-xl font-black text-[#5d4037] mb-2 flex-shrink-0 flex items-center justify-between">
+                    <span class="cursor-pointer hover:text-blue-600 transition-colors select-none" @click="openAddMissionModal">🚀 우리반 미션</span>
+                </div>
+                <div class="flex-1 overflow-y-auto dash-scroll min-h-0 flex flex-col gap-1">
+                    <div v-for="(m, idx) in missions" :key="m.id"
+                         draggable="true"
+                         @dragstart="missionDragStart(idx, $event)"
+                         @dragover.prevent="missionDragOver(idx)"
+                         @drop.prevent="missionDrop(idx)"
+                         @dragend="missionDragIdx = null"
+                         class="flex items-center gap-1 px-2 py-1.5 rounded-xl border border-[#e7d5b1] bg-[#fdf8ef] group transition-opacity"
+                         :class="missionDragIdx === idx ? 'opacity-40' : ''">
+                        <span @click="openEditMissionModal(idx)"
+                              class="font-black text-[#5d4037] text-xl flex-1 min-w-0 leading-tight cursor-pointer hover:text-blue-700 transition-colors truncate">
+                            {{ m.name }}<span class="font-bold ml-1 text-[#a1887f]" style="font-size:0.9rem;">({{ getMissionDayText(m) }})</span>
+                        </span>
+                        <div class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <template v-if="m.type === 'count'">
+                                <button @click.stop="adjustMissionDay(idx, -1)" class="w-5 h-5 rounded bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black text-xs">−</button>
+                                <button @click.stop="adjustMissionDay(idx, 1)"  class="w-5 h-5 rounded bg-blue-50 text-blue-400 hover:bg-blue-400 hover:text-white transition-all flex items-center justify-center font-black text-xs">+</button>
+                            </template>
+                            <button @click.stop="resetMission(idx)"  class="w-5 h-5 rounded bg-blue-100 text-blue-600 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center font-black" style="font-size:12px;">↺</button>
+                            <button @click.stop="removeMission(idx)" class="w-5 h-5 rounded bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
                     </div>
+                    <div v-if="missions.length === 0" class="text-center text-[#a1887f] font-bold text-sm py-3">🚀 클릭해서 미션을 추가해 보세요</div>
                 </div>
             </div>
         </div>
@@ -4407,7 +4845,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
            </div>
            <button v-if="isMaximized" @mousedown.prevent="isMaximized = false" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="창 모드로 복원"><i class="fa-solid fa-window-restore"></i></button>
            <button v-else @mousedown.prevent="isMaximized = true" class="toolbar-btn !w-12 !h-12 !text-xl text-slate-500 hover:bg-slate-200" title="전체 화면"><i class="fa-solid fa-expand"></i></button>
-           <button @mousedown.prevent="showBlackboard = false; if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기"><i class="fa-solid fa-xmark"></i></button>
+           <button @mousedown.prevent="closeBlackboard(); if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="toolbar-btn !w-12 !h-12 !text-3xl text-slate-400 hover:text-red-500 hover:bg-red-50" title="닫기"><i class="fa-solid fa-xmark"></i></button>
        </div>
    </div>
    
@@ -4523,6 +4961,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         
     <button @mousedown.prevent="createNewBoard" class="toolbar-btn text-slate-600 hover:text-blue-600" title="새로 만들기">
         <i class="fa-solid fa-file-circle-plus text-2xl"></i>
+    </button>
+    <button @mousedown.prevent="saveBoardToFirebase" class="toolbar-btn text-slate-600 hover:text-green-600" title="저장">
+        <i class="fa-solid fa-floppy-disk text-2xl"></i>
     </button>
     <button @mousedown.prevent="clearBoard" class="toolbar-btn text-slate-600 hover:text-red-600" title="모두 지우기">
         <i class="fa-solid fa-trash-can text-2xl"></i>
@@ -5832,6 +6273,10 @@ lastDbSnapshot: null,       // ★ [데이터 증발 방지] Firebase 첫 응답
 isSavingNow: false,         // ★ [동시저장 방어막] 내가 저장 중일 때 외부 onValue 무시
 lastBoardSnapshot: null,    // ★ 칠판 데이터(_board) 비교용 스냅샷
 isBoardSaving: false,       // ★ 칠판 데이터 저장 중 echo 차단
+_boardCachedUpdatedAt: null, // ★ timestamp 기반 캐시 무효화용
+_snackCachedUpdatedAt: null, // ★ timestamp 기반 캐시 무효화용
+_ownSnackSave: false,        // ★ 내 창 onValue 에코 구별용 (저장 후 2초간 true)
+_snackEverLoaded: false,     // ★ _snack ref 1회 이상 로드됨 — 메인 DB 구버전 복원 차단용
 shuffleHistoryByMode: {},   // ★ 모드별 짝꿍 이력 (이성/동성/랜덤 각각 records, cycleCount, currentRound)
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
 showTrafficStats: false, // 트래픽 통계 모달
@@ -5855,7 +6300,46 @@ timeBankSeconds: 0,
         timeBankInputMemo: '',
         timeBankEffect: '',
         lastAddedTime: '',
+        // 우리반 간식 저금통
+        snackBank: [],
+        snackBankHistory: [],
+        snackBankSummary: { count: 0, topName: '' },  // 메인 DB 보관용 사이드바 요약
+        snackLoaded: false,                          // reactive: _snack Firebase 구독 완료 여부
+        snackTypes: [
+            { name: '사탕', emoji: '🍭' },
+            { name: '초콜릿', emoji: '🍫' },
+            { name: '젤리', emoji: '🍭' },
+            { name: '과자', emoji: '🍪' },
+            { name: '아이스크림', emoji: '🍦' },
+            { name: '음료수', emoji: '🥤' },
+            { name: '빵', emoji: '🍞' },
+            { name: '도넛', emoji: '🍩' },
+        ],
+        showSnackInputModal: false,
+        showSnackTypeManageModal: false,
+        showHallOfFame: true,
+        showMissionWidget: true,
+        snackNewName: '',
+        snackNewEmoji: '',
+        snackEditIdx: -1,
+        snackEditName: '',
+        snackSelectedStudents: [],
+        snackFloatItems: [],
+        snackSessionItems: [],
+        snackInputMode: localStorage.getItem('snackInputMode') || 'plus',
+        snackQuickMode: localStorage.getItem('snackQuickMode') !== '0',
+        snackTypeCounts: {},          // (deprecated, 호환 유지)
+        showSnackDrawModal: false,
+        snackDrawList: [],            // 뽑기 진행 중 [{ student, snack, emoji, contributor, revealed }]
+        revealedMap: {},              // { [idx]: true } 하트 공개 상태 — snackDrawList 반응성 우회
+        snackDrawIdx: 0,              // 현재 뽑는 차례
+        snackDrawSpinning: false,
+        snackDrawSpinEmoji: '❓',
+        showSnackBankListModal: false,
+        showSnackResetConfirm: false,
+        snackBankTab: localStorage.getItem('snackBankTab') || 'rank',
 missions: [],
+missionDragIdx: null,
 showMissionModal: false,
 missionEditIdx: null,
 missionInputName: '',
@@ -6887,6 +7371,90 @@ trafficRefreshCountToday() {
     return (stats[today] && stats[today].initCount) || 0;
 },
 
+            snackBankFull() {
+                return this.allStudents.length > 0 && this.snackBank.length >= this.allStudents.length;
+            },
+            snackRanking() {
+                const counts = {};
+                this.allStudents.forEach(s => { counts[s.name] = 0; });
+                // 창고 잔고 + 아직 뽑히지 않은 항목 합산 (뽑힌 것은 차감됨)
+                this.snackBank.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
+                this.snackDrawList.filter(item => !item.revealed).forEach(item => {
+                    if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
+                });
+                const entries = Object.entries(counts).map(([name, count]) => ({ name, count }));
+                entries.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+                // 동점 그룹 내 rank 부여 (1,1,3,3,5...) 후 그룹 내 이름 순 유지
+                const result = [];
+                let pos = 1;
+                let gi = 0;
+                while (gi < entries.length) {
+                    let gj = gi;
+                    while (gj < entries.length && entries[gj].count === entries[gi].count) gj++;
+                    const group = entries.slice(gi, gj).map(e => ({ ...e, rank: pos }));
+                    result.push(...group);
+                    pos += group.length;
+                    gi = gj;
+                }
+                return result;
+            },
+            snackTopContributor() {
+                const top = this.snackRanking.find(r => r.count > 0);
+                return top ? top.name : '';
+            },
+            snackContribByStudent() {
+                const counts = {};
+                this.snackDrawList.forEach(item => {
+                    if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
+                });
+                return counts;
+            },
+            snackContributorDisplay() {
+                // 사이드바용: _snack 미로드 시 summary 사용, 로드 후엔 실시간 계산
+                const name = this.snackLoaded ? this.snackTopContributor : (this.snackBankSummary && this.snackBankSummary.topName) || '';
+                if (!name) return { name: '', particle: '' };
+                const firstName = name.length > 1 ? name.slice(1) : name;
+                const code = firstName.charCodeAt(firstName.length - 1);
+                const hasJongseong = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
+                return { name: firstName, particle: hasJongseong ? '이가' : '가' };
+            },
+            // ★ 사이드바 전용 요약 (메인 DB에 저장되는 가벼운 정보)
+            snackBankCount() {
+                if (!this.snackLoaded) return (this.snackBankSummary && this.snackBankSummary.count) || 0;
+                const unrevealed = this.snackDrawList.filter(item => !item.revealed).length;
+                return this.snackBank.length + unrevealed;
+            },
+            snackBankFullSidebar() {
+                return this.allStudents.length > 0 && this.snackBankCount >= this.allStudents.length;
+            },
+            snackJarFillColor() {
+                const ratio = Math.min(1, this.snackBankCount / Math.max(1, this.allStudents.length));
+                if (this.snackBankFullSidebar) return 'rgba(220,38,38,0.92)';
+                if (ratio === 0) return 'rgba(255,255,255,0)';
+                const t = Math.pow(ratio, 0.6);
+                const r = Math.round(255 + (96  - 255) * t);
+                const g = Math.round(255 + (165 - 255) * t);
+                const b = Math.round(255 + (250 - 255) * t);
+                return `rgba(${r},${g},${b},0.92)`;
+            },
+            snackJarStrokeColor() {
+                if (this.snackBankFullSidebar) return '#f87171';
+                const ratio = Math.min(1, this.snackBankCount / Math.max(1, this.allStudents.length));
+                const r = Math.round(209 + (96  - 209) * ratio);
+                const g = Math.round(213 + (165 - 213) * ratio);
+                const b = Math.round(219 + (250 - 219) * ratio);
+                return `rgb(${r},${g},${b})`;
+            },
+            allRankedStudents() {
+                return this.allStudents
+                    .map(s => {
+                        const total = this.activityTabs.reduce((sum, tab) =>
+                            sum + ((this.tabData[tab.id]||{})[s.name]||{score:0}).score, 0);
+                        return { name: s.name, total };
+                    })
+                    .filter(s => s.total > 0)
+                    .sort((a, b) => b.total - a.total);
+            },
             topStudents() {
                 const withTotal = this.allStudents.map(s => {
                     const total = this.activityTabs.reduce((sum, tab) =>
@@ -7020,7 +7588,16 @@ trafficRefreshCountToday() {
             // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독
             view() { this.ensureToolsSubscribed && this.ensureToolsSubscribed(); this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
             showMainDashboard(v) { if (!v) this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
+            showBlackboard(v) {
+                if (v) { this.ensureBoardSubscribed && this.ensureBoardSubscribed(); }
+            },
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            // ★ 번호순 정렬 중 회전 토글 시 1번이 시각적 좌상단에 유지되도록 자리 재배치
+            isRotated(val, oldVal) {
+                if (this.isSortedByNumber && val !== oldVal) {
+                    this.repositionSortedSeats && this.repositionSortedSeats();
+                }
+            },
             waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             dashboardSettings: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
@@ -7254,7 +7831,256 @@ toggleOneMinAlarm() {
                     }
                 }, 1000); 
             },
-formatTimeBank(secs) {
+            openSnackInput() {
+                if (this.allStudents.length === 0) { alert('학생을 먼저 등록해주세요.'); return; }
+                this.ensureSnackSubscribed && this.ensureSnackSubscribed();
+                this.snackSelectedStudents = [];
+                this.snackSessionItems = [];
+                this.snackInputMode = 'plus';
+                this._snackBankLenAtOpen = this.snackBank.length;
+                this.showSnackBankListModal = false;
+                this.showSnackInputModal = true;
+            },
+            clickSnackType(snackObj, event, keepSelection) {
+                if (this.snackSelectedStudents.length === 0) return;
+                const keep = keepSelection || (event && (event.ctrlKey || event.metaKey));
+                const students = [...this.snackSelectedStudents];
+                if (this.snackInputMode === 'plus') {
+                    students.forEach(stu => {
+                        this.snackBank.push({
+                            id: Date.now() + Math.random(),
+                            snack: snackObj.name, emoji: snackObj.emoji,
+                            contributor: stu, ts: Date.now()
+                        });
+                    });
+                } else {
+                    students.forEach(stu => {
+                        const idx = this.snackBank.findIndex(s => s.contributor === stu && s.snack === snackObj.name);
+                        if (idx >= 0) this.snackBank.splice(idx, 1);
+                    });
+                }
+                // 세션 쌓기
+                students.forEach((stu, i) => {
+                    this.snackSessionItems.push({
+                        id: Date.now() + i + Math.random(),
+                        emoji: snackObj.emoji || '🍭',
+                        snack: snackObj.name,
+                        student: stu
+                    });
+                });
+                this.playSound && this.playSound('click');
+                // Ctrl/우클릭이면 학생 선택 유지, 일반 클릭이면 해제
+                if (!keep) this.snackSelectedStudents = [];
+            },
+            snackRevealTitle(fullName) {
+                // "김서영" → "서영이의" / "박준" → "준의"
+                const given = fullName && fullName.length > 1 ? fullName.slice(1) : fullName || '';
+                if (!given) return '';
+                const code = given.charCodeAt(given.length - 1);
+                const hasJongseong = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
+                return given + (hasJongseong ? '이의' : '의');
+            },
+            toggleSnackStudent(name, event, forceMulti) {
+                const isMulti = forceMulti || (event && (event.ctrlKey || event.metaKey));
+                if (!isMulti) {
+                    // 일반 클릭: 단일 선택 (이미 선택된 경우 해제)
+                    if (this.snackSelectedStudents.length === 1 && this.snackSelectedStudents[0] === name) {
+                        this.snackSelectedStudents = [];
+                    } else {
+                        this.snackSelectedStudents = [name];
+                    }
+                    return;
+                }
+                // Ctrl+클릭 / 우클릭: 다중 토글
+                const i = this.snackSelectedStudents.indexOf(name);
+                if (i >= 0) this.snackSelectedStudents.splice(i, 1);
+                else this.snackSelectedStudents.push(name);
+            },
+            adjustSnackCount(snackName, delta) {
+                const cur = this.snackTypeCounts[snackName] || 0;
+                this.$set
+                    ? this.$set(this.snackTypeCounts, snackName, Math.max(0, cur + delta))
+                    : (this.snackTypeCounts[snackName] = Math.max(0, cur + delta));
+            },
+            snackInputTotalCount() {
+                return Object.values(this.snackTypeCounts).reduce((a,b)=>a+(b||0),0);
+            },
+            submitSnackInput() {
+                if (this.snackSelectedStudents.length === 0) { alert('학생을 선택해주세요.'); return; }
+                const total = this.snackInputTotalCount();
+                if (total === 0) { alert('간식 개수를 1개 이상 선택해주세요.'); return; }
+                this.snackSelectedStudents.forEach(student => {
+                    this.snackTypes.forEach(t => {
+                        const cnt = this.snackTypeCounts[t.name] || 0;
+                        for (let i = 0; i < cnt; i++) {
+                            this.snackBank.push({
+                                id: Date.now() + Math.random(),
+                                snack: t.name, emoji: t.emoji,
+                                contributor: student, ts: Date.now()
+                            });
+                        }
+                    });
+                });
+                this.showSnackInputModal = false;
+                this.playSound && this.playSound('magic');
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
+            deleteSnack(id) {
+                this.snackBank = this.snackBank.filter(s => s.id !== id);
+                // 저장은 모달 닫을 때 일괄 처리
+            },
+            closeSnackBankList() {
+                this.showSnackBankListModal = false;
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
+            closeSnackInput() {
+                this.showSnackInputModal = false;
+                if (this.snackBank.length !== this._snackBankLenAtOpen) {
+                    if (this.saveToLocal) this.saveToLocal();
+                    if (this.saveToFirebase) this.saveToFirebase();
+                }
+            },
+            clearSnackHistory() {
+                if (!confirm('뽑기 기록을 모두 삭제할까요?')) return;
+                this.snackBankHistory = [];
+                if (this.saveToLocal) this.saveToLocal();
+            },
+            drawSnack() {
+                if (this.snackBank.length === 0) { alert('통에 간식이 없어요!'); return; }
+                if (!this.snackBankFull) { alert('아직 간식이 다 모이지 않았어요!'); return; }
+                // 뽑기 시작 시 snackLoaded 강제 true — 비동기 ensureSnackSubscribed 완료 전이어도 현재 상태로 저장 허용
+                this.snackLoaded = true;
+                this._snackEverLoaded = true;
+                // 캡슐 뽑기: 학생 N명 ↔ 간식 N개 1:1 랜덤 매칭, 초과분은 창고에 잔류
+                const students = this.allStudents.map(s => s.name);
+                const allSnacks = this.snackBank.slice();
+                // 전체 셔플
+                for (let i = allSnacks.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i+1));
+                    [allSnacks[i], allSnacks[j]] = [allSnacks[j], allSnacks[i]];
+                }
+                const pool = allSnacks.slice(0, students.length);        // 이번 뽑기에 사용
+                const leftover = allSnacks.slice(students.length);       // 초과분: 창고에 남김
+                // 기부 수 내림차순 → 동점자 그룹만 내부 셔플 (pool 기준 = 표시값과 일치)
+                const counts = {};
+                pool.forEach(s => { if (s.contributor) counts[s.contributor] = (counts[s.contributor]||0) + 1; });
+                const groups = new Map(); // count → [학생...]
+                students.forEach(name => {
+                    const c = counts[name] || 0;
+                    if (!groups.has(c)) groups.set(c, []);
+                    groups.get(c).push(name);
+                });
+                const sortedCounts = [...groups.keys()].sort((a, b) => b - a);
+                const studentOrder = [];
+                for (const c of sortedCounts) {
+                    const grp = groups.get(c);
+                    for (let i = grp.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i+1));
+                        [grp[i], grp[j]] = [grp[j], grp[i]];
+                    }
+                    studentOrder.push(...grp);
+                }
+                this.snackDrawList = studentOrder.map((stu, idx) => ({
+                    student: stu,
+                    snack: pool[idx].snack,
+                    emoji: pool[idx].emoji,
+                    contributor: pool[idx].contributor,
+                    revealed: false,
+                }));
+                this.snackDrawIdx = 0;
+                this.revealedMap = {};
+                this.snackBankHistory = [];
+                this.snackDrawSpinning = false;
+                this.snackDrawSpinEmoji = '❓';
+                // 사용한 간식만 백업 (취소 시 복원용), 초과분은 창고에 잔류
+                this._snackBankBackup = JSON.parse(JSON.stringify(pool));
+                this.snackBank = leftover;
+                this.closeSnackBankList();
+                this.showSnackDrawModal = true;
+            },
+            revealCell(idx) {
+                const cell = this.snackDrawList[idx];
+                if (!cell || this.revealedMap[idx]) return;
+                this.revealedMap[idx] = true;
+                this.snackDrawList[idx] = Object.assign({}, cell, { revealed: true });
+                this.snackBankHistory.unshift({
+                    winner: cell.student, snack: cell.snack,
+                    emoji: cell.emoji, contributor: cell.contributor, ts: Date.now()
+                });
+                if (this.snackBankHistory.length > 200) this.snackBankHistory.length = 200;
+                this.snackDrawIdx++;
+                this.playSound && this.playSound('magic');
+            },
+            addSnackType() {
+                const name = (this.snackNewName || '').trim();
+                if (!name) { alert('간식 이름을 입력해주세요.'); return; }
+                if (this.snackTypes.some(t => t.name === name)) { alert('이미 있는 간식입니다.'); return; }
+                // 이모지는 기본 🍬 사용 (나중에 인라인 수정)
+                this.snackTypes.push({ name, emoji: '🍭' });
+                this.snackNewName = '';
+                if (this.saveToLocal) this.saveToLocal();
+            },
+            startEditSnackType(idx) {
+                this.snackEditIdx = idx;
+                this.snackEditName = this.snackTypes[idx].name;
+            },
+            saveSnackTypeEdit(idx) {
+                const name = (this.snackEditName || '').trim();
+                if (name && !this.snackTypes.some((t, i) => t.name === name && i !== idx)) {
+                    this.snackTypes[idx].name = name;
+                    if (this.saveToLocal) this.saveToLocal();
+                }
+                this.snackEditIdx = -1;
+            },
+            removeSnackType(idx) {
+                this.snackTypes.splice(idx, 1);
+                if (this.saveToLocal) this.saveToLocal();
+            },
+            revealAllSnack() {
+                while (this.snackDrawIdx < this.snackDrawList.length) {
+                    const i = this.snackDrawIdx;
+                    this.revealedMap[i] = true;
+                    this.snackDrawList[i] = Object.assign({}, this.snackDrawList[i], { revealed: true });
+                    this.snackBankHistory.unshift({
+                        winner: this.snackDrawList[i].student,
+                        snack: this.snackDrawList[i].snack,
+                        emoji: this.snackDrawList[i].emoji,
+                        contributor: this.snackDrawList[i].contributor,
+                        ts: Date.now()
+                    });
+                    this.snackDrawIdx++;
+                }
+            },
+            closeSnackDraw() {
+                // × 버튼: 모달만 숨기기, 진행 상태 유지 (재진입 시 이어서 뽑기)
+                this.showSnackDrawModal = false;
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
+            completeSnackDraw() {
+                // 완료 버튼: 미공개 간식은 창고에 반환, 상태 초기화
+                const unrevealed = this.snackDrawList.filter(item => !item.revealed);
+                if (unrevealed.length > 0) {
+                    this.snackBank = [
+                        ...this.snackBank,
+                        ...unrevealed.map(item => ({
+                            id: Date.now() + Math.random(),
+                            snack: item.snack, emoji: item.emoji,
+                            contributor: item.contributor, ts: Date.now()
+                        }))
+                    ];
+                }
+                this.snackDrawList = [];
+                this.revealedMap = {};
+                this.snackDrawIdx = 0;
+                this._snackBankBackup = null;
+                this.showSnackDrawModal = false;
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
+            formatTimeBank(secs) {
                 const isNegative = secs < 0;
                 const absSecs = Math.abs(secs);
                 const m = Math.floor(absSecs / 60).toString().padStart(2, '0');
@@ -7397,6 +8223,22 @@ formatTimeBank(secs) {
                 const diff = Math.floor((target - today) / 86400000);
                 if (diff <= 0) return 'mission-dday-done';
                 return 'mission-dday';
+            },
+            missionDragStart(idx, e) {
+                this.missionDragIdx = idx;
+                e.dataTransfer.effectAllowed = 'move';
+            },
+            missionDragOver(idx) {
+                if (this.missionDragIdx === null || this.missionDragIdx === idx) return;
+                const arr = [...this.missions];
+                const [item] = arr.splice(this.missionDragIdx, 1);
+                arr.splice(idx, 0, item);
+                this.missions = arr;
+                this.missionDragIdx = idx;
+            },
+            missionDrop() {
+                this.missionDragIdx = null;
+                if (this.saveToLocal) this.saveToLocal();
             },
             adjustMissionDay(idx, delta) {
                 const m = this.missions[idx];
@@ -8166,7 +9008,7 @@ async scanFirebaseUnused() {
         'daySchedules','scheduleVersions','currentScheduleVersion','boardPreview',
         'thresholdReading','thresholdDiscussion','currentNoisePreset',
         'isOneMinAlarmOn','bombMessage','bombMsgX','bombMsgY','bombMsgW','bombMsgH',
-        'noiseThreshold','timeBankSeconds','timeBankHistory','missions','currentView',
+        'noiseThreshold','timeBankSeconds','timeBankHistory','snackBank','snackBankHistory','snackTypes','missions','currentView',
         'isRotated','noiseLevels','noiseRecordSeconds','isNoiseTimeHidden',
         'showGenderHint','showStudentNumber','statsWarningCount','statsPenaltyCount',
         'clockMessage','alarmList','shuffleMode','avoidPrevious','avoidPreviousSeat',
@@ -11344,12 +12186,11 @@ saveToLocal() {
                 localStorage.setItem('shuffleMode', this.shuffleMode);
                 localStorage.setItem('avoidPrevious', this.avoidPrevious);
                 localStorage.setItem('avoidPreviousSeat', this.avoidPreviousSeat);
+                // ★ 간식 UI 전용 상태 (RTDB 미사용, localStorage만)
+                localStorage.setItem('snackBankTab', this.snackBankTab);
+                localStorage.setItem('snackQuickMode', this.snackQuickMode ? '1' : '0');
+                localStorage.setItem('snackInputMode', this.snackInputMode);
 
-    if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => {
-        this.saveToFirebase();
-        this.saveTimeout = null;
-    }, 300);
     // ★ 칠판/paths는 별도 디바운스로 분리 저장
     if (this.queueSaveBoard) this.queueSaveBoard();
 },
@@ -11383,7 +12224,11 @@ bombMsgY: this.bombMsgY,
 bombMsgW: this.bombMsgW,
 bombMsgH: this.bombMsgH,
                         noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
-                        timeBankHistory: this.timeBankHistory, missions: this.missions, currentView: this.view, isRotated: this.isRotated,
+                        timeBankHistory: this.timeBankHistory,
+                        snackBank: this.snackBank, snackTypes: this.snackTypes,
+                        snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx, snackBankBackup: this._snackBankBackup,
+                        snackBankSummary: this.snackLoaded ? { count: this.snackBankCount, topName: (this.snackRanking.find(r=>r.count>0)||{}).name || '' } : this.snackBankSummary,
+                        showHallOfFame: this.showHallOfFame, showMissionWidget: this.showMissionWidget, missions: this.missions, currentView: this.view, isRotated: this.isRotated,
                         capsules: this.capsules, seats: this.seats, waitingRoom: this.waitingRoom, 
                         seatConfig: this.seatConfig, manualLocks: this.manualLocks, groups: this.groups, 
                         separationPairs: this.separationPairs, shuffleHistory: this.shuffleHistory, 
@@ -11464,6 +12309,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     });
 
                     // ★ Phase E: 자리배치기록은 별도 ref(_history)로 분리 — 자리 데이터 첫 로드 가속
+                    // snackBankHistory는 미표시 데이터 → localStorage만 유지, Firebase 저장 제외
+                    if (updates.snackBankHistory !== undefined) delete updates.snackBankHistory;
                     const HISTORY_KEYS = ['shuffleHistory','shuffleHistoryByMode'];
                     const historyUpdates = {};
                     HISTORY_KEYS.forEach(k => {
@@ -11472,6 +12319,20 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             delete updates[k];
                         }
                     });
+
+                    // ★ Phase F: 간식 본체 필드를 별도 ref(_snack)로 분리 — 사이드바는 summary만 사용
+                    const SNACK_KEYS = ['snackBank','snackTypes','snackDrawList','snackDrawIdx','snackBankBackup'];
+                    const snackUpdates = {};
+                    SNACK_KEYS.forEach(k => {
+                        if (updates[k] !== undefined) {
+                            snackUpdates[k] = updates[k];
+                            delete updates[k];
+                        }
+                    });
+                    // _snack 첫 응답 전엔 빈 데이터로 덮어쓰기 차단
+                    if (!this.snackLoaded) {
+                        Object.keys(snackUpdates).forEach(k => delete snackUpdates[k]);
+                    }
 
                     // ★ Phase C: 자리 필드를 별도 ref(_seats)로 분리 — 초기 동기화 큰 폭 절감
                     const SEAT_KEYS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
@@ -11486,6 +12347,15 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     // (구독 시작 후 onValue 응답 도착 전 사용자 상호작용으로 빈 상태가 서버에 쓰이는 것 방지)
                     if (!this._seatsLoaded) {
                         Object.keys(seatUpdates).forEach(k => delete seatUpdates[k]);
+                    }
+                    // ★ 번호순 정렬 중에는 자리/대기실/preSortLayout/isSortedByNumber 저장 차단
+                    // (정렬은 임시 뷰이므로 새로고침/창닫기 시 원래 자리로 복귀해야 함)
+                    if (this.isSortedByNumber) {
+                        delete seatUpdates.seats;
+                        delete seatUpdates.waitingRoom;
+                        delete seatUpdates.preSortLayout;
+                        delete updates.isSortedByNumber;
+                        delete updates.preSortLayout;
                     }
                     // ★ 동일 가드: _tools(판서/벌칙/룰렛/캡슐 등) 첫 응답 전엔 빈 배열 덮어쓰기 차단
                     if (!this._toolsLoaded) {
@@ -11524,6 +12394,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     _stripUndef(toolUpdates, 'tools');
                     _stripUndef(seatUpdates, 'seats');
                     _stripUndef(historyUpdates, 'history');
+                    _stripUndef(snackUpdates, 'snack');
 
                     this._trackUp(updates);
                     const mainSave = Object.keys(updates).length
@@ -11538,10 +12409,23 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     const historySave = Object.keys(historyUpdates).length
                         ? (this._trackUp(historyUpdates), update(ref(db, DB_KEY + '_history'), historyUpdates))
                         : Promise.resolve();
+                    if (Object.keys(snackUpdates).length) {
+                        snackUpdates.updatedAt = Date.now();
+                        // 내 창 onValue 에코 감지용 플래그 (2초간 유지)
+                        this._ownSnackSave = true;
+                        if (this._ownSnackSaveTimer) clearTimeout(this._ownSnackSaveTimer);
+                        this._ownSnackSaveTimer = setTimeout(() => { this._ownSnackSave = false; }, 2000);
+                    }
+                    const snackSave = Object.keys(snackUpdates).length
+                        ? (this._trackUp(snackUpdates), update(ref(db, DB_KEY + '_snack'), snackUpdates))
+                        : Promise.resolve();
 
-                    Promise.all([mainSave, toolSave, seatSave, historySave])
+                    Promise.all([mainSave, toolSave, seatSave, historySave, snackSave])
                         .then(() => {
-                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates, historyUpdates));
+                            if (snackUpdates.updatedAt) {
+                                this._snackCachedUpdatedAt = snackUpdates.updatedAt;
+                            }
+                            this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates, historyUpdates, snackUpdates));
                             try { localStorage.setItem('dbCache_v1', this.lastDbSnapshot); } catch(e) {}
                             setTimeout(() => { this.isSavingNow = false; }, 300);
                         }).catch((error) => {
@@ -11636,6 +12520,51 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 });
             },
 
+            // ★ Phase F: 간식 본체 1회 읽기 — 모달 열 때마다 Firebase 최신 데이터 로드 (get, 구독 아님)
+            ensureSnackSubscribed() {
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                // ★ timestamp 체크: updatedAt만 먼저 읽어 변경 여부 확인
+                get(ref(db, DB_KEY + '_snack/updatedAt')).then((tsSnap) => {
+                    const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
+                    // 캐시된 timestamp와 같고 이미 로드됐으면 → 변경 없음, 캐시 유지
+                    if (remoteTs !== null && remoteTs === this._snackCachedUpdatedAt && this.snackLoaded) return;
+                    // timestamp가 다르거나 초기 로드 → full download
+                    get(ref(db, DB_KEY + '_snack')).then((snap) => {
+                        this.snackLoaded = true;
+                        this._snackEverLoaded = true;
+                        const s = snap.exists() ? (snap.val() || {}) : {};
+                        const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+                        if (s.updatedAt !== undefined) this._snackCachedUpdatedAt = s.updatedAt;
+                        this.snackBank = toArr(s.snackBank);
+                        if (s.snackTypes !== undefined && Array.isArray(s.snackTypes) && s.snackTypes.length > 0) this.snackTypes = s.snackTypes;
+                        this.snackDrawList = toArr(s.snackDrawList);
+                        const rm = {};
+                        this.snackDrawList.forEach((item, i) => { if (item && item.revealed) rm[i] = true; });
+                        this.revealedMap = rm;
+                        this.snackDrawIdx = s.snackDrawIdx || 0;
+                        this._snackBankBackup = s.snackBankBackup ? toArr(s.snackBankBackup) : null;
+                    }).catch(() => { this.snackLoaded = true; });
+                }).catch(() => {
+                    // timestamp 읽기 실패 → 안전하게 직접 full download
+                    this._snackCachedUpdatedAt = null;
+                    get(ref(db, DB_KEY + '_snack')).then((snap) => {
+                        this.snackLoaded = true;
+                        this._snackEverLoaded = true;
+                        const s = snap.exists() ? (snap.val() || {}) : {};
+                        const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+                        if (s.updatedAt !== undefined) this._snackCachedUpdatedAt = s.updatedAt;
+                        this.snackBank = toArr(s.snackBank);
+                        if (s.snackTypes !== undefined && Array.isArray(s.snackTypes) && s.snackTypes.length > 0) this.snackTypes = s.snackTypes;
+                        this.snackDrawList = toArr(s.snackDrawList);
+                        const rm = {};
+                        this.snackDrawList.forEach((item, i) => { if (item && item.revealed) rm[i] = true; });
+                        this.revealedMap = rm;
+                        this.snackDrawIdx = s.snackDrawIdx || 0;
+                        this._snackBankBackup = s.snackBankBackup ? toArr(s.snackBankBackup) : null;
+                    }).catch(() => { this.snackLoaded = true; });
+                });
+            },
+
             // ★ Phase C: 자리/이력 데이터 별도 구독 (좌석 배치도 / 자리바꾸기 진입 시점에만 1회 호출)
             ensureSeatsSubscribed() {
                 if (this._seatsSubscribed) return;
@@ -11659,7 +12588,27 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (s.manualLocks !== undefined) this.manualLocks = toArr(s.manualLocks);
                     if (s.separationPairs !== undefined) this.separationPairs = toArr(s.separationPairs);
                     if (s.groups !== undefined) this.groups = toArr(s.groups);
-                    if (s.preSortLayout !== undefined) this.preSortLayout = s.preSortLayout;
+                    // ★ 옛 버전이 정렬 상태로 저장해 둔 preSortLayout이 있으면 즉시 원위치로 복원
+                    if (s.preSortLayout && s.preSortLayout.seats) {
+                        const restored = Array.isArray(s.preSortLayout.seats)
+                            ? s.preSortLayout.seats
+                            : Object.values(s.preSortLayout.seats);
+                        this.seats = Array.from({length:30}, (_, i) => {
+                            const it = restored[i] || null;
+                            return it && it.name ? it : null;
+                        });
+                        this.waitingRoom = toArr(s.preSortLayout.waitingRoom);
+                        this.preSortLayout = null;
+                        this.isSortedByNumber = false;
+                        if (typeof update !== 'undefined') {
+                            update(ref(db, DB_KEY + '_seats'), {
+                                seats: this.seats,
+                                waitingRoom: this.waitingRoom,
+                                preSortLayout: null
+                            }).catch(()=>{});
+                        }
+                        console.log('[자리 복원] 옛 정렬 잔재 정리 — 원래 자리로 복귀');
+                    }
                     // ★ Phase E 마이그레이션: 옛날 _seats에 shuffleHistory가 있으면 _history로 이동 후 _seats에서 삭제
                     if ((s.shuffleHistory !== undefined || s.shuffleHistoryByMode !== undefined) && !this._historyMigrated) {
                         this._historyMigrated = true;
@@ -11688,6 +12637,8 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 });
             },
 
+            // (중복 제거 — 위 ensureSnackSubscribed가 실제 사용)
+
             // ★ Phase E: 자리배치기록 별도 구독 (_history ref) — _seats와 분리하여 첫 로드 가속
             ensureHistorySubscribed() {
                 if (this._historySubscribed) return;
@@ -11700,6 +12651,9 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     const h = snap.val() || {};
                     this._trackDown(h, 'history');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+
+                    // Firebase는 빈 배열을 null로 저장 → undefined/null이면 빈 배열로 명시 초기화
+                    this.snackBankHistory = h.snackBankHistory ? toArr(h.snackBankHistory) : [];
 
                     let _converted = false;
                     if (h.shuffleHistory !== undefined) {
@@ -11793,31 +12747,34 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         return;
                     }
                 } catch(e) {}
+                // 변경된 필드만 전송 (트래픽 절감)
+                let prev = {};
+                try { prev = JSON.parse(this.lastBoardSnapshot); } catch(e) {}
+                const fieldUpdates = { updatedAt: Date.now() };
+                if ((prev.blackboardContent || '') !== (cur.blackboardContent || '')) {
+                    fieldUpdates.blackboardContent = cur.blackboardContent;
+                }
+                const prevPathsStr = JSON.stringify(prev.paths || []);
+                const curPathsStr = JSON.stringify(cur.paths || []);
+                if (prevPathsStr !== curPathsStr) {
+                    fieldUpdates.paths = cur.paths;
+                }
                 this.isBoardSaving = true;
-                this._trackUp(cur);
-                console.log(`[칠판 저장] 길이=${(cur.blackboardContent||'').length}, paths=${(cur.paths||[]).length}`);
-                update(ref(db, DB_KEY + '_board'), cur)
+                this._trackUp(fieldUpdates);
+                update(ref(db, DB_KEY + '_board'), fieldUpdates)
                     .then(() => {
                         this.lastBoardSnapshot = curStr;
+                        this._boardCachedUpdatedAt = fieldUpdates.updatedAt;
                         setTimeout(() => { this.isBoardSaving = false; }, 300);
                     }).catch((e) => {
                         console.error('칠판 저장 실패:', e);
                         this.isBoardSaving = false;
                     });
-                // 메인 DB에 작은 미리보기 별도 기록 (대시보드 알림장용)
-                const previewSrc = (this.blackboardContent || '').slice(0, 2000);
-                if (this.boardPreview !== previewSrc) {
-                    this.boardPreview = previewSrc;
-                    if (typeof this.saveToFirebase === 'function') this.saveToFirebase();
-                }
+                // boardPreview는 localStorage에만 저장 (닫기 시 전체 저장에서 처리)
+                this.boardPreview = (this.blackboardContent || '').slice(0, 2000);
             },
             queueSaveBoard() {
-                if (this._boardSaveTimer) clearTimeout(this._boardSaveTimer);
-                // 1.5s → 600ms로 단축 (새로고침 전 저장 보장 확률↑, 그림 스트로크는 paths 단일 필드라 트래픽 영향 적음)
-                this._boardSaveTimer = setTimeout(() => {
-                    this.saveBoardToFirebase();
-                    this._boardSaveTimer = null;
-                }, 600);
+                // 판서 변경은 localStorage만 즉시 저장, Firebase는 판서 닫을 때 일괄 저장
             },
 
             
@@ -11944,6 +12901,38 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
 
                             // [2. 각종 리스트/히스토리 완벽 복구]
                             this.timeBankHistory = toArray(parsed.timeBankHistory);
+                            // 사이드바용 요약 복원 (메인 DB 권위)
+                            if (parsed.snackBankSummary) {
+                                const newSummary = {
+                                    count: parsed.snackBankSummary.count || 0,
+                                    topName: parsed.snackBankSummary.topName || ''
+                                };
+                                // 내 창 저장 에코이면 무시 (updatedAt 일치 시)
+                                if (!this._ownSnackSave && this.snackLoaded && newSummary.count !== this.snackBankSummary.count) {
+                                    // 다른 창에서 간식 개수 변경 → 로컬 캐시 무효화 (사이드바는 summary 기준으로 표시)
+                                    this.snackLoaded = false;
+                                    this._snackCachedUpdatedAt = null;
+                                }
+                                this.snackBankSummary = newSummary;
+                            }
+                            // 본체는 _snack가 권위 — 메인 DB의 옛 데이터는 마이그레이션만 (메모리 덮어쓰지 않음)
+                            // 뽑기 미완료 상태 (호환 — 옛 메인 DB 데이터가 남아있을 수 있음)
+                            // _snack ref 로드 전에만 메인 DB에서 임시 복원 (_snackEverLoaded 후엔 절대 덮어쓰지 않음)
+                            if (!this.snackLoaded && !this._snackEverLoaded && parsed.snackBank && (Array.isArray(parsed.snackBank) ? parsed.snackBank.length : Object.keys(parsed.snackBank).length)) {
+                                this.snackBank = toArray(parsed.snackBank);
+                            }
+                            if (!this.snackLoaded && !this._snackEverLoaded && parsed.snackDrawList && (Array.isArray(parsed.snackDrawList) ? parsed.snackDrawList.length : Object.keys(parsed.snackDrawList).length)) {
+                                this.snackDrawList = toArray(parsed.snackDrawList);
+                                this.snackDrawIdx = parsed.snackDrawIdx || 0;
+                                this._snackBankBackup = parsed.snackBankBackup ? toArray(parsed.snackBankBackup) : null;
+                            }
+                            // snackBankHistory는 _history ref가 권위 출처 — 메인 DB가 비어 있어도 메모리 유지
+                            if (parsed.snackBankHistory && (Array.isArray(parsed.snackBankHistory) ? parsed.snackBankHistory.length : Object.keys(parsed.snackBankHistory).length)) {
+                                this.snackBankHistory = toArray(parsed.snackBankHistory);
+                            }
+                            if (Array.isArray(parsed.snackTypes) && parsed.snackTypes.length > 0) this.snackTypes = parsed.snackTypes;
+                            if (parsed.showHallOfFame !== undefined) this.showHallOfFame = parsed.showHallOfFame;
+                            if (parsed.showMissionWidget !== undefined) this.showMissionWidget = parsed.showMissionWidget;
                             this.alarmList = toArray(parsed.alarmList);
                             // ★ Phase C 분리 필드: 메인 DB에 없으면 Vue 상태 유지 (_seats가 제공)
                             if (parsed.waitingRoom !== undefined) this.waitingRoom = toArray(parsed.waitingRoom);
@@ -11983,6 +12972,35 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             }
                             // ★ Phase C 마이그레이션 (안전 버전): 메인 DB에 자리 필드가 있어도 _seats에 이미 데이터가 있으면 덮어쓰지 않음
                             // 옛 HTML(캐시)이 메인 DB에 자리 필드를 다시 써넣을 때 _seats 데이터가 손실되는 문제 방지
+                            // ★ Phase F: 간식 본체 마이그레이션 (메인 DB → _snack)
+                            const _MIGRATE_SNACK = ['snackBank','snackTypes','snackDrawList','snackDrawIdx','snackBankBackup'];
+                            const _snackNull = {}; let _needSnackNull = false;
+                            _MIGRATE_SNACK.forEach(k => {
+                                if (parsed[k] !== undefined && parsed[k] !== null) {
+                                    _snackNull[k] = null;
+                                    _needSnackNull = true;
+                                }
+                            });
+                            if (_needSnackNull && typeof update !== 'undefined' && typeof get !== 'undefined') {
+                                get(ref(db, DB_KEY + '_snack')).then(snap => {
+                                    const existing = snap.exists() ? (snap.val() || {}) : {};
+                                    const _snackMig = {}; let _mc = 0;
+                                    _MIGRATE_SNACK.forEach(k => {
+                                        if (parsed[k] === undefined || parsed[k] === null) return;
+                                        const ev = existing[k];
+                                        const isEmpty = ev === undefined || ev === null
+                                            || (Array.isArray(ev) && ev.length === 0)
+                                            || (typeof ev === 'object' && !Array.isArray(ev) && Object.keys(ev).length === 0);
+                                        if (isEmpty) { _snackMig[k] = parsed[k]; _mc++; }
+                                    });
+                                    if (_mc > 0) {
+                                        console.log(`[마이그레이션] _snack로 ${_mc}개 필드 이전`);
+                                        update(ref(db, DB_KEY + '_snack'), _snackMig).catch(()=>{});
+                                    }
+                                    update(ref(db, DB_KEY), _snackNull).catch(()=>{});
+                                }).catch(e => console.warn('snack 마이그레이션 실패:', e));
+                            }
+
                             const _MIGRATE_SEATS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','shuffleHistory','shuffleHistoryByMode','preSortLayout'];
                             const _seatNull = {}; let _needSeatNull = false;
                             _MIGRATE_SEATS.forEach(k => {
@@ -12030,10 +13048,9 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                     }
                                     return rec;
                                 });
-                            } else if (parsed.shuffleHistory === null) {
-                                // Phase C 분리: undefined는 Vue 유지, 명시적 null만 빈 배열
-                                this.shuffleHistory = [];
                             }
+                            // Phase E: shuffleHistory는 _history ref가 권위 출처.
+                            // 메인 DB의 null(마이그레이션 정리 흔적)이나 undefined로 메모리를 비우지 않음.
 
                             // 모둠 및 좌석 복구 — Phase C 분리: 메인 DB에 없으면 _seats가 제공할 때까지 Vue 유지
                             if (parsed.seats !== undefined) {
@@ -12058,16 +13075,9 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.alarmVolume !== undefined) this.alarmVolume = parsed.alarmVolume;
                             if (parsed.bgmVolume !== undefined) this.bgmVolume = parsed.bgmVolume;
                             if (parsed.sfxVolume !== undefined) this.sfxVolume = parsed.sfxVolume;
-                            if (parsed.isSortedByNumber !== undefined) this.isSortedByNumber = parsed.isSortedByNumber;
-                            if (parsed.preSortLayout) {
-                                this.preSortLayout = {
-                                    seats: Array.from({length: 30}, (_, i) => parsed.preSortLayout.seats?.[i] || null),
-                                    waitingRoom: toArray(parsed.preSortLayout.waitingRoom)
-                                };
-                            } else {
-                                // preSortLayout 없는데 정렬 상태면 현재 자리가 원본으로 간주
-                                if (this.isSortedByNumber) this.isSortedByNumber = false;
-                            }
+                            // 번호순 정렬은 메모리 전용 상태 — 항상 해제된 채로 시작
+                            this.isSortedByNumber = false;
+                            this.preSortLayout = null;
 
                             // lotteryPools/lastWinners/lotteryMode/rouletteInput/tournamentData → Phase B (_tools)에서 처리
 
@@ -12185,28 +13195,40 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
             },
             // ★ 칠판 lazy 구독 — 칠판 탭 진입 시에만 _board ref 구독
             ensureBoardSubscribed() {
-                if (this._boardSubscribed) return;
-                if (typeof db === 'undefined' || typeof onValue === 'undefined' || typeof ref === 'undefined') return;
-                this._boardSubscribed = true;
-                const boardRef = ref(db, DB_KEY + '_board');
-                onValue(boardRef, (snap) => {
-                    if (this.isBoardSaving) return;
-                    const b = snap.val() || {};
-                    this._trackDown(b, 'board');
-                    this.lastBoardSnapshot = JSON.stringify({
-                        blackboardContent: b.blackboardContent || '',
-                        paths: b.paths || []
-                    });
-                    const editor = document.getElementById('board-editor');
-                    if (document.activeElement !== editor && !this.isComposing) {
+                if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
+                if (this.isBoardSaving) return; // 저장 중에는 로드 스킵 (race condition 방지)
+                // ★ timestamp 체크: updatedAt만 먼저 읽어 (~100 bytes) 변경 여부 확인
+                get(ref(db, DB_KEY + '_board/updatedAt')).then((tsSnap) => {
+                    const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
+                    // 캐시된 timestamp와 같으면 → 변경 없음, 현재 화면 유지
+                    if (remoteTs !== null && remoteTs === this._boardCachedUpdatedAt && this.lastBoardSnapshot !== null) return;
+                    // timestamp가 다르거나 초기 로드 → full download
+                    get(ref(db, DB_KEY + '_board')).then((snap) => {
+                        const b = snap.exists() ? (snap.val() || {}) : {};
+                        const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
                         const newContent = b.blackboardContent || '';
+                        const newPaths = toArr(b.paths);
+                        const newSnap = JSON.stringify({ blackboardContent: newContent, paths: newPaths });
+                        this.lastBoardSnapshot = newSnap; // saveBoardToFirebase 변경감지용 항상 갱신
+                        if (remoteTs !== null) this._boardCachedUpdatedAt = remoteTs;
+                        // 현재 화면 내용과 비교 — 다를 때만 적용 (캐시 유지)
+                        const curSnap = JSON.stringify({ blackboardContent: this.blackboardContent || '', paths: this.paths || [] });
+                        if (newSnap === curSnap) return;
+                        this._trackDown && this._trackDown(b, 'board');
                         if (this.blackboardContent !== newContent) {
                             this.blackboardContent = newContent;
+                            const editor = document.getElementById('board-editor');
                             if (editor) editor.innerHTML = newContent;
                         }
-                    }
-                    this.paths = b.paths || [];
-                    this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
+                        this.paths = newPaths;
+                        this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
+                    }).catch(() => {
+                        this.lastBoardSnapshot = this.lastBoardSnapshot ?? JSON.stringify({ blackboardContent: '', paths: [] });
+                    });
+                }).catch(() => {
+                    // timestamp 읽기 실패 → 안전하게 full download 시도
+                    this._boardCachedUpdatedAt = null;
+                    this.ensureBoardSubscribed();
                 });
             },
          getScoreBg(score) {
@@ -12476,7 +13498,7 @@ openRankModal() {
                     if (this.showAnimalRace) { this.showAnimalRace = false; return; }
                     if (this.showRankModal) { this.showRankModal = false; return; }
                     if (this.showPickerMaster) { this.showPickerMaster = false; return; }
-                    if (this.showBlackboard) { this.showBlackboard = false; if(this.returnToDashboardOnClose){ this.showMainDashboard=true; this.returnToDashboardOnClose=false; } return; }
+                    if (this.showBlackboard) { this.closeBlackboard(); if(this.returnToDashboardOnClose){ this.showMainDashboard=true; this.returnToDashboardOnClose=false; } return; }
                     if (this.showTimer) { this.showTimer = false; return; }
                     if (this.showNoiseMeter) { this.showNoiseMeter = false; return; }
                     if (this.isClockMaximized) { this.isClockMaximized = false; return; }
@@ -12926,10 +13948,15 @@ if(this.allMode) {
             const now = new Date();
             return now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1;
         },
+        closeBlackboard() {
+            if (!this.showBlackboard) return;
+            if (this.saveBoardToFirebase) this.saveBoardToFirebase();
+            this.showBlackboard = false;
+        },
         openMainDashboard() {
             // 미니창들 자동 닫기 — 대시보드 위에 떠있지 않도록
             this.showPickerMaster = false;
-            this.showBlackboard = false;
+            this.closeBlackboard();
             this.showNoiseMeter = false;
             this.showMainDashboard = true;
             this.updateDashboardTime();
@@ -13728,6 +14755,9 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         // 5. 시간 저금통, 알람, 메인 타이머
                         timeBankSeconds: this.timeBankSeconds,
                         timeBankHistory: this.timeBankHistory,
+                        snackBank: this.snackBank,
+                        snackBankHistory: this.snackBankHistory,
+                        snackTypes: this.snackTypes,
                         alarmList: this.alarmList,
                         clockMessage: this.clockMessage,
                         timerSeconds: this.timerSeconds, // ★ 메인 타이머 시간 누락 추가
@@ -13841,6 +14871,9 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         
                         if (data.timeBankSeconds !== undefined) this.timeBankSeconds = data.timeBankSeconds;
                         if (data.timeBankHistory) this.timeBankHistory = data.timeBankHistory;
+                        if (data.snackBank) this.snackBank = data.snackBank;
+                        if (data.snackBankHistory) this.snackBankHistory = data.snackBankHistory;
+                        if (Array.isArray(data.snackTypes) && data.snackTypes.length > 0) this.snackTypes = data.snackTypes;
                         if (data.alarmList) this.alarmList = data.alarmList;
                         if (data.clockMessage !== undefined) this.clockMessage = data.clockMessage;
                         
@@ -15452,6 +16485,37 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                 this.showShuffleModal = true;
                 this.showShuffleSettings = false;
             },
+// ★ 번호순 정렬 자리 배치 (회전 상태 반영) — toggleSortByNumber와 isRotated watcher가 공유
+            repositionSortedSeats() {
+                const allStudents = [...this.seats.filter(s => s), ...this.waitingRoom];
+                allStudents.sort((a, b) => {
+                    const numA = parseInt(a.number) || 9999;
+                    const numB = parseInt(b.number) || 9999;
+                    return numA - numB;
+                });
+                const newSeats = Array(30).fill(null);
+                const newWaitingRoom = [];
+                const horizontalOrder = [
+                    0, 1, 10, 11, 20, 21,
+                    2, 3, 12, 13, 22, 23,
+                    4, 5, 14, 15, 24, 25,
+                    6, 7, 16, 17, 26, 27,
+                    8, 9, 18, 19, 28, 29
+                ];
+                // 회전 상태면 시각적 좌상단이 seats 배열 끝 인덱스에 해당하므로 순서를 뒤집음
+                const fillOrder = this.isRotated ? [...horizontalOrder].reverse() : horizontalOrder;
+                let studentIdx = 0;
+                for (let i = 0; i < fillOrder.length; i++) {
+                    const idx = fillOrder[i];
+                    if (this.seatConfig[idx] !== 'X' && studentIdx < allStudents.length) {
+                        newSeats[idx] = allStudents[studentIdx++];
+                    }
+                }
+                while (studentIdx < allStudents.length) newWaitingRoom.push(allStudents[studentIdx++]);
+                this.seats = newSeats;
+                this.waitingRoom = newWaitingRoom;
+            },
+
 // ★ 추가: 번호순 정렬 ↔ 원위치 토글 함수
             async toggleSortByNumber() {
                 const cardElements = document.querySelectorAll('.seat-card-item');
@@ -15469,7 +16533,7 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
 
                 // 2. 데이터 교체
                 if (this.isSortedByNumber) {
-                    // [원위치 모드]
+                    // [원위치 모드] — 메모리 백업에서 복원
                     if (this.preSortLayout) {
                         this.seats = JSON.parse(JSON.stringify(this.preSortLayout.seats));
                         this.waitingRoom = JSON.parse(JSON.stringify(this.preSortLayout.waitingRoom));
@@ -15477,43 +16541,14 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     this.isSortedByNumber = false;
                     this.preSortLayout = null;
                 } else {
-                    // [번호순 모드]
+                    // [번호순 모드] — 메모리에만 유지, Firebase 저장 안 함
                     this.preSortLayout = {
                         seats: JSON.parse(JSON.stringify(this.seats)),
                         waitingRoom: JSON.parse(JSON.stringify(this.waitingRoom))
                     };
-
-                    let allStudents = [...this.seats.filter(s => s), ...this.waitingRoom];
-                    allStudents.sort((a, b) => {
-                        const numA = parseInt(a.number) || 9999;
-                        const numB = parseInt(b.number) || 9999;
-                        return numA - numB;
-                    });
-
-                    let newSeats = Array(30).fill(null);
-                    let newWaitingRoom = [];
-                    
-                    // 가로방향 채우기 (1분단 좌,우 -> 2분단 좌,우 -> 3분단 좌,우)
-                    const horizontalOrder = [
-                        0, 1, 10, 11, 20, 21,
-                        2, 3, 12, 13, 22, 23,
-                        4, 5, 14, 15, 24, 25,
-                        6, 7, 16, 17, 26, 27,
-                        8, 9, 18, 19, 28, 29
-                    ];
-
-                    let studentIdx = 0;
-                    for (let i = 0; i < horizontalOrder.length; i++) {
-                        const idx = horizontalOrder[i];
-                        if (this.seatConfig[idx] !== 'X' && studentIdx < allStudents.length) {
-                            newSeats[idx] = allStudents[studentIdx++];
-                        }
-                    }
-                    while (studentIdx < allStudents.length) newWaitingRoom.push(allStudents[studentIdx++]);
-
-                    this.seats = newSeats;
-                    this.waitingRoom = newWaitingRoom;
+                    // ★ seats 변경 전에 플래그를 먼저 켜야 중간에 끼는 저장이 차단됨
                     this.isSortedByNumber = true;
+                    this.repositionSortedSeats();
                 }
 
                 // 3. 도미노 팝업 애니메이션
@@ -15547,7 +16582,11 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     el.style.opacity = '';
                 });
 
-                this.saveToLocal();
+                // 번호순 정렬 상태는 저장하지 않음 (메모리에만 유지).
+                // 원위치(정렬 해제) 시에만 saveToLocal 호출하여 원래 자리 동기화.
+                if (!this.isSortedByNumber) {
+                    this.saveToLocal();
+                }
             },
 async startShuffleSequence() {
     this.showShuffleModal = false;
@@ -17437,6 +18476,17 @@ startReverseLadderGame(endColIdx) {
 
                 // 새로고침 시 메인화면 자동 열기
                 this.openMainDashboard();
+
+                // ★ Firebase 일괄 저장: 창 닫기·탭 전환 시 1회 write
+                const _fbFlush = () => {
+                    if (this.saveToFirebase) this.saveToFirebase();
+                    if (this.saveBoardToFirebase) this.saveBoardToFirebase();
+                };
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') _fbFlush();
+                });
+                window.addEventListener('beforeunload', _fbFlush);
+
 
             }, 1500);
         }// mounted 끝

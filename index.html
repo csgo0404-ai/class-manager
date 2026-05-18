@@ -2915,9 +2915,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
             
             <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
-                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
-                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
-                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click')" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
+                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
+                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
+                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
 
                 <!-- 명예의 전당 (설정에서 표시 여부 조정) — 미션 상단 -->
                 <div v-if="showHallOfFame" class="shrink-0">
@@ -3000,7 +3000,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
 
                 <!-- 시간 저금통 -->
-                <div @click="showTimeBankHistoryModal = true"
+                <div @click="openTimeBankHistoryModal()"
                      class="sidebar-widget bg-white mt-4 relative overflow-hidden transition-all duration-700"
                      :class="[{'animate-bank-shake': timeBankEffect === 'shake'}, timeBankSeconds >= 2400 ? 'border-yellow-400 hover:border-yellow-500 shadow-[0_0_16px_4px_rgba(251,191,36,0.35)]' : 'border-pink-200 hover:border-pink-300']">
 
@@ -3081,7 +3081,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showTimeBankHistoryModal = false">
+        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeTimeBankModal()">
             <div class="bg-white rounded-[3rem] p-8 w-[450px] max-h-[80vh] shadow-2xl border-8 border-slate-100 animate-pop-in flex flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
@@ -3092,7 +3092,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="모든 내역 삭제 및 0초로 초기화">
                             <i class="fa-solid fa-trash-can text-lg"></i>
                         </button>
-                        <button @click="showTimeBankHistoryModal = false" class="text-slate-400 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                        <button @click="closeTimeBankModal()" class="text-slate-400 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
 
@@ -3116,7 +3116,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </div>
                 </div>
                 
-                <button @click="showTimeBankHistoryModal = false" class="mt-6 w-full py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-slate-700 transition-all">닫기</button>
+                <button @click="closeTimeBankModal()" class="mt-6 w-full py-4 bg-slate-800 text-white font-black rounded-2xl hover:bg-slate-700 transition-all">닫기</button>
             </div>
         </div>
 
@@ -3127,14 +3127,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="flex items-center justify-between shrink-0">
                     <h3 class="text-2xl font-black text-blue-500 flex items-center gap-2">🍭 간식 창고 랭킹</h3>
                     <div class="flex items-center gap-2">
-                        <button @click="showSnackResetConfirm = true"
-                                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-amber-100 flex items-center justify-center text-slate-400 hover:text-amber-600 transition-colors"
-                                title="초기화">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                <path d="M3 3v5h5"/>
-                            </svg>
-                        </button>
                         <button @click="closeSnackBankList()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 font-black">✕</button>
                     </div>
                 </div>
@@ -3186,7 +3178,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             class="flex-1 py-3 rounded-2xl font-black bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all active:scale-95">
                         취소
                     </button>
-                    <button @click="snackBank=[]; snackBankHistory=[]; snackDrawList=[]; revealedMap={}; snackDrawIdx=0; _snackBankBackup=null; showSnackResetConfirm=false; if(saveToLocal) saveToLocal(); if(saveToFirebase) saveToFirebase();"
+                    <button @click="confirmSnackBankReset()"
                             class="flex-1 py-3 rounded-2xl font-black text-white transition-all active:scale-95"
                             style="background:linear-gradient(135deg,#f59e0b,#d97706);">
                         초기화
@@ -3204,6 +3196,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="flex items-center gap-3">
                     <div class="text-3xl">🍭</div>
                     <h3 class="text-2xl font-black text-teal-700 flex-1">간식 넣기</h3>
+                    <button @click="openSnackContribLogModal()" title="간식 누가기록"
+                            class="w-10 h-10 mr-2 rounded-full bg-white/80 hover:bg-sky-100 font-black text-lg active:scale-90 border border-sky-200 shadow-sm flex items-center justify-center text-sky-600">🧾</button>
                     <button @click="showSnackTypeManageModal = true" title="간식 종류 관리"
                             class="w-10 h-10 rounded-full bg-white/80 hover:bg-teal-100 font-black text-xl active:scale-90 border border-teal-200 shadow-sm flex items-center justify-center">⚙️</button>
                 </div>
@@ -3223,9 +3217,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             </div>
                         </div>
 
+                        <!-- 선생님 버튼 -->
+                        <button @click="toggleSnackStudent('선생님', $event)"
+                                class="relative flex items-center justify-center rounded-xl font-black text-sm transition-all active:scale-90 border-2 select-none w-full"
+                                style="min-height:40px;"
+                                :class="snackSelectedStudents.includes('선생님')
+                                    ? 'bg-amber-400 text-white border-amber-300 shadow-md'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300 hover:bg-amber-100'">
+                            <span v-if="snackSelectedStudents.includes('선생님')"
+                                  class="absolute top-0.5 right-1 text-[9px] text-amber-100 font-black">✓</span>
+                            👩‍🏫 선생님
+                        </button>
+
                         <!-- 학생 그리드 -->
                         <div class="grid gap-0.5 overflow-y-auto custom-scrollbar flex-1 pr-0.5"
-                             style="grid-template-columns:repeat(4,1fr); max-height:calc(90vh - 260px);">
+                             style="grid-template-columns:repeat(4,1fr); max-height:calc(90vh - 300px);">
                             <button v-for="s in sortedStudentsByNumber" :key="s.name"
                                     @click="toggleSnackStudent(s.name, $event)"
                                     @contextmenu.prevent="toggleSnackStudent(s.name, $event, true)"
@@ -3272,8 +3278,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                                   name="snack-stack" tag="div"
                                                   class="flex flex-wrap gap-1.5 content-start">
                                     <div v-for="fi in snackSessionItems" :key="fi.id"
-                                         class="flex items-center gap-1 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap"
-                                         style="background:linear-gradient(90deg,#0d9488,#14b8a6);">
+                                         @contextmenu.prevent="deleteSnackSessionItem(fi)"
+                                         class="flex items-center gap-1 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap cursor-pointer hover:opacity-80"
+                                         style="background:linear-gradient(90deg,#0d9488,#14b8a6);"
+                                         title="우클릭으로 삭제">
                                         <span class="text-teal-100">{{ fi.student }}</span>
                                         <span class="text-white/80 mx-0.5">·</span>
                                         <span>{{ fi.snack }}</span>
@@ -3346,6 +3354,41 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
 
                 <button @click="showSnackTypeManageModal = false" class="w-full py-3 bg-slate-800 text-white font-black rounded-2xl">닫기</button>
+            </div>
+        </div>
+
+        <!-- 간식 누가기록 모달 -->
+        <div v-if="showSnackContribLogModal" class="fixed inset-0 bg-black/60 z-[110003] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackContribLogModal()">
+            <div class="bg-white rounded-[2.5rem] p-6 w-[520px] max-w-[95vw] max-h-[85vh] shadow-2xl border-8 border-sky-300 animate-pop-in flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-2xl font-black text-sky-700 flex-1">🧾 간식 누가기록</h3>
+                    <span class="text-xs font-black text-slate-400">{{ snackContribLog.length }}건</span>
+                    <button v-if="snackContribLog.length > 0" @click="clearSnackContribLog"
+                            class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 font-black rounded-xl text-xs">전체 삭제</button>
+                    <button @click="showSnackResetConfirm = true" title="간식 창고 초기화"
+                            class="w-9 h-9 rounded-full bg-white hover:bg-amber-100 active:scale-90 border border-amber-200 shadow-sm flex items-center justify-center text-amber-600">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl p-3 space-y-1.5" style="min-height:200px;">
+                    <div v-if="snackContribLog.length === 0" class="h-full flex items-center justify-center text-slate-300 font-black py-10">기록 없음</div>
+                    <div v-for="log in snackContribLog" :key="log.id"
+                         class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-100 hover:border-sky-200 group">
+                        <span class="text-xs font-bold text-slate-400 w-20 shrink-0">{{ formatSnackLogTime(log.ts) }}</span>
+                        <span class="font-black text-slate-700 truncate flex-1">{{ log.student }}</span>
+                        <span class="text-base">{{ log.emoji }}</span>
+                        <span class="font-bold text-sm text-slate-600 truncate">{{ log.snack }}</span>
+                        <span v-if="log.mode === 'minus'" class="text-[10px] font-black text-red-500 bg-red-50 px-1.5 rounded">차감</span>
+                        <button @click="deleteSnackContribLogItem(log.id)"
+                                class="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition" title="삭제">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <button @click="closeSnackContribLogModal()" class="w-full py-3 bg-slate-800 text-white font-black rounded-2xl">닫기</button>
             </div>
         </div>
 
@@ -3507,7 +3550,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
               :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
             
             <div class="absolute top-8 right-8 z-50 flex flex-col items-end" style="gap:11px;">
-                <button v-if="view !== 'order'" title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
+                <button v-if="view !== 'order'" title="회전" @click="toggleRotateForView();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
                 <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
            
 
@@ -3533,7 +3576,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </template>
 
                 <template v-if="view === 'group'">
-                    <button @click="openGroupMaker" title="모둠 편성" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                    <button @click="openGroupMaker" @contextmenu.prevent="swapGroupRows" title="모둠 편성 (우클릭: 위↔아래 모둠 교체)" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
                         <i class="fa-solid fa-shuffle text-2xl"></i>
                     </button>
                     <button @click="openAnimalRaceModal" title="모둠 달리기" class="w-14 h-14 bg-purple-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
@@ -3571,7 +3614,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <i class="fa-solid fa-rotate-left text-[11px] absolute -bottom-2 -right-2 text-white bg-purple-500 rounded-full p-0.5 border border-white"></i>
                         </div>
                     </button>
-                    <button title="회전" @click="isRotated = !isRotated; saveToLocal();" class="w-14 h-14 bg-white text-red-500 rounded-2xl shadow-2xl border-2 border-red-500 flex items-center justify-center hover:scale-110 transition-all">
+                    <button title="회전" @click="toggleRotateForView();" class="w-14 h-14 bg-white text-red-500 rounded-2xl shadow-2xl border-2 border-red-500 flex items-center justify-center hover:scale-110 transition-all">
                         <i class="fa-solid fa-arrows-rotate text-2xl"></i>
                     </button>
                 </div>
@@ -3581,8 +3624,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div id="classroom-floor"
                  class="classroom-floor shadow-2xl flex flex-col items-center justify-center"
                  :class="[
-                    {'rotate-180': isRotated}, 
-                    isInitialLoad ? 'no-transition !duration-0' : 'transition-all duration-500' 
+                    {'rotate-180': (view === 'order' ? isRotatedOrder : (view === 'group' ? isRotatedGroup : isRotated))},
+                    'no-transition !duration-0'
                  ]">
                  
                 <div class="flex justify-center mb-12">
@@ -3598,11 +3641,11 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         :class="[ g.checked ? 'bg-[#8f6a49] border-[#5c3d1e] ring-4 ring-[#5c3d1e] ring-offset-2 shadow-[0_0_15px_rgba(92,61,30,0.8)]' : (g.score >= 7 ? 'score-rainbow' : getScoreBg(g.score)), { 'aura-gold': allMode } ]">
                         <div class="content-reverse card-container">
                            <div v-if="editingGroupIdx !== idx" class="mb-2 text-center select-none" title="모둠 카드 우클릭으로 이름 변경 (빈값 저장 시 초기화)">
-                                <div class="font-black text-[30px] leading-tight" :class="g.checked ? 'text-white/90' : (g.score >= 7 ? 'text-slate-700' : (g.score !== 0 ? 'text-white/90' : 'text-slate-600'))" :style="(!g.checked && g.score >= 7) ? 'color:#334155 !important; text-shadow:none !important;' : ''">{{ idx + 1 }}모둠</div>
+                                <div class="font-black text-[30px] leading-tight" :class="g.checked ? 'text-white/90' : (g.score >= 7 ? 'text-slate-700' : (g.score !== 0 ? 'text-white/90' : 'text-slate-600'))" :style="(!g.checked && g.score >= 7) ? 'color:#334155 !important; text-shadow:none !important;' : ''">{{ (groupLabelOrder && groupLabelOrder[idx]) || (idx + 1) }}모둠</div>
                                 <div v-if="groupCustomName(idx)" class="font-black text-3xl leading-tight mt-1" :class="g.checked ? 'text-white' : (g.score >= 7 ? 'text-slate-800' : (g.score !== 0 ? 'text-white' : 'text-slate-800'))" :style="(!g.checked && g.score >= 7) ? 'color:#1e293b !important; text-shadow:none !important;' : ''">{{ groupCustomName(idx) }}</div>
                             </div>
                             <div v-else class="mb-2 text-center" @click.stop>
-                                <div class="font-black text-[30px] leading-tight text-slate-600">{{ idx + 1 }}모둠</div>
+                                <div class="font-black text-[30px] leading-tight text-slate-600">{{ (groupLabelOrder && groupLabelOrder[idx]) || (idx + 1) }}모둠</div>
                                 <input ref="groupNameInput"
                                        v-model="editingGroupName"
                                        @blur="saveGroupName(idx)"
@@ -3711,7 +3754,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
                             autoFocus>
                         <button v-else
-                            @click="currentTabId = tab.id"
+                            @click="currentTabId = tab.id; refreshIfChanged()"
                             @dblclick="editingTabId = tab.id; editingTabName = tab.name"
                             :style="currentTabId === tab.id
                                 ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
@@ -3722,7 +3765,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] hidden group-hover:flex items-center justify-center font-black leading-none z-10">×</button>
                     </div>
                 </template>
-                <button @click="currentTabId = 'summary'"
+                <button @click="currentTabId = 'summary'; refreshIfChanged()"
                     :style="getSummaryTabStyle()"
                     class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">종합</button>
                 <button @click="addActivityTab"
@@ -4088,8 +4131,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div v-for="(group, idx) in groupingList" :key="idx" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" :class="{'slot-stopped': isGroupStopped(idx)}">
                     <div class="bg-slate-800 text-white p-3 text-center">
-                        <div class="font-black text-xs text-white/70 leading-tight">{{ idx + 1 }}모둠</div>
-                        <div v-if="groupCustomName(idx)" class="font-black text-[30px] leading-tight">{{ groupCustomName(idx) }}</div>
+                        <div class="font-black text-lg text-white leading-tight">{{ (groupLabelOrder && groupLabelOrder[idx]) || (idx + 1) }}모둠</div>
                     </div>
                     <div class="p-4 flex-1 flex flex-col gap-2 min-h-[120px]">
                         <div v-for="(member, mIdx) in group" :key="mIdx" class="flex items-center gap-2 border-b border-slate-100 last:border-0 pb-2 last:pb-0" :class="{'slot-spinning': !isGroupStopped(idx)}">
@@ -4287,7 +4329,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <button @click="startShuffleSequence" class="relative group"><div class="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500 btn-start-pulse"></div><div class="w-64 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative z-10 group-hover:scale-105 transition-transform duration-300 border-8 border-white/20"><i class="fa-solid fa-shuffle text-6xl mb-4 group-hover:rotate-180 transition-transform duration-700"></i><span class="text-3xl font-black tracking-tighter">START</span><span class="text-xs text-blue-200 mt-2 font-bold uppercase tracking-widest">Shuffle Seats</span></div></button>
                     </div>
                 </div>
-                <div class="p-6 bg-white border-t border-slate-100 flex justify-center"><button @click="showShuffleHistory = true" class="px-8 py-3 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 지난 기록 보기</button></div>
+                <div class="p-6 bg-white border-t border-slate-100 flex justify-center"><button @click="ensureHistorySubscribed && ensureHistorySubscribed(); showShuffleHistory = true" class="px-8 py-3 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 지난 기록 보기</button></div>
             </div>
         </div>
   
@@ -6326,6 +6368,8 @@ timeBankSeconds: 0,
         snackSelectedStudents: [],
         snackFloatItems: [],
         snackSessionItems: [],
+        snackContribLog: JSON.parse(localStorage.getItem('snackContribLog') || '[]'),
+        showSnackContribLogModal: false,
         snackInputMode: localStorage.getItem('snackInputMode') || 'plus',
         snackQuickMode: localStorage.getItem('snackQuickMode') !== '0',
         snackTypeCounts: {},          // (deprecated, 호환 유지)
@@ -6408,6 +6452,7 @@ freeParticipants: [],
                 penaltyCount: 1,
                 seats: Array(30).fill(null), waitingRoom: [],
                 groups: Array(6).fill().map(() => ({ score: 0, checked: false, memo: "", starred: false, members: [], showMembers: false })),
+                groupLabelOrder: JSON.parse(localStorage.getItem('groupLabelOrder') || '[1,2,3,4,5,6]'),
                 groupNames: [],
                 editingGroupIdx: null,
                 editingGroupName: '',
@@ -6615,7 +6660,7 @@ showDatePalette: false,
         // 캡슐 뽑기 (아직 미구현 - 나중에 사용할 변수들 미리 선언)
         capsuleCount: 0,
         capsules: [],
-        showGenderHint: true,
+        showGenderHint: false,
 capsuleRevealedCount: 0,
 isShuffling: false,
 capsuleSwitchState: 'closed',
@@ -6684,7 +6729,9 @@ bombMsgH: 100,
         noisePenaltyCount: 0,  // 탈락 누적 카운트
         maxWarnings: 3,
 
-isRotated: localStorage.getItem('isRotated') === 'true', showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
+isRotated: true,
+isRotatedOrder: false,
+isRotatedGroup: false, isViewSwitching: false, _pendingSeatsRefresh: false, showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
                 activityTabs: [{ id: 1, name: '활동1' }],
@@ -7585,13 +7632,54 @@ trafficRefreshCountToday() {
         },
 
         watch: {
-            // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독
-            view() { this.ensureToolsSubscribed && this.ensureToolsSubscribed(); this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
+            // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독 + 직전 변경사항 flush
+            view(newView) {
+                // 창 전환 시 회전 애니메이션 없이 즉시 전환
+                this.isViewSwitching = true;
+                this.$nextTick(() => requestAnimationFrame(() => { this.isViewSwitching = false; }));
+                // ★ 직전 변경사항 firebase 반영 (좌석 클릭 후 view 이동 시 저장)
+                if (this.saveToFirebase && !this.isSyncing && !this.isInitialLoad) this.saveToFirebase();
+                // ★ 좌석배치도/대기번호/모둠활동 진입 시 다른 창의 변경사항 반영
+                // saveToFirebase가 isSavingNow를 켜므로, 저장 완료 후 refresh (플래그로 위임)
+                if (['main','order','group'].includes(newView)) {
+                    if (this.isSavingNow) {
+                        this._pendingSeatsRefresh = true;
+                    } else {
+                        this.refreshSeatsIfChanged && this.refreshSeatsIfChanged(false);
+                    }
+                }
+                // ★ onValue가 실시간 적용하지만, 도구는 lazy이므로 view 진입 시 동기화
+                this.ensureToolsSubscribed && this.ensureToolsSubscribed();
+            },
+            // ★ 활동 탭(수업/쪽지시험/숙제 등) 전환 시 직전 탭의 변경사항 firebase 저장
+            currentTabId(newId, oldId) {
+                if (oldId === undefined || this.isSyncing || this.isInitialLoad) return;
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
             showMainDashboard(v) { if (!v) this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(); },
             showBlackboard(v) {
                 if (v) { this.ensureBoardSubscribed && this.ensureBoardSubscribed(); }
             },
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            tabData: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            // ★ 도구·간식·판서 실시간 동기화 (BroadcastChannel) — isSyncing 체크로 Firebase 로딩 중 broadcast 차단
+            snackBank: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            snackBankHistory: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            snackContribLog: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            displayWinner(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            isNoiseTimeHidden(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            noiseWarningCount(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            noisePenaltyCount(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            capsules: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            animalRunners: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            animalRaceResults: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            visibleBracketTree: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            lotteryPools: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            lastWinners: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            groupingList: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            rouletteInput(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            blackboardContent(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            'paths.length'(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
             // ★ 번호순 정렬 중 회전 토글 시 1번이 시각적 좌상단에 유지되도록 자리 재배치
             isRotated(val, oldVal) {
                 if (this.isSortedByNumber && val !== oldVal) {
@@ -7763,10 +7851,10 @@ invertCurrentSelection() {
                 this.saveToLocal();
             },
 stopNoiseMeasurement() {
-            // ★ 닫기/탭전환 시 호출 — 마이크/오디오 자원만 해제하고 누적 시간(noiseRecordSeconds)은 보존.
-            //    명시적 리셋(0초로) 은 stopAndReset()을 직접 호출.
+            // 닫기/탭전환 시 호출 — 누적 시간 보존 후 Firebase 1회 저장
             this.isMeasuring = false;
-            this.stopNoiseTimer(); // 내부에서 saveToLocal로 누적 시간 저장
+            this.stopNoiseTimer();
+            if (typeof this.saveToFirebase === 'function') this.saveToFirebase();
             if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
             if (this.noiseStream) { this.noiseStream.getTracks().forEach(t => t.stop()); this.noiseStream = null; }
             if (this.microphone) { try { this.microphone.disconnect(); } catch(_){} this.microphone = null; }
@@ -7859,15 +7947,27 @@ toggleOneMinAlarm() {
                         if (idx >= 0) this.snackBank.splice(idx, 1);
                     });
                 }
-                // 세션 쌓기
+                // 세션 쌓기 + 누가기록
+                const isPlus = this.snackInputMode === 'plus';
                 students.forEach((stu, i) => {
+                    const sid = Date.now() + i + Math.random();
                     this.snackSessionItems.push({
-                        id: Date.now() + i + Math.random(),
+                        id: sid,
                         emoji: snackObj.emoji || '🍭',
                         snack: snackObj.name,
                         student: stu
                     });
+                    this.snackContribLog.unshift({
+                        id: sid,
+                        ts: Date.now(),
+                        student: stu,
+                        snack: snackObj.name,
+                        emoji: snackObj.emoji || '🍭',
+                        mode: isPlus ? 'plus' : 'minus'
+                    });
                 });
+                if (this.snackContribLog.length > 500) this.snackContribLog.length = 500;
+                try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
                 this.playSound && this.playSound('click');
                 // Ctrl/우클릭이면 학생 선택 유지, 일반 클릭이면 해제
                 if (!keep) this.snackSelectedStudents = [];
@@ -7929,6 +8029,93 @@ toggleOneMinAlarm() {
             deleteSnack(id) {
                 this.snackBank = this.snackBank.filter(s => s.id !== id);
                 // 저장은 모달 닫을 때 일괄 처리
+            },
+            // 간식창고(세션) 항목 우클릭 삭제 — snackBank에서도 1개 제거
+            deleteSnackSessionItem(fi) {
+                if (!fi) return;
+                const sIdx = this.snackSessionItems.findIndex(x => x.id === fi.id);
+                if (sIdx >= 0) this.snackSessionItems.splice(sIdx, 1);
+                // 같은 학생·간식 가장 최근 항목을 snackBank에서 제거
+                for (let i = this.snackBank.length - 1; i >= 0; i--) {
+                    const s = this.snackBank[i];
+                    if (s.contributor === fi.student && s.snack === fi.snack) {
+                        this.snackBank.splice(i, 1);
+                        break;
+                    }
+                }
+                // 누가기록에서도 제거
+                const lIdx = this.snackContribLog.findIndex(x => x.id === fi.id);
+                if (lIdx >= 0) this.snackContribLog.splice(lIdx, 1);
+                try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
+                this.playSound && this.playSound('click');
+            },
+            deleteSnackContribLogItem(id) {
+                const i = this.snackContribLog.findIndex(x => x.id === id);
+                if (i < 0) return;
+                const log = this.snackContribLog[i];
+                this.snackContribLog.splice(i, 1);
+                try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
+                if (log && log.mode !== 'minus') {
+                    for (let k = this.snackBank.length - 1; k >= 0; k--) {
+                        const s = this.snackBank[k];
+                        if (s.contributor === log.student && s.snack === log.snack) {
+                            this.snackBank.splice(k, 1);
+                            break;
+                        }
+                    }
+                }
+                const sIdx = this.snackSessionItems.findIndex(x => x.id === id);
+                if (sIdx >= 0) this.snackSessionItems.splice(sIdx, 1);
+                this._snackContribLogDirty = true; // 저장은 모달 닫을 때
+            },
+            clearSnackContribLog() {
+                if (!confirm('간식 누가기록 전체를 삭제하고 간식창고도 비울까요?')) return;
+                this.snackContribLog.forEach(log => {
+                    if (log.mode === 'minus') return;
+                    for (let k = this.snackBank.length - 1; k >= 0; k--) {
+                        const s = this.snackBank[k];
+                        if (s.contributor === log.student && s.snack === log.snack) {
+                            this.snackBank.splice(k, 1);
+                            break;
+                        }
+                    }
+                });
+                this.snackContribLog = [];
+                this.snackSessionItems = [];
+                try { localStorage.setItem('snackContribLog', '[]'); } catch(e) {}
+                this._snackContribLogDirty = false;
+                if (this.saveToFirebase) this.saveToFirebase();
+                if (this._saveSnackContribLogToFirebase) this._saveSnackContribLogToFirebase();
+            },
+            confirmSnackBankReset() {
+                this.snackBank = [];
+                this.snackBankHistory = [];
+                this.snackDrawList = [];
+                this.revealedMap = {};
+                this.snackDrawIdx = 0;
+                this._snackBankBackup = null;
+                this.snackContribLog = [];
+                this.snackSessionItems = [];
+                try { localStorage.setItem('snackContribLog', '[]'); } catch(e) {}
+                this.showSnackResetConfirm = false;
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+                if (this._saveSnackContribLogToFirebase) this._saveSnackContribLogToFirebase();
+            },
+            closeSnackContribLogModal() {
+                this.showSnackContribLogModal = false;
+                if (this._snackContribLogDirty) {
+                    this._snackContribLogDirty = false;
+                    if (this.saveToLocal) this.saveToLocal();
+                    if (this.saveToFirebase) this.saveToFirebase();
+                    if (this._saveSnackContribLogToFirebase) this._saveSnackContribLogToFirebase();
+                }
+            },
+            formatSnackLogTime(ts) {
+                if (!ts) return '';
+                const d = new Date(ts);
+                const pad = n => String(n).padStart(2,'0');
+                return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
             },
             closeSnackBankList() {
                 this.showSnackBankListModal = false;
@@ -8090,6 +8277,9 @@ toggleOneMinAlarm() {
             openTimeBankModal(type) {
                 this.timeBankInputType = type;
                 this.timeBankInputMin = ''; this.timeBankInputSec = ''; this.timeBankInputMemo = '';
+                // ★ +/- 클릭 시 firebase 최신값 fetch (다른 창 변경분 반영 후 입력)
+                this._timeBankSubscribed = false; // throttle 해제 → 강제 재fetch
+                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
                 this.showTimeBankModal = true;
             },
             submitTimeBank() {
@@ -8110,6 +8300,10 @@ toggleOneMinAlarm() {
                 }
                 this.timeBankHistory.unshift({ id: Date.now(), type: this.timeBankInputType, totalSecs: totalSecs, displayTime: displayTime, memo: this.timeBankInputMemo || '기록', date: dateStr });
                 this.showTimeBankModal = false; this.saveToLocal();
+                this._timeBankDirty = true;
+                // ★ 입력 modal 닫힘과 동시에 즉시 firebase 저장 (history modal 안 열어도 영구 보존)
+                this._saveTimeBankToFirebase && this._saveTimeBankToFirebase();
+                this._timeBankDirty = false;
             },
             deleteTimeBankHistory(idx) {
                 const item = this.timeBankHistory[idx];
@@ -8118,6 +8312,7 @@ toggleOneMinAlarm() {
                 else this.timeBankSeconds += item.totalSecs;
                 this.timeBankHistory.splice(idx, 1);
                 this.saveToLocal();
+                this._timeBankDirty = true;
             },
             // [신규] 일괄 삭제 함수 추가
             clearAllTimeBankHistory() {
@@ -8127,6 +8322,7 @@ toggleOneMinAlarm() {
                 this.timeBankHistory = [];
                 this.playSound('warning');
                 this.saveToLocal();
+                this._timeBankDirty = true;
             },
             // [미션 창] ----------------------------------------------------------
             todayStr() {
@@ -8691,7 +8887,10 @@ handleCardClick(idx) {
         }
         // ★ applyTool은 모둠(group)일 때만 사용, 좌석 카드엔 호출 안 함
     }
-    this.saveToLocal(); 
+    this.saveToLocal();
+    if (this.saveToFirebase) this.saveToFirebase();
+    // ★ 다른 창에 즉시 반영 (tabData·seats 변경)
+    this._broadcastNow && this._broadcastNow();
 },
 // ★ [신규] 중간 번호가 빠지면 남은 번호들을 1번부터 차례대로 다시 맞추는 함수
 recalculateOrders() {
@@ -8726,6 +8925,7 @@ applyTool(t, fromAll = false) {
         t.score--;
         this.playSound('warning', false, 0.4);
     }
+    this._broadcastNow && this._broadcastNow();
 },
 
 resetLadderSettings() {
@@ -9166,6 +9366,10 @@ _setupMultiTabDetection() {
             } else if (m.type === 'bye') {
                 this._otherTabs.delete(m.tabId);
                 updateBanner();
+            } else if (m.type === 'data_update') {
+                // ★ 같은 컴퓨터 다른 창의 모든 변경을 Firebase 없이 즉시 반영
+                // (isSavingNow는 내 창의 Firebase 저장 플래그 — 수신과 무관하므로 체크 안 함)
+                this._applyBroadcastUpdate(m);
             }
         };
         // 2초마다 heartbeat 발신 + 만료된 탭 정리
@@ -9187,6 +9391,163 @@ _setupMultiTabDetection() {
         console.warn('다중 탭 감지 비활성:', e);
     }
 },
+
+// ★ BroadcastChannel 수신 데이터를 Vue 상태에 직접 적용 (Firebase 트래픽 0)
+_applyBroadcastUpdate(m) {
+    console.log('[BC] 수신:', m.type, Object.keys(m));
+    this.__bcApplying = true; // 수신 중 루프 방지 (plain 프로퍼티 — Vue 반응성 무관)
+    const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+
+    // [1] seats: 좌석배치도 / 대기번호 / 모둠활동
+    if (m.seats) {
+        const d = m.seats;
+        if (d.seats !== undefined) this.seats = Array.from({length: 30}, (_, i) => { const it = (Array.isArray(d.seats) ? d.seats[i] : (d.seats[i] || null)); return it && it.name ? it : null; });
+        if (d.waitingRoom !== undefined) this.waitingRoom = toArr(d.waitingRoom);
+        if (d.groups !== undefined) this.groups = toArr(d.groups);
+        if (d.seatConfig !== undefined) this.seatConfig = d.seatConfig || this.seatConfig;
+        if (d.manualLocks !== undefined) this.manualLocks = toArr(d.manualLocks);
+        if (d.separationPairs !== undefined) this.separationPairs = toArr(d.separationPairs);
+        if (m.ts) this._seatsCachedUpdatedAt = m.ts; // 다음 view 전환 시 Firebase 재조회 생략
+    }
+
+    // [2] main: 점수·체크·탭·일정·알람 등 자주 바뀌는 데이터
+    if (m.main) {
+        const d = m.main;
+        if (d.activityTabs !== undefined) this.activityTabs = toArr(d.activityTabs);
+        if (d.tabData !== undefined) { console.log('[BC] tabData 적용:', typeof d.tabData, Object.keys(d.tabData||{}).length + '개 탭'); this.tabData = d.tabData; }
+        if (d.nextTabId !== undefined) this.nextTabId = d.nextTabId;
+        if (d.daySchedules !== undefined) this.daySchedules = d.daySchedules;
+        if (d.scheduleVersions !== undefined) { this.scheduleVersions = d.scheduleVersions; if (d.currentScheduleVersion !== undefined) this.currentScheduleVersion = d.currentScheduleVersion; }
+        if (d.clockMessage !== undefined) this.clockMessage = d.clockMessage;
+        if (d.bombMessage !== undefined) this.bombMessage = d.bombMessage;
+        if (d.bombMsgX !== undefined) this.bombMsgX = d.bombMsgX;
+        if (d.bombMsgY !== undefined) this.bombMsgY = d.bombMsgY;
+        if (d.bombMsgW !== undefined) this.bombMsgW = d.bombMsgW;
+        if (d.bombMsgH !== undefined) this.bombMsgH = d.bombMsgH;
+        if (d.boardPreview !== undefined) this.boardPreview = d.boardPreview;
+        if (d.showStudentNumber !== undefined) this.showStudentNumber = d.showStudentNumber;
+        if (d.thresholdReading !== undefined) this.thresholdReading = Number(d.thresholdReading);
+        if (d.thresholdDiscussion !== undefined) this.thresholdDiscussion = Number(d.thresholdDiscussion);
+        if (d.currentNoisePreset !== undefined) this.currentNoisePreset = d.currentNoisePreset;
+        if (d.noiseLevels !== undefined) this.noiseLevels = d.noiseLevels;
+        if (d.alarmList !== undefined) this.alarmList = toArr(d.alarmList);
+        if (d.alarmVolume !== undefined) this.alarmVolume = d.alarmVolume;
+        if (d.bgmVolume !== undefined) this.bgmVolume = d.bgmVolume;
+        if (d.sfxVolume !== undefined) this.sfxVolume = d.sfxVolume;
+        if (d.missions !== undefined) this.missions = toArr(d.missions);
+        if (d.showHallOfFame !== undefined) this.showHallOfFame = d.showHallOfFame;
+        if (d.showMissionWidget !== undefined) this.showMissionWidget = d.showMissionWidget;
+        if (d.statsWarningCount !== undefined) this.statsWarningCount = d.statsWarningCount;
+        if (d.statsPenaltyCount !== undefined) this.statsPenaltyCount = d.statsPenaltyCount;
+        if (d.shuffleMode !== undefined) this.shuffleMode = d.shuffleMode;
+        if (d.mixedOrder !== undefined) this.mixedOrder = d.mixedOrder;
+        if (d.sameOrder !== undefined) this.sameOrder = d.sameOrder;
+        if (d.avoidPrevious !== undefined) this.avoidPrevious = d.avoidPrevious;
+        if (d.avoidPreviousSeat !== undefined) this.avoidPreviousSeat = d.avoidPreviousSeat;
+        if (d.snackBankSummary !== undefined) this.snackBankSummary = d.snackBankSummary;
+        if (d.timeBankSeconds !== undefined) this.timeBankSeconds = Number(d.timeBankSeconds);
+        if (d.timeBankHistory !== undefined) this.timeBankHistory = toArr(d.timeBankHistory);
+        if (d.isOneMinAlarmOn !== undefined) this.isOneMinAlarmOn = d.isOneMinAlarmOn;
+        if (d.noiseRecordSeconds !== undefined) this.noiseRecordSeconds = Number(d.noiseRecordSeconds);
+        if (d.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = d.isNoiseTimeHidden;
+        if (d.noiseWarningCount !== undefined) this.noiseWarningCount = d.noiseWarningCount;
+        if (d.noisePenaltyCount !== undefined) this.noisePenaltyCount = d.noisePenaltyCount;
+        if (d.maxWarnings !== undefined) this.maxWarnings = d.maxWarnings;
+        if (m.ts) this._mainCachedUpdatedAt = m.ts;
+    }
+
+    // [3] tools: 도구(룰렛·토너먼트·동물경주 등) — 적용 후 재조회 throttle 갱신
+    if (m.tools) {
+        const t = m.tools;
+        const toA = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+        if (t.tournamentData !== undefined) { this.visibleBracketTree = (t.tournamentData||{}).tree||[]; this.finalWinner=(t.tournamentData||{}).winner||null; this.selectedBracketMode=(t.tournamentData||{}).mode||'group8'; this.leftSideBracket=(t.tournamentData||{}).left; this.rightSideBracket=(t.tournamentData||{}).right; }
+        if (t.animalRunners !== undefined) { const r=t.animalRunners||[]; this.animalRunners=Array.isArray(r)?r:Object.values(r); }
+        if (t.animalRaceResults !== undefined) this.animalRaceResults = toA(t.animalRaceResults);
+        if (t.animalRaceFinished !== undefined) this.animalRaceFinished = !!t.animalRaceFinished;
+        if (t.participantList !== undefined) this.participantList = toA(t.participantList);
+        if (t.deductWinnerCount !== undefined) this.deductWinnerCount = t.deductWinnerCount;
+        if (t.rememberParticipants !== undefined) this.rememberParticipants = t.rememberParticipants;
+        if (t.savedRoulettes !== undefined) this.savedRoulettes = toA(t.savedRoulettes);
+        if (t.rouletteInput !== undefined) this.rouletteInput = t.rouletteInput;
+        if (t.savedGroupings !== undefined) this.savedGroupings = toA(t.savedGroupings);
+        if (t.groupingList !== undefined) this.groupingList = toA(t.groupingList);
+        if (t.savedBoards !== undefined) this.savedBoards = toA(t.savedBoards);
+        if (t.capsules !== undefined) this.capsules = toA(t.capsules);
+        if (t.lotteryPools !== undefined) this.lotteryPools = t.lotteryPools;
+        if (t.lastWinners !== undefined) this.lastWinners = t.lastWinners;
+        if (t.lotteryMode !== undefined) this.lotteryMode = t.lotteryMode;
+        if (t.displayWinner !== undefined) this.displayWinner = t.displayWinner;
+        if (t.groupNames !== undefined) this.groupNames = toA(t.groupNames);
+        if (t.groupLabelOrder !== undefined) { this.groupLabelOrder = toA(t.groupLabelOrder); try { localStorage.setItem('groupLabelOrder', JSON.stringify(this.groupLabelOrder)); } catch(_){} }
+        if (t.raceCompleted !== undefined) this.raceCompleted = Array.isArray(t.raceCompleted)?t.raceCompleted:[];
+        this._toolsLastFetch = Date.now(); // throttle 갱신 → 불필요한 Firebase 재조회 차단
+    }
+
+    // [4] snack: 간식 상점
+    if (m.snack) {
+        const s = m.snack;
+        const toA = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+        if (s.snackBank !== undefined) this.snackBank = toA(s.snackBank);
+        if (s.snackTypes !== undefined) this.snackTypes = toA(s.snackTypes);
+        if (s.snackDrawList !== undefined) this.snackDrawList = toA(s.snackDrawList);
+        if (s.snackDrawIdx !== undefined) this.snackDrawIdx = s.snackDrawIdx;
+        if (s.snackBankBackup !== undefined) this._snackBankBackup = s.snackBankBackup ? toA(s.snackBankBackup) : null;
+        if (s.snackBankHistory !== undefined) this.snackBankHistory = toA(s.snackBankHistory);
+        if (s.snackContribLog !== undefined) { this.snackContribLog = toA(s.snackContribLog); try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(_){} }
+        if (m.ts) this._snackCachedUpdatedAt = m.ts;
+    }
+
+    // [5] history: 자리배치 기록
+    if (m.history) {
+        const h = m.history;
+        const toA = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+        if (h.shuffleHistory !== undefined) this.shuffleHistory = toA(h.shuffleHistory);
+        if (h.shuffleHistoryByMode !== undefined) this.shuffleHistoryByMode = h.shuffleHistoryByMode || {};
+    }
+    // [6] board: 판서 (칠판 텍스트 + 드로잉 경로)
+    if (m.board) {
+        const b = m.board;
+        if (b.blackboardContent !== undefined) {
+            this.blackboardContent = b.blackboardContent;
+            // contenteditable div은 Vue 반응성으로 자동 갱신 안 됨 → DOM 직접 업데이트
+            const editor = document.getElementById('board-editor');
+            if (editor) editor.innerHTML = b.blackboardContent;
+        }
+        if (b.paths !== undefined) {
+            this.paths = b.paths || [];
+            this.$nextTick(() => this.redrawCanvas && this.redrawCanvas());
+        }
+    }
+    // watcher가 비동기 flush되므로 setTimeout으로 플래그 해제 (nextTick보다 확실)
+    setTimeout(() => { this.__bcApplying = false; }, 0);
+},
+
+// ★ 클릭/변경 시 즉시 다른 창에 broadcast (50ms debounce — 연타 방지)
+_broadcastNow() {
+    if (this.__bcApplying || !this._tabChannel || this.isSyncing) return;
+    if (this.lastDbSnapshot == null) return; // 초기 로드 완료 전 차단
+    if (this.__bcTimer) clearTimeout(this.__bcTimer);
+    this.__bcTimer = setTimeout(() => {
+        if (!this._tabChannel) return;
+        // Vue 3 Proxy → plain object 변환. 섹션별 독립 처리: 한 섹션 실패해도 나머지 broadcast 유지
+        const rawSafe = v => { try { return JSON.parse(JSON.stringify(v)); } catch(_) { return null; } };
+        const seatsData  = rawSafe({ seats: this.seats, waitingRoom: this.waitingRoom, groups: this.groups, seatConfig: this.seatConfig, manualLocks: this.manualLocks, separationPairs: this.separationPairs });
+        const mainData   = rawSafe({ activityTabs: this.activityTabs, tabData: this.tabData, nextTabId: this.nextTabId, daySchedules: this.daySchedules, scheduleVersions: this.scheduleVersions, currentScheduleVersion: this.currentScheduleVersion, clockMessage: this.clockMessage, bombMessage: this.bombMessage, bombMsgX: this.bombMsgX, bombMsgY: this.bombMsgY, bombMsgW: this.bombMsgW, bombMsgH: this.bombMsgH, boardPreview: this.boardPreview, showStudentNumber: this.showStudentNumber, thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset, noiseLevels: this.noiseLevels, alarmList: this.alarmList, alarmVolume: this.alarmVolume, bgmVolume: this.bgmVolume, sfxVolume: this.sfxVolume, missions: this.missions, showHallOfFame: this.showHallOfFame, showMissionWidget: this.showMissionWidget, statsWarningCount: this.statsWarningCount, statsPenaltyCount: this.statsPenaltyCount, shuffleMode: this.shuffleMode, mixedOrder: this.mixedOrder, sameOrder: this.sameOrder, avoidPrevious: this.avoidPrevious, avoidPreviousSeat: this.avoidPreviousSeat, snackBankSummary: this.snackBankSummary, timeBankSeconds: this.timeBankSeconds, isOneMinAlarmOn: this.isOneMinAlarmOn, isNoiseTimeHidden: this.isNoiseTimeHidden, noiseRecordSeconds: this.noiseRecordSeconds, noiseWarningCount: this.noiseWarningCount, noisePenaltyCount: this.noisePenaltyCount, maxWarnings: this.maxWarnings });
+        const toolsData  = rawSafe({ tournamentData: { tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket }, animalRunners: this.animalRunners, animalRaceResults: this.animalRaceResults, animalRaceFinished: this.animalRaceFinished, participantList: this.participantList, deductWinnerCount: this.deductWinnerCount, rememberParticipants: this.rememberParticipants, rouletteInput: this.rouletteInput, savedRoulettes: this.savedRoulettes, savedGroupings: this.savedGroupings, groupingList: this.groupingList, savedBoards: this.savedBoards, capsules: this.capsules, lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode, displayWinner: this.displayWinner, groupNames: this.groupNames, groupLabelOrder: this.groupLabelOrder, raceCompleted: this.raceCompleted });
+        const snackData  = rawSafe({ snackBank: this.snackBank, snackTypes: this.snackTypes, snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx, snackBankHistory: this.snackBankHistory, snackContribLog: this.snackContribLog });
+        // board는 칠판이 실제로 열려 있을 때만 포함 (paths가 크므로 불필요한 전송 방지)
+        const boardData  = this.showBlackboard ? rawSafe({ blackboardContent: this.blackboardContent, paths: this.paths }) : null;
+        const msg = { type: 'data_update', tabId: this._tabId, ts: Date.now() };
+        if (seatsData)  msg.seats = seatsData;
+        if (mainData)   msg.main  = mainData;
+        if (toolsData)  msg.tools = toolsData;
+        if (snackData)  msg.snack = snackData;
+        if (boardData)  msg.board = boardData;
+        console.log('[BC] 전송:', this._tabId, Object.keys(msg));
+        try { this._tabChannel.postMessage(msg); } catch(_) {}
+    }, 50);
+},
+_scheduleLocalBroadcast() { this._broadcastNow && this._broadcastNow(); },
 
 // 사운드 lazy 생성 — 처음 재생 시점에만 Audio 인스턴스화 (첫 페이지 로드 시 mp3 다운로드 0)
 // SW 캐시(sw.js)가 mp3를 영구 저장하므로 두 번째부터는 네트워크 요청도 0
@@ -9900,7 +10261,6 @@ startGroupShuffle() {
                 if (this.noiseRecordInterval) {
                     clearInterval(this.noiseRecordInterval);
                     this.noiseRecordInterval = null;
-                    // ★ 측정 종료 시 1회만 결과값(누적 시간) 저장
                     if (typeof this.saveToLocal === 'function') this.saveToLocal();
                 }
             },
@@ -10059,8 +10419,8 @@ startGroupShuffle() {
                 this.isMeasuring = false;
                 this.stopNoiseTimer(); 
                 
-                this.noiseRecordSeconds = 0; 
-                this.saveToLocal(); // ★ 초기화되었을 때도 0초로 서버에 확실히 저장
+                this.noiseRecordSeconds = 0;
+                this.saveToLocal();
 
                 if (this.volumeInterval) cancelAnimationFrame(this.volumeInterval);
                 if (this.noiseStream) { this.noiseStream.getTracks().forEach(track => track.stop()); this.noiseStream = null; }
@@ -12193,6 +12553,8 @@ saveToLocal() {
 
     // ★ 칠판/paths는 별도 디바운스로 분리 저장
     if (this.queueSaveBoard) this.queueSaveBoard();
+    // ★ 같은 컴퓨터 다른 창에 즉시 반영
+    if (!this.__bcApplying) this._broadcastNow && this._broadcastNow();
 },
 
 
@@ -12223,8 +12585,8 @@ bombMsgX: this.bombMsgX,
 bombMsgY: this.bombMsgY,
 bombMsgW: this.bombMsgW,
 bombMsgH: this.bombMsgH,
-                        noiseThreshold: this.noiseThreshold, timeBankSeconds: this.timeBankSeconds,
-                        timeBankHistory: this.timeBankHistory,
+                        noiseThreshold: this.noiseThreshold,
+                        // timeBankSeconds/timeBankHistory는 _timebank ref로 분리 (시간저금통 모달 닫을 때 저장)
                         snackBank: this.snackBank, snackTypes: this.snackTypes,
                         snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx, snackBankBackup: this._snackBankBackup,
                         snackBankSummary: this.snackLoaded ? { count: this.snackBankCount, topName: (this.snackRanking.find(r=>r.count>0)||{}).name || '' } : this.snackBankSummary,
@@ -12396,6 +12758,13 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     _stripUndef(historyUpdates, 'history');
                     _stripUndef(snackUpdates, 'snack');
 
+                    // ★ updatedAt 주입: 각 ref의 변경 시 timestamp 갱신 → 다른 창에서 lazy 비교 키로 사용
+                    const _now = Date.now();
+                    if (Object.keys(updates).length) updates.updatedAt = _now;
+                    if (Object.keys(toolUpdates).length) toolUpdates.updatedAt = _now;
+                    if (Object.keys(seatUpdates).length) seatUpdates.updatedAt = _now;
+                    if (Object.keys(historyUpdates).length) historyUpdates.updatedAt = _now;
+
                     this._trackUp(updates);
                     const mainSave = Object.keys(updates).length
                         ? update(ref(db, DB_KEY), updates)
@@ -12420,28 +12789,49 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         ? (this._trackUp(snackUpdates), update(ref(db, DB_KEY + '_snack'), snackUpdates))
                         : Promise.resolve();
 
+                    // ★ 같은 컴퓨터 다른 창에 전체 변경 즉시 broadcast (Firebase 트래픽 0)
+                    if (this._tabChannel) {
+                        const bcMsg = { type: 'data_update', tabId: this._tabId, ts: _now };
+                        if (Object.keys(updates).length)       bcMsg.main    = updates;
+                        if (Object.keys(seatUpdates).length)   bcMsg.seats   = seatUpdates;
+                        if (Object.keys(toolUpdates).length)   bcMsg.tools   = toolUpdates;
+                        if (Object.keys(snackUpdates).length)  bcMsg.snack   = snackUpdates;
+                        if (Object.keys(historyUpdates).length) bcMsg.history = historyUpdates;
+                        if (Object.keys(bcMsg).length > 3) {
+                            try { this._tabChannel.postMessage(bcMsg); } catch(_) {}
+                        }
+                    }
+
                     Promise.all([mainSave, toolSave, seatSave, historySave, snackSave])
                         .then(() => {
-                            if (snackUpdates.updatedAt) {
-                                this._snackCachedUpdatedAt = snackUpdates.updatedAt;
-                            }
+                            if (snackUpdates.updatedAt) this._snackCachedUpdatedAt = snackUpdates.updatedAt;
+                            // ★ 본인이 저장한 timestamp 캐시 → 다음 refresh 호출에서 자기 echo로 인한 재다운로드 차단
+                            if (updates.updatedAt) this._mainCachedUpdatedAt = updates.updatedAt;
+                            if (seatUpdates.updatedAt) this._seatsCachedUpdatedAt = seatUpdates.updatedAt;
                             this.lastDbSnapshot = JSON.stringify(Object.assign({}, oldData, updates, toolUpdates, seatUpdates, historyUpdates, snackUpdates));
                             try { localStorage.setItem('dbCache_v1', this.lastDbSnapshot); } catch(e) {}
-                            setTimeout(() => { this.isSavingNow = false; }, 300);
+                            setTimeout(() => {
+                                this.isSavingNow = false;
+                                if (this._pendingSeatsRefresh) { this._pendingSeatsRefresh = false; this.refreshSeatsIfChanged && this.refreshSeatsIfChanged(false); }
+                            }, 300);
                         }).catch((error) => {
                             console.error("저장 실패:", error);
                             this.isSavingNow = false;
+                            if (this._pendingSeatsRefresh) { this._pendingSeatsRefresh = false; this.refreshSeatsIfChanged && this.refreshSeatsIfChanged(false); }
                         });
                 }
             },
 
             // ★ Phase B: 도구 데이터 별도 구독 (필요 시점에 1회만 호출)
             ensureToolsSubscribed() {
-                if (this._toolsSubscribed) return;
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                const now = Date.now();
+                // 8초 내 재호출 차단 (탭 빠른 전환 시 storm 방지)
+                if (this._toolsLastFetch && (now - this._toolsLastFetch) < 5000 && this._toolsLoaded) return;
+                this._toolsLastFetch = now;
                 this._toolsSubscribed = true;
                 const toolsRef = ref(db, DB_KEY + '_tools');
-                onValue(toolsRef, (snap) => {
+                get(toolsRef).then((snap) => {
                     const t = snap.val() || {};
                     this._toolsLoaded = true; // ★ 데이터 증발 방지: 첫 응답 도착 표시
                     // 필드별로 한번이라도 데이터가 있었음을 기록 (빈 값 덮어쓰기 방어)
@@ -12516,13 +12906,24 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (t.lastWinners !== undefined) this.lastWinners = t.lastWinners || { all:null, M:null, F:null };
                     if (t.lotteryMode !== undefined) this.lotteryMode = t.lotteryMode || 'all';
                     if (t.groupNames !== undefined) this.groupNames = toArr(t.groupNames);
+                    if (t.groupLabelOrder !== undefined) {
+                        const arr = toArr(t.groupLabelOrder);
+                        if (arr.length) {
+                            this.groupLabelOrder = arr;
+                            try { localStorage.setItem('groupLabelOrder', JSON.stringify(arr)); } catch(e) {}
+                        }
+                    }
                     if (t.raceCompleted !== undefined) this.raceCompleted = (Array.isArray(t.raceCompleted) ? t.raceCompleted : []);
-                });
+                }).catch(() => { this._toolsLoaded = true; });
             },
 
             // ★ Phase F: 간식 본체 1회 읽기 — 모달 열 때마다 Firebase 최신 데이터 로드 (get, 구독 아님)
             ensureSnackSubscribed() {
                 if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                // ★ 10초 내 재호출은 timestamp 조회도 생략 (모달 빠른 재오픈)
+                const now = Date.now();
+                if (this._snackLastChecked && (now - this._snackLastChecked) < 10000 && this.snackLoaded) return;
+                this._snackLastChecked = now;
                 // ★ timestamp 체크: updatedAt만 먼저 읽어 변경 여부 확인
                 get(ref(db, DB_KEY + '_snack/updatedAt')).then((tsSnap) => {
                     const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
@@ -12565,13 +12966,13 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                 });
             },
 
-            // ★ Phase C: 자리/이력 데이터 별도 구독 (좌석 배치도 / 자리바꾸기 진입 시점에만 1회 호출)
+            // ★ _seats lazy: updatedAt 비교 후 변경 시에만 full get
             ensureSeatsSubscribed() {
-                if (this._seatsSubscribed) return;
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
-                this._seatsSubscribed = true;
-                const seatsRef = ref(db, DB_KEY + '_seats');
-                onValue(seatsRef, (snap) => {
+                this._seatsSubscribed = true; // 저장 가드 호환 (saveToFirebase 가드에 쓰임)
+                return this.refreshSeatsIfChanged(false);
+            },
+            _handleSeatsSnapshot(snap) {
+                {
                     this._seatsLoaded = true;
                     if (this.isSavingNow) return;
                     const s = snap.val() || {};
@@ -12634,18 +13035,20 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         Object.assign(snap, s);
                         this.lastDbSnapshot = JSON.stringify(snap);
                     } catch(e) {}
-                });
+                }
             },
 
             // (중복 제거 — 위 ensureSnackSubscribed가 실제 사용)
 
             // ★ Phase E: 자리배치기록 별도 구독 (_history ref) — _seats와 분리하여 첫 로드 가속
             ensureHistorySubscribed() {
-                if (this._historySubscribed) return;
-                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof onValue === 'undefined') return;
+                if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return;
+                const now = Date.now();
+                if (this._historyLastFetch && (now - this._historyLastFetch) < 8000 && this._historyLoaded) return;
+                this._historyLastFetch = now;
                 this._historySubscribed = true;
                 const histRef = ref(db, DB_KEY + '_history');
-                onValue(histRef, (snap) => {
+                get(histRef).then((snap) => {
                     this._historyLoaded = true;
                     if (this.isSavingNow) return;
                     const h = snap.val() || {};
@@ -12719,7 +13122,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             }
                         }
                     }
-                });
+                }).catch((e) => { console.warn('[history] get 실패', e); this._historyLoaded = true; });
             },
 
             // ★ 칠판 데이터 별도 저장 (디바운스 1.5s) — 자주 바뀌므로 메인 데이터와 분리
@@ -12814,16 +13217,127 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (p.alarmVolume !== undefined) this.alarmVolume = p.alarmVolume;
                     if (p.bgmVolume !== undefined) this.bgmVolume = p.bgmVolume;
                     if (p.sfxVolume !== undefined) this.sfxVolume = p.sfxVolume;
+                    // ★ 간식 사이드바 요약(개수/1등) — 첫 화면 즉시 표시용
+                    if (p.snackBankSummary) {
+                        this.snackBankSummary = {
+                            count: p.snackBankSummary.count || 0,
+                            topName: p.snackBankSummary.topName || ''
+                        };
+                    }
+                    // ★ 시간 저금통 캐시 복원 — _timebank는 별도 ref이므로 dbCache_v1엔 없음
+                    try {
+                        const tbRaw = localStorage.getItem('timeBankCache_v1');
+                        if (tbRaw) {
+                            const tb = JSON.parse(tbRaw);
+                            if (typeof tb.seconds === 'number') this.timeBankSeconds = tb.seconds;
+                            if (Array.isArray(tb.history)) this.timeBankHistory = tb.history;
+                        }
+                    } catch(e) {}
                     // ★ lastDbSnapshot도 미리 채워 Firebase 응답이 동일하면 스킵
                     this.lastDbSnapshot = raw;
                 } catch(e) { console.warn('cache load failed:', e); }
             },
 
             loadFromFirebase() {
+                // ★ onValue 제거 — 부팅 1회 updatedAt 기반 lazy fetch
+                this.refreshMainIfChanged(true);
+            },
+            // ★ updatedAt 비교 → 변경 있으면만 메인 DB full get
+            refreshMainIfChanged(force) {
+                if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
+                return get(ref(db, DB_KEY + '/updatedAt')).then((tsSnap) => {
+                    const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
+                    if (!force && remoteTs !== null && remoteTs === this._mainCachedUpdatedAt && this.lastDbSnapshot != null) return;
+                    return get(ref(db, DB_KEY)).then((snap) => {
+                        if (remoteTs !== null) this._mainCachedUpdatedAt = remoteTs;
+                        this._handleMainSnapshot(snap);
+                    });
+                }).catch((e) => {
+                    // updatedAt 미존재 시(첫 사용자) 안전하게 full get
+                    if (force) get(ref(db, DB_KEY)).then((snap) => this._handleMainSnapshot(snap)).catch(()=>{});
+                });
+            },
+            // ★ updatedAt 비교 → 변경 있으면만 _seats full get
+            refreshSeatsIfChanged(force) {
+                if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
+                return get(ref(db, DB_KEY + '_seats/updatedAt')).then((tsSnap) => {
+                    const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
+                    if (!force && remoteTs !== null && remoteTs === this._seatsCachedUpdatedAt && this._seatsLoaded) return;
+                    return get(ref(db, DB_KEY + '_seats')).then((snap) => {
+                        if (remoteTs !== null) this._seatsCachedUpdatedAt = remoteTs;
+                        this._handleSeatsSnapshot(snap);
+                    });
+                }).catch((e) => {
+                    if (force) get(ref(db, DB_KEY + '_seats')).then((snap) => this._handleSeatsSnapshot(snap)).catch(()=>{ this._seatsLoaded = true; });
+                });
+            },
+            // ★ 1회성 마이그레이션: 메인 DB에 남아있는 분리 필드를 null로 정리하여 초기 다운로드 크기 절감
+            _migrateMainDbCleanup() {
+                if (localStorage.getItem('mainDbCleanupDone_v1')) return;
+                if (this.lastDbSnapshot == null) return; // 첫 로드 전엔 시도 X
+                if (typeof db === 'undefined' || typeof update === 'undefined' || typeof ref === 'undefined') return;
+                try {
+                    const parsed = JSON.parse(this.lastDbSnapshot || '{}');
+                    const SPLIT_FIELDS = [
+                        // _seats로 이동된 필드
+                        'seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout',
+                        // _tools로 이동된 필드
+                        'tournamentData','animalRunners','animalRaceResults','animalRaceFinished',
+                        'participantList','deductWinnerCount','rememberParticipants',
+                        'savedRoulettes','rouletteInput','savedGroupings','groupingList',
+                        'savedBoards','capsules','lotteryPools','lastWinners','lotteryMode','raceCompleted',
+                        // _history로 이동된 필드
+                        'shuffleHistory','shuffleHistoryByMode',
+                        // _snack로 이동된 필드
+                        'snackBank','snackTypes','snackDrawList','snackDrawIdx','snackBankBackup',
+                        // _board로 이동된 필드
+                        'blackboardContent','paths',
+                        // _timebank로 이동된 필드
+                        'timeBankSeconds','timeBankHistory',
+                        // localStorage 전용 필드
+                        'snackBankHistory'
+                    ];
+                    const toNull = {};
+                    let hits = 0;
+                    SPLIT_FIELDS.forEach(k => {
+                        if (parsed[k] !== undefined && parsed[k] !== null) { toNull[k] = null; hits++; }
+                    });
+                    if (hits === 0) {
+                        localStorage.setItem('mainDbCleanupDone_v1', '1');
+                        return;
+                    }
+                    update(ref(db, DB_KEY), toNull).then(() => {
+                        console.log('[메인 DB 정리] 분리 필드 ' + hits + '개 null 처리 완료');
+                        localStorage.setItem('mainDbCleanupDone_v1', '1');
+                    }).catch((e) => { console.warn('[메인 DB 정리] 실패', e); });
+                } catch(e) { console.warn('[메인 DB 정리] 예외', e); }
+            },
+            // ★ 메뉴/활동탭 클릭 시 lazy refresh — updatedAt 비교 후 변경 있으면만 다운로드
+            refreshIfChanged() {
+                // 직전 변경 우선 업로드
+                if (this.saveToFirebase && !this.isSyncing && !this.isInitialLoad) this.saveToFirebase();
+                // 메인/seats/tools 각각 timestamp 비교 후 변경 시에만 full get
+                this.refreshMainIfChanged && this.refreshMainIfChanged(false);
+                this.refreshSeatsIfChanged && this.refreshSeatsIfChanged(false);
+                this.ensureToolsSubscribed && this.ensureToolsSubscribed();
+            },
+            // (구버전 별칭 유지)
+            refreshAllFromFirebase() { return this.refreshIfChanged(); },
+            refreshMainFromFirebase(force) { return this.refreshMainIfChanged(force); },
+            refreshMainFromFirebase(force) {
+                if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
+                const now = Date.now();
+                // throttle: 강제(force) 아니면 8초 이내 재호출 차단
+                if (!force && this._mainLastFetch && (now - this._mainLastFetch) < 8000) return;
+                this._mainLastFetch = now;
                 const dbRef = ref(db, DB_KEY);
-                // [★동시저장 핵심] get 대신 onValue를 써서 카톡처럼 실시간으로 계속 데이터를 받습니다.
-                if (typeof onValue !== 'undefined') {
-                    onValue(dbRef, (snapshot) => {
+                return get(dbRef).then((snapshot) => {
+                    this._handleMainSnapshot(snapshot);
+                }).catch((e) => { console.warn('[main] get 실패', e); });
+            },
+            _handleMainSnapshot(snapshot) {
+                {  // 기존 onValue 콜백 본문 그대로 보존
+                    {
                         if (!snapshot.exists()) {
                             // Firebase에 데이터가 없는 경우 (첫 사용자): 빈 스냅샷으로 초기화하여 저장 허용
                             if (this.lastDbSnapshot == null) this.lastDbSnapshot = '{}';
@@ -12852,7 +13366,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
 
                             // [1. 일반 데이터 및 상태 복구]
 this.view = 'main'; // ★ 무조건 좌석 배치도(main)가 가장 먼저 뜨도록 고정!        
-                    if (parsed.isRotated !== undefined) this.isRotated = parsed.isRotated;
+                    // isRotated는 새로고침마다 기본값(true) 유지 — Firebase/캐시 값 무시
                             if (parsed.showStudentNumber !== undefined) this.showStudentNumber = parsed.showStudentNumber;
                             // 시계 메시지가 옛날 찌꺼기(..., -)면 싹 비웁니다.
                             this.clockMessage = (parsed.clockMessage && parsed.clockMessage !== "..." && parsed.clockMessage !== "-") ? parsed.clockMessage : "";
@@ -12894,7 +13408,7 @@ if (parsed.bombMsgH !== undefined) this.bombMsgH = parsed.bombMsgH;
 if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNoiseTimeHidden;
                             
 
-                            if (parsed.showGenderHint !== undefined) this.showGenderHint = parsed.showGenderHint;
+                            // showGenderHint는 새로고침마다 false로 초기화 — Firebase 값 무시
                             this.statsWarningCount = parsed.statsWarningCount || 0;
                             this.statsPenaltyCount = parsed.statsPenaltyCount || 0;
                             this.noiseLevels = parsed.noiseLevels || { safe: 50, caution: 70, warning: 90 };
@@ -13130,7 +13644,6 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                             if (parsed.showCheckedStudentPanel !== undefined) this.showCheckedStudentPanel = parsed.showCheckedStudentPanel;
                             if (parsed.dashboardSettings) {
                                 const ds = { ...parsed.dashboardSettings };
-                                // Firebase가 배열을 객체로 변환할 수 있으므로 monthlyPlans는 항상 배열로 복원
                                 if (ds.monthlyPlans && !Array.isArray(ds.monthlyPlans)) ds.monthlyPlans = toArray(ds.monthlyPlans);
                                 this.dashboardSettings = Object.assign({}, this.dashboardSettings, ds);
                             }
@@ -13187,16 +13700,19 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                                 this.isSyncing = false;
                                 // ★ 여기서 섣부르게 잠금을 풀지 않습니다! (mounted의 1.5초 타이머가 안전하게 풀어줍니다)
                             });
+                            this._mainAppliedOnce = true; // ★ get 패턴: 이후 refreshMainFromFirebase 호출 시 missions/clockMessage/tabData 등은 무시
                         }
-                    });
-
-                    // ★ 칠판 데이터 구독은 ensureBoardSubscribed()로 지연 — 칠판 진입 시에만 호출
+                    }
                 }
             },
             // ★ 칠판 lazy 구독 — 칠판 탭 진입 시에만 _board ref 구독
             ensureBoardSubscribed() {
                 if (typeof db === 'undefined' || typeof get === 'undefined' || typeof ref === 'undefined') return;
                 if (this.isBoardSaving) return; // 저장 중에는 로드 스킵 (race condition 방지)
+                // ★ 짧은 간격(10초) 내 재호출은 timestamp 조회도 생략
+                const now = Date.now();
+                if (this._boardLastChecked && (now - this._boardLastChecked) < 10000 && this.lastBoardSnapshot !== null) return;
+                this._boardLastChecked = now;
                 // ★ timestamp 체크: updatedAt만 먼저 읽어 (~100 bytes) 변경 여부 확인
                 get(ref(db, DB_KEY + '_board/updatedAt')).then((tsSnap) => {
                     const remoteTs = tsSnap.exists() ? tsSnap.val() : null;
@@ -13713,8 +14229,8 @@ openAnimalRaceModal() {
                 if (!this.tabData[tabId][name]) this.tabData[tabId][name] = { score: 0, checked: false, checkOrder: null };
                 return this.tabData[tabId][name];
             },
-            tabScorePlus(name) { this.getTabStudent(this.currentTabId, name).score++; this.saveToLocal(); },
-            tabScoreMinus(name) { this.getTabStudent(this.currentTabId, name).score--; this.saveToLocal(); },
+            tabScorePlus(name) { this.getTabStudent(this.currentTabId, name).score++; this.saveToLocal(); if (this.saveToFirebase) this.saveToFirebase(); },
+            tabScoreMinus(name) { this.getTabStudent(this.currentTabId, name).score--; this.saveToLocal(); if (this.saveToFirebase) this.saveToFirebase(); },
             tabToggleCheck(name) {
                 const d = this.getTabStudent(this.currentTabId, name);
                 if (!d.checked) {
@@ -13729,6 +14245,7 @@ openAnimalRaceModal() {
                     d.checkOrder = null;
                 }
                 this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
                 this.$nextTick(() => this.syncBoardBadgesForTab(this.currentTabId));
             },
             resetCurrentTab() {
@@ -13742,7 +14259,7 @@ openAnimalRaceModal() {
                 this.dragInfo = { idx, type }; e.target.classList.add('dragging'); 
             },
             onDragEnd(e) { if(e.target.classList) e.target.classList.remove('dragging'); },
-            onDropSeat(e, targetIdx) { if (!this.dragInfo || (this.view !== 'main' && this.view !== 'order')) return; const { idx, type } = this.dragInfo; if (type === 'seat') { const temp = this.seats[targetIdx]; this.seats[targetIdx] = this.seats[idx]; this.seats[idx] = temp; } this.saveToLocal(); },
+            onDropSeat(e, targetIdx) { if (!this.dragInfo || (this.view !== 'main' && this.view !== 'order')) return; const { idx, type } = this.dragInfo; if (type === 'seat') { const temp = this.seats[targetIdx]; this.seats[targetIdx] = this.seats[idx]; this.seats[idx] = temp; } this.saveToLocal(); if (this.saveToFirebase) this.saveToFirebase(); },
             onDropToBottom() { }, onDropReorder(targetIdx) { if (this.draggedOrderIdx === null) return; const list = this.sortedOrderedStudents; const item = list[this.draggedOrderIdx]; list.splice(this.draggedOrderIdx, 1); list.splice(targetIdx, 0, item); list.forEach((s, i) => s.order = i + 1); this.draggedOrderIdx = null; this.saveToLocal(); },
           handleToolClick(tool) { 
     this.activeTool = tool; 
@@ -13839,6 +14356,7 @@ if(this.allMode) {
                 try {
                     const arr = (this.raceCompleted || []).slice();
                     while (arr.length && !arr[arr.length - 1]) arr.pop();
+                    if (this._tabChannel) try { this._tabChannel.postMessage({ type: 'data_update', tabId: this._tabId, ts: Date.now(), tools: { raceCompleted: arr } }); } catch(_) {}
                     return update(ref(db, DB_KEY + '_tools'), { raceCompleted: arr })
                         .catch(e => console.warn('[raceCompleted] save 실패', e));
                 } catch(e) { console.warn('[raceCompleted] save 예외', e); }
@@ -13877,10 +14395,89 @@ if(this.allMode) {
                 try {
                     const arr = (this.groupNames || []).slice();
                     while (arr.length && !arr[arr.length - 1]) arr.pop();
+                    if (this._tabChannel) try { this._tabChannel.postMessage({ type: 'data_update', tabId: this._tabId, ts: Date.now(), tools: { groupNames: arr } }); } catch(_) {}
                     return update(ref(db, DB_KEY + '_tools'), { groupNames: arr })
                         .then(() => { console.log('[groupNames] saved', arr); })
                         .catch(e => { console.warn('[groupNames] save 실패', e); });
                 } catch(e) { console.warn('[groupNames] save 예외', e); }
+            },
+            _saveGroupLabelOrderToFirebase() {
+                try {
+                    const arr = (this.groupLabelOrder || []).slice();
+                    if (this._tabChannel) try { this._tabChannel.postMessage({ type: 'data_update', tabId: this._tabId, ts: Date.now(), tools: { groupLabelOrder: arr } }); } catch(_) {}
+                    return update(ref(db, DB_KEY + '_tools'), { groupLabelOrder: arr })
+                        .catch(e => { console.warn('[groupLabelOrder] save 실패', e); });
+                } catch(e) {}
+            },
+            // 간식 누가기록 — 별도 ref(_snackLog), 버튼 클릭 시에만 1회 수신
+            ensureSnackContribLogSubscribed() {
+                if (this._snackContribLogSubscribed) return Promise.resolve();
+                this._snackContribLogSubscribed = true;
+                try {
+                    if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return Promise.resolve();
+                    return get(ref(db, DB_KEY + '_snackLog')).then((snap) => {
+                        const v = snap.val();
+                        if (Array.isArray(v) && v.length) {
+                            this.snackContribLog = v;
+                            try { localStorage.setItem('snackContribLog', JSON.stringify(v)); } catch(e) {}
+                        } else if (v && typeof v === 'object') {
+                            this.snackContribLog = Object.values(v);
+                        }
+                    }).catch(()=>{});
+                } catch(e) { return Promise.resolve(); }
+            },
+            _saveSnackContribLogToFirebase() {
+                try {
+                    if (typeof db === 'undefined' || typeof set === 'undefined' || typeof ref === 'undefined') return;
+                    return set(ref(db, DB_KEY + '_snackLog'), this.snackContribLog || [])
+                        .catch(e => { console.warn('[snackContribLog] save 실패', e); });
+                } catch(e) {}
+            },
+            openSnackContribLogModal() {
+                this.showSnackContribLogModal = true;
+                this.ensureSnackContribLogSubscribed && this.ensureSnackContribLogSubscribed();
+            },
+            // ★ 시간 저금통 — 별도 ref(_timebank), 모달 열 때만 1회 get, 닫을 때만 저장
+            ensureTimeBankSubscribed() {
+                if (this._timeBankSubscribed) return Promise.resolve();
+                this._timeBankSubscribed = true;
+                try {
+                    if (typeof db === 'undefined' || typeof ref === 'undefined' || typeof get === 'undefined') return Promise.resolve();
+                    return get(ref(db, DB_KEY + '_timebank')).then((snap) => {
+                        const v = snap.val() || {};
+                        if (typeof v.seconds === 'number') this.timeBankSeconds = v.seconds;
+                        if (v.history) {
+                            this.timeBankHistory = Array.isArray(v.history) ? v.history : Object.values(v.history);
+                        }
+                        // ★ localStorage 캐시도 동시 저장 → 다음 새로고침 시 즉시 표시
+                        try { localStorage.setItem('timeBankCache_v1', JSON.stringify({ seconds: this.timeBankSeconds, history: this.timeBankHistory })); } catch(e) {}
+                    }).catch(()=>{});
+                } catch(e) { return Promise.resolve(); }
+            },
+            _saveTimeBankToFirebase() {
+                // ★ localStorage 캐시 동시 업데이트
+                try { localStorage.setItem('timeBankCache_v1', JSON.stringify({ seconds: this.timeBankSeconds || 0, history: this.timeBankHistory || [] })); } catch(e) {}
+                try {
+                    if (typeof db === 'undefined' || typeof set === 'undefined' || typeof ref === 'undefined') return;
+                    return set(ref(db, DB_KEY + '_timebank'), {
+                        seconds: this.timeBankSeconds || 0,
+                        history: this.timeBankHistory || []
+                    }).catch(()=>{});
+                } catch(e) {}
+            },
+            openTimeBankHistoryModal() {
+                this.showTimeBankHistoryModal = true;
+                this._timeBankDirty = false;
+                // ★ 누가기록 클릭 시 firebase 최신값 강제 fetch
+                this._timeBankSubscribed = false;
+                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
+            },
+            closeTimeBankModal() {
+                this.showTimeBankHistoryModal = false;
+                if (this._timeBankDirty) {
+                    this._timeBankDirty = false;
+                    this._saveTimeBankToFirebase && this._saveTimeBankToFirebase();
+                }
             },
 
             getModeName(mode) {
@@ -14729,19 +15326,27 @@ saveNameList() {
                         nextTabId: this.nextTabId,
                         tabData: this.tabData,
                         missions: this.missions,
+                        statsWarningCount: this.statsWarningCount,
+                        statsPenaltyCount: this.statsPenaltyCount,
+                        daySchedules: this.daySchedules,
                         groups: _pick(seatsServer.groups, this.groups),
                         groupingList: _pick(toolsServer.groupingList, this.groupingList),
                         savedGroupings: _pick(toolsServer.savedGroupings, this.savedGroupings),
 
                         // 3. 뽑기 도구 및 게임 관련 (_tools ref)
                         participantList: _pick(toolsServer.participantList, this.participantList),
+                        deductWinnerCount: _pick(toolsServer.deductWinnerCount, this.deductWinnerCount),
+                        rememberParticipants: _pick(toolsServer.rememberParticipants, this.rememberParticipants),
                         animalRaceResults: _pick(toolsServer.animalRaceResults, this.animalRaceResults),
+                        raceCompleted: _pick(toolsServer.raceCompleted, this.raceCompleted),
                         lotteryPools: _pick(toolsServer.lotteryPools, this.lotteryPools),
                         lastWinners: _pick(toolsServer.lastWinners, this.lastWinners),
                         lotteryMode: _pick(toolsServer.lotteryMode, this.lotteryMode),
                         savedRoulettes: _pick(toolsServer.savedRoulettes, this.savedRoulettes),
                         rouletteInput: _pick(toolsServer.rouletteInput, this.rouletteInput),
                         capsules: _pick(toolsServer.capsules, this.capsules),
+                        groupNames: _pick(toolsServer.groupNames, this.groupNames),
+                        groupLabelOrder: _pick(toolsServer.groupLabelOrder, this.groupLabelOrder),
 showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가    
                     
                       // 4. 판서 관련
@@ -14848,12 +15453,23 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         if (data.nextTabId) this.nextTabId = data.nextTabId;
                         if (data.tabData) this.tabData = data.tabData;
                         if (data.missions) this.missions = data.missions;
+                        if (data.statsWarningCount !== undefined) this.statsWarningCount = data.statsWarningCount;
+                        if (data.statsPenaltyCount !== undefined) this.statsPenaltyCount = data.statsPenaltyCount;
+                        if (data.daySchedules) this.daySchedules = data.daySchedules;
                         if (data.groups) this.groups = data.groups;
-      if (data.groupingList) this.groupingList = data.groupingList;
+                        if (data.groupingList) this.groupingList = data.groupingList;
                         if (data.savedGroupings) this.savedGroupings = data.savedGroupings;
-                        
+                        if (data.groupNames) this.groupNames = data.groupNames;
+                        if (Array.isArray(data.groupLabelOrder) && data.groupLabelOrder.length) {
+                            this.groupLabelOrder = data.groupLabelOrder;
+                            try { localStorage.setItem('groupLabelOrder', JSON.stringify(data.groupLabelOrder)); } catch(e) {}
+                        }
+
                         if (data.participantList) this.participantList = data.participantList;
+                        if (data.deductWinnerCount !== undefined) this.deductWinnerCount = data.deductWinnerCount;
+                        if (data.rememberParticipants !== undefined) this.rememberParticipants = data.rememberParticipants;
                         if (data.animalRaceResults) this.animalRaceResults = data.animalRaceResults;
+                        if (Array.isArray(data.raceCompleted)) this.raceCompleted = data.raceCompleted;
                         if (data.lotteryPools) this.lotteryPools = data.lotteryPools;
                         if (data.lastWinners) this.lastWinners = data.lastWinners;
                         if (data.lotteryMode) this.lotteryMode = data.lotteryMode;
@@ -16284,6 +16900,45 @@ deleteGrouping(idx) {
             getRandomStudent() { const s = this.allStudents[Math.floor(Math.random() * this.allStudents.length)]; return { ...s }; },
             getRandomColor() { const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7']; return colors[Math.floor(Math.random() * colors.length)]; },
             reshuffleGroups() { this.showGroupingResultModal = false; this.groupingList = []; this.saveToLocal(); this.$nextTick(() => { this.showGroupMakerModal = true; }); },
+            // 현재 뷰에 맞는 회전 상태를 토글
+            toggleRotateForView() {
+                if (this.view === 'order') this.isRotatedOrder = !this.isRotatedOrder;
+                else if (this.view === 'group') this.isRotatedGroup = !this.isRotatedGroup;
+                else this.isRotated = !this.isRotated;
+            },
+            // 우클릭: 1,2,3모둠 ↔ 4,5,6모둠 위/아래 행 통째 교체 (모둠 카드 자체를 교환)
+            swapGroupRows() {
+                if (!this.groups || this.groups.length < 2) { alert('모둠 데이터가 없어요.'); return; }
+                const swapHalves = (arr) => {
+                    if (!Array.isArray(arr) || arr.length < 2) return arr;
+                    const h = Math.ceil(arr.length / 2);
+                    return [...arr.slice(h), ...arr.slice(0, h)];
+                };
+                this.groups = swapHalves(this.groups);
+                // 모둠 숫자 라벨도 함께 swap (1↔4, 2↔5, 3↔6)
+                if (!Array.isArray(this.groupLabelOrder) || this.groupLabelOrder.length !== this.groups.length) {
+                    this.groupLabelOrder = this.groups.map((_, i) => i + 1);
+                }
+                this.groupLabelOrder = swapHalves(this.groupLabelOrder);
+                try { localStorage.setItem('groupLabelOrder', JSON.stringify(this.groupLabelOrder)); } catch(e) {}
+                this._saveGroupLabelOrderToFirebase && this._saveGroupLabelOrderToFirebase();
+                if (Array.isArray(this.groupNames) && this.groupNames.length >= 2) {
+                    // 길이를 그룹 수에 맞춘 후 swap
+                    const padded = this.groups.map((_, i) => this.groupNames[i] || '');
+                    this.groupNames = swapHalves(padded);
+                    if (this._saveGroupNamesToFirebase) this._saveGroupNamesToFirebase();
+                }
+                if (Array.isArray(this.raceCompleted) && this.raceCompleted.length >= 2) {
+                    this.raceCompleted = swapHalves(this.raceCompleted);
+                }
+                if (Array.isArray(this.groupingList) && this.groupingList.length >= 2) {
+                    this.groupingList = swapHalves(this.groupingList);
+                }
+                this.$forceUpdate && this.$forceUpdate();
+                this.playSound && this.playSound('click');
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+            },
             
             openHistoryPreview(rec) { this.previewHistoryItem = rec; this.showHistoryPreview = true; },
             
@@ -18344,11 +18999,14 @@ startReverseLadderGame(endColIdx) {
             // ★ Phase C: 자리 데이터는 마운트 직후 백그라운드 구독 (저장 race 방지)
             // 대시보드 첫 렌더는 자리 데이터 없이 진행되고, 곧이어 도착하여 저장 가드 해제
             setTimeout(() => this.ensureSeatsSubscribed && this.ensureSeatsSubscribed(), 100);
-            // ★ Phase E: 자리배치기록(_history) 자동 구독 — 마이그레이션 완료 후 안정적으로 구독되도록 약간 지연
-            setTimeout(() => this.ensureHistorySubscribed && this.ensureHistorySubscribed(), 500);
-            // ★ 칠판도 마운트 직후 자동 구독 — lastBoardSnapshot null 인 동안 저장 차단되는 race 방지
-            // (대시보드 알림장 미리보기는 boardPreview로 표시되므로 첫 렌더는 그대로)
-            setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
+            // ★ Phase E: _history는 "지난 기록 보기" 버튼 클릭 시에만 lazy 구독 (트래픽 절감)
+            // ★ 칠판도 lazy: openBlackboard/대시보드 클릭/showBlackboard watcher 경유로 구독됨
+            // 단, 첫 진입 시 race 방지를 위해 백그라운드 fallback 3초 후 구독
+            setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 3000);
+            // ★ 시간 저금통: 사이드바 widget이 항상 보이므로 부팅 시 1회 fetch
+            setTimeout(() => this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed(), 800);
+            // ★ 1회성 메인 DB null 마이그레이션: 분리된 ref에 있는 옛 필드를 메인에서 제거
+            setTimeout(() => this._migrateMainDbCleanup && this._migrateMainDbCleanup(), 6000);
             // ★ 새로고침/창 닫기 직전 디바운스 중인 판서 즉시 flush
             const _flushBoardSave = () => {
                 try {
@@ -18366,8 +19024,7 @@ startReverseLadderGame(endColIdx) {
             });
             // pagehide도 추가 (Safari/iOS에서 beforeunload 안 뜸)
             window.addEventListener('pagehide', _flushBoardSave);
-            // ★ 판서 데이터도 마운트 직후 자동 구독 (칠판 열 때까지 비어있는 현상 방지)
-            setTimeout(() => this.ensureBoardSubscribed && this.ensureBoardSubscribed(), 200);
+            // (중복 ensureBoardSubscribed 제거 — 위 3초 fallback 으로 통합)
 
 // ★ [추가] 소음 측정기 타이머 누적 시간 불러오기
             const savedNoiseSecs = localStorage.getItem('noiseRecordSeconds');

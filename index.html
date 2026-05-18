@@ -2607,69 +2607,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 <body>
 <div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>
 
-<!-- 트래픽 통계 모달 -->
-<div v-if="showTrafficStats" @click.self="showTrafficStats = false"
-     style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;">
-    <div style="background:white;border-radius:20px;width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.3);overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#5D4037,#8D6E63);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;color:white;flex-shrink:0;">
-            <span style="font-size:17px;">📊 Firebase 트래픽 사용량 (최근 30일)</span>
-            <button @click="showTrafficStats = false" style="background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:28px;height:28px;font-size:16px;color:white;cursor:pointer;">×</button>
-        </div>
-        <div style="flex:1;overflow-y:auto;padding:16px;">
-            <div v-if="trafficStatsRows.length === 0" style="text-align:center;color:#aaa;padding:32px;">아직 기록된 트래픽이 없어요</div>
-            <table v-else style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead>
-                    <tr style="background:#FFF8E1;">
-                        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #FFE0B2;">날짜</th>
-                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#9E9E9E;" title="새로고침할 때마다 Firebase가 자동으로 보내는 초기 데이터. 줄일 수 없습니다.">📥 초기 동기화</th>
-                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#1565C0;" title="실제 데이터 변경으로 인한 다운로드. 최적화 효과 측정 가능.">🔄 변경 동기화</th>
-                        <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #FFE0B2;color:#E65100;">⬆ 업로드</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(row, i) in trafficStatsRows" :key="row.date" :style="i===0?'background:#E3F2FD;font-weight:bold;':''">
-                        <td style="padding:6px 10px;border-bottom:1px solid #EEE;">{{ row.date }}{{ i===0 ? ' (오늘)' : '' }}</td>
-                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#9E9E9E;">{{ formatBytes(row.initDown) }} <span style="font-size:11px;">({{ row.initCount }}회)</span></td>
-                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#1565C0;">{{ formatBytes(row.syncDown) }}</td>
-                        <td style="padding:6px 10px;text-align:right;border-bottom:1px solid #EEE;color:#E65100;">{{ formatBytes(row.up) }} <span style="color:#aaa;font-size:11px;">({{ row.upCount }}회)</span></td>
-                    </tr>
-                </tbody>
-                <tfoot v-if="trafficStatsRows.length > 0">
-                    <tr style="background:#FFF3E0;font-weight:bold;">
-                        <td style="padding:8px 10px;">총합</td>
-                        <td style="padding:8px 10px;text-align:right;color:#9E9E9E;">{{ formatBytes(trafficTotalInitDown) }}</td>
-                        <td style="padding:8px 10px;text-align:right;color:#1565C0;">{{ formatBytes(trafficTotalSyncDown) }}</td>
-                        <td style="padding:8px 10px;text-align:right;color:#E65100;">{{ formatBytes(trafficTotalUp) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <div v-if="trafficSrcRows.length" style="margin-top:14px;padding:10px 12px;background:#FFF8E1;border-radius:8px;">
-                <div style="font-size:13px;font-weight:bold;color:#5D4037;margin-bottom:8px;">📂 오늘 소스별 다운로드 (새로고침 {{ trafficRefreshCountToday }}회)</div>
-                <div v-for="r in trafficSrcRows" :key="r.src" style="display:flex;justify-content:space-between;font-size:12px;color:#5D4037;padding:3px 0;border-bottom:1px dashed #FFE0B2;">
-                    <span>{{ r.label }}</span>
-                    <span style="font-family:monospace;">{{ formatBytes(r.bytes) }} <span style="color:#aaa;">({{ r.count }}회 · 평균 {{ formatBytes(r.bytes/Math.max(1,r.count)) }}/회)</span></span>
-                </div>
-                <div style="margin-top:10px;padding-top:8px;border-top:2px solid #FFB74D;">
-                    <button @click="dumpCurrentSizes" style="background:#FF9800;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;margin-right:6px;">🔬 현재 데이터 크기 진단</button>
-                    <button @click="scanFirebaseUnused" style="background:#8D6E63;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;margin-right:6px;">🧹 사용 안 하는 필드 정리</button>
-                    <label style="background:#558B2F;color:white;border:none;border-radius:8px;padding:6px 14px;font-family:'Jua';font-size:12px;cursor:pointer;display:inline-block;margin-right:6px;">
-                        📥 전체 복구
-                        <input type="file" accept=".json,application/json" @change="restoreFromBackupFile" style="display:none;">
-                    </label>
-                    <div v-if="currentSizesText" style="margin-top:8px;font-family:monospace;font-size:11px;color:#5D4037;background:white;border-radius:6px;padding:8px;white-space:pre-wrap;">{{ currentSizesText }}</div>
-                </div>
-            </div>
-            <div style="font-size:11px;color:#888;margin-top:12px;line-height:1.7;background:#FAFAFA;padding:10px 12px;border-radius:8px;">
-                <b style="color:#9E9E9E;">📥 초기 동기화</b>: 새로고침할 때 Firebase가 자동으로 보내는 전체 데이터. <b>피할 수 없는 트래픽</b>입니다.<br>
-                <b style="color:#1565C0;">🔄 변경 동기화</b>: 실시간 변경으로 발생하는 트래픽. 최적화 효과는 여기서 확인.<br>
-                <b style="color:#E65100;">⬆ 업로드</b>: 내가 변경한 내용을 서버로 보내는 트래픽.<br>
-                ※ Service Worker는 HTML/CDN만 캐시하므로 Firebase 데이터 트래픽엔 영향 없음.<br>
-                ※ JSON 직렬화 기준 추정치 · 30일치만 보관.
-            </div>
-            <button @click="resetTrafficStats" style="margin-top:14px;padding:8px 16px;background:#EEE;border:none;border-radius:10px;font-family:'Jua';font-size:13px;cursor:pointer;color:#666;">통계 초기화</button>
-        </div>
-    </div>
-</div>
 
 <!-- 다중 탭 경고 배너 (동적 생성) -->
 
@@ -4463,11 +4400,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                class="w-16 accent-purple-400 h-1 cursor-pointer" :disabled="!soundSettings.game">
                         <span class="text-[10px] font-mono text-slate-500 w-7 text-right">{{ Math.round(bgmVolume * 100) }}%</span>
                     </div>
-                    <button @click="showTrafficStats = true"
-                            class="px-2 py-1 rounded-xl font-black text-xs border-b-4 border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-all flex items-center gap-1"
-                            title="트래픽 사용량 통계">
-                        <i class="fa-solid fa-chart-line"></i> 트래픽
-                    </button>
                 </template>
                 <template v-if="dashboardSettingsTab==='plans'">
                     <button @click="dashboardSettings.hidePastPlans = !dashboardSettings.hidePastPlans; saveDashboardSettings()"
@@ -4510,7 +4442,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">위도</label><input v-model="dashboardSettings.lat" type="text" placeholder="37.5665" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
                     <div class="flex flex-col gap-1"><label class="text-xs font-black text-[#8d6e63]">경도</label><input v-model="dashboardSettings.lon" type="text" placeholder="126.9780" class="px-3 py-1.5 rounded-xl border-2 border-[#e7d5b1] text-[#5d4037] font-bold text-xs outline-none bg-white"></div>
                 </div>
-                <!-- 내보내기/불러오기 -->
+                <!-- 내보내기/불러오기/필드정리 -->
                 <div class="flex gap-2">
                     <button @click="exportData" class="flex-1 bg-[#fcc419] border-b-4 border-[#fab005] text-[#744210] py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1">
                         <i class="fa-solid fa-file-export"></i> 내보내기
@@ -4519,6 +4451,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <i class="fa-solid fa-file-import"></i> 불러오기
                     </button>
                     <input type="file" ref="fileInput" class="hidden" accept=".json" @change="importData">
+                    <button @click="scanFirebaseUnused" class="flex-1 bg-[#8D6E63] border-b-4 border-[#6D4C41] text-white py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-broom"></i> 필드 정리
+                    </button>
                 </div>
             </div>
             <!-- 오른쪽: 학생 관리 -->
@@ -6321,8 +6256,6 @@ _ownSnackSave: false,        // ★ 내 창 onValue 에코 구별용 (저장 후
 _snackEverLoaded: false,     // ★ _snack ref 1회 이상 로드됨 — 메인 DB 구버전 복원 차단용
 shuffleHistoryByMode: {},   // ★ 모드별 짝꿍 이력 (이성/동성/랜덤 각각 records, cycleCount, currentRound)
 showHiddenMenu: false, // 타이틀 드롭다운 메뉴
-showTrafficStats: false, // 트래픽 통계 모달
-currentSizesText: '', // 진단: 현재 데이터 크기 분석 결과
 isNoiseTimeHidden: false,
 isSortedByNumber: false,  // ★ 추가: 번호순 정렬 상태인지 확인
 preSortLayout: null,      // ★ 추가: 섞기 전 원래 자리 기억
@@ -7374,48 +7307,6 @@ mergedRankData() {
         }
         return numA - numB;
     });
-},
-trafficStatsRows() {
-    this.showTrafficStats;
-    let stats;
-    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    return Object.keys(stats).sort().reverse().map(date => {
-        const s = stats[date];
-        const down = s.down || 0;
-        const initDown = s.initDown || 0;
-        return {
-            date,
-            initDown,                        // 초기 동기화 (불가피)
-            syncDown: Math.max(0, down - initDown), // 실시간 변경
-            up: s.up || 0,
-            downCount: s.downCount || 0,
-            initCount: s.initCount || 0,
-            upCount: s.upCount || 0,
-        };
-    });
-},
-trafficTotalInitDown() { return this.trafficStatsRows.reduce((s,r) => s + r.initDown, 0); },
-trafficTotalSyncDown() { return this.trafficStatsRows.reduce((s,r) => s + r.syncDown, 0); },
-trafficTotalUp()       { return this.trafficStatsRows.reduce((s,r) => s + r.up, 0); },
-trafficSrcRows() {
-    this.showTrafficStats;
-    let stats;
-    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    const today = new Date().toISOString().slice(0,10);
-    const bySrc = stats[today] && stats[today].bySrc || {};
-    const labels = { main:'🏠 메인 DB', board:'📋 칠판', tools:'🛠️ 도구', upload:'⬆ 업로드' };
-    return Object.keys(bySrc).map(src => ({
-        src, label: labels[src] || src,
-        bytes: bySrc[src].bytes || 0,
-        count: bySrc[src].count || 0
-    })).sort((a,b) => b.bytes - a.bytes);
-},
-trafficRefreshCountToday() {
-    this.showTrafficStats;
-    let stats;
-    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    const today = new Date().toISOString().slice(0,10);
-    return (stats[today] && stats[today].initCount) || 0;
 },
 
             snackBankFull() {
@@ -9007,57 +8898,6 @@ formatBytes(b) {
     if (b < 1024*1024*1024) return (b/1024/1024).toFixed(2) + ' MB';
     return (b/1024/1024/1024).toFixed(2) + ' GB';
 },
-resetTrafficStats() {
-    if (!confirm('트래픽 통계 기록을 모두 삭제할까요?')) return;
-    try { localStorage.removeItem('trafficStats'); } catch(e) {}
-    this.showTrafficStats = false;
-    this.$nextTick(() => { this.showTrafficStats = true; });
-},
-dumpCurrentSizes() {
-    // 현재 메모리에 있는 각 데이터의 크기 추정 → 어느 필드가 무거운지 진단
-    const measure = (obj) => JSON.stringify(obj || {}).length;
-    const lines = [];
-    const fmt = (b) => b < 1024 ? b+' B' : b < 1024*1024 ? (b/1024).toFixed(1)+' KB' : (b/1024/1024).toFixed(2)+' MB';
-    // 주요 필드별 크기
-    const fields = {
-        seats: this.seats,
-        waitingRoom: this.waitingRoom,
-        groups: this.groups,
-        shuffleHistory: this.shuffleHistory,
-        shuffleHistoryByMode: this.shuffleHistoryByMode,
-        tabData: this.tabData,
-        activityTabs: this.activityTabs,
-        daySchedules: this.daySchedules,
-        scheduleVersions: this.scheduleVersions,
-        alarmList: this.alarmList,
-        missions: this.missions,
-        timeBankHistory: this.timeBankHistory,
-        savedBoards: this.savedBoards,
-        capsules: this.capsules,
-        dashboardSettings: this.dashboardSettings,
-        manualLocks: this.manualLocks,
-        separationPairs: this.separationPairs,
-        // 칠판 (별도 ref)
-        '🎨 blackboardContent (칠판)': this.blackboardContent,
-        '🎨 paths (칠판 stroke)': this.paths,
-    };
-    const sizes = Object.entries(fields)
-        .map(([k,v]) => ({ name: k, size: measure(v) }))
-        .sort((a,b) => b.size - a.size);
-    const total = sizes.reduce((s,r) => s + r.size, 0);
-    lines.push('📊 현재 메모리 데이터 크기 (큰 순)');
-    lines.push('');
-    sizes.forEach(r => {
-        if (r.size < 100) return; // 100B 미만 생략
-        const pct = ((r.size / total) * 100).toFixed(1);
-        lines.push(`${r.name.padEnd(30)} ${fmt(r.size).padStart(10)}  (${pct}%)`);
-    });
-    lines.push('─────────────────────────────────────');
-    lines.push(`전체: ${fmt(total)}`);
-    lines.push('');
-    lines.push('💡 가장 큰 항목이 트래픽의 주범입니다.');
-    this.currentSizesText = lines.join('\n');
-},
 
 // 🎯 제한 복구: 돌림판 / 자리배치기록 / 판서저장 3개만
 async restoreLimitedFromBackupFile(event) {
@@ -9114,89 +8954,6 @@ async restoreLimitedFromBackupFile(event) {
     }
 },
 
-// 📥 백업 JSON에서 특정 필드 복구 (savedBoards / savedRoulettes / shuffleHistoryByMode)
-async restoreFromBackupFile(event) {
-    const file = event.target.files && event.target.files[0];
-    event.target.value = ''; // 동일 파일 재선택 가능하게
-    if (!file) return;
-    try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        const TOOL_FIELDS = ['savedBoards','savedRoulettes','savedGroupings','groupingList','lotteryPools','lastWinners','lotteryMode','rouletteInput','capsules','tournamentData','animalRunners','animalRaceResults','animalRaceFinished','participantList','deductWinnerCount','rememberParticipants','raceCompleted'];
-        const SEAT_FIELDS = ['seats','waitingRoom','seatConfig','manualLocks','separationPairs','groups','preSortLayout'];
-        const HISTORY_FIELDS = ['shuffleHistoryByMode','shuffleHistory'];
-        const BOARD_FIELDS = ['blackboardContent','paths'];
-        const summary = [];
-        const toolsObj = {}, seatsObj = {}, historyObj = {}, boardObj = {};
-        let _boardBodies2 = [];
-        TOOL_FIELDS.forEach(k => {
-            if (data[k] !== undefined && data[k] !== null) {
-                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
-                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
-                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
-                // ★ Phase D: savedBoards는 인덱스/본문 분리
-                if (k === 'savedBoards' && Array.isArray(data[k])) {
-                    const indexOnly = data[k].map(b => {
-                        const id = b.id || (Date.now() + Math.random());
-                        if (b.content !== undefined || b.paths !== undefined) {
-                            _boardBodies2.push({ id, content: b.content || '', paths: b.paths || [] });
-                        }
-                        return { id, title: b.title || '', preview: b.preview || '' };
-                    });
-                    toolsObj[k] = indexOnly;
-                    summary.push(`[복구] _tools.${k} 인덱스 (${indexOnly.length}개) + 본문 ${_boardBodies2.length}개`);
-                } else {
-                    toolsObj[k] = data[k];
-                    summary.push(`[복구] _tools.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
-                }
-            }
-        });
-        SEAT_FIELDS.forEach(k => {
-            if (data[k] !== undefined && data[k] !== null) {
-                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
-                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
-                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
-                seatsObj[k] = data[k];
-                summary.push(`[복구] _seats.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
-            }
-        });
-        HISTORY_FIELDS.forEach(k => {
-            if (data[k] !== undefined && data[k] !== null) {
-                const isEmpty = (Array.isArray(data[k]) && data[k].length === 0) ||
-                                (typeof data[k] === 'object' && !Array.isArray(data[k]) && Object.keys(data[k]).length === 0);
-                if (isEmpty) { summary.push(`[건너뜀] ${k}: 빈 값`); return; }
-                historyObj[k] = data[k];
-                summary.push(`[복구] _history.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
-            }
-        });
-        BOARD_FIELDS.forEach(k => {
-            if (data[k] !== undefined && data[k] !== null && data[k] !== '') {
-                boardObj[k] = data[k];
-                summary.push(`[복구] _board.${k} (${this.formatBytes(JSON.stringify(data[k]).length)})`);
-            }
-        });
-        if (summary.filter(s => s.startsWith('[복구]')).length === 0) {
-            alert('복구할 데이터가 백업 파일에 없습니다.\n\n' + summary.join('\n'));
-            return;
-        }
-        const msg = `다음 항목을 백업에서 Firebase로 복구합니다:\n\n${summary.join('\n')}\n\n⚠ 현재 서버 값을 백업 값으로 덮어씁니다. 계속할까요?`;
-        if (!confirm(msg)) return;
-        const ops = [];
-        if (Object.keys(toolsObj).length) ops.push(update(ref(db, DB_KEY + '_tools'), toolsObj));
-        if (Object.keys(seatsObj).length) ops.push(update(ref(db, DB_KEY + '_seats'), seatsObj));
-        if (Object.keys(historyObj).length) ops.push(update(ref(db, DB_KEY + '_history'), historyObj));
-        if (Object.keys(boardObj).length) ops.push(update(ref(db, DB_KEY + '_board'), boardObj));
-        // ★ Phase D: 판서 본문 _boards/{id}에 개별 set
-        if (_boardBodies2.length && typeof set !== 'undefined') {
-            _boardBodies2.forEach(bb => ops.push(set(ref(db, DB_KEY + '_boards/' + bb.id), { content: bb.content, paths: bb.paths })));
-        }
-        await Promise.all(ops);
-        alert('✅ 복구 완료. 새로고침 후 확인해주세요.');
-    } catch (e) {
-        console.error('복구 오류:', e);
-        alert('복구 실패: ' + e.message);
-    }
-},
 
 // 🧹 Firebase에서 사용하지 않는 필드를 찾아 삭제 (옛 버전 잔재 정리)
 async scanFirebaseUnused() {
@@ -9268,41 +9025,6 @@ async scanFirebaseUnused() {
     }
 },
 
-// 트래픽 통계 (다운/업로드 byte) — localStorage에 일자별 누적
-// kind: 'init'(초기 동기화, 새로고침마다 불가피) / 'sync'(실시간 변경)
-_trackDown(data, refKey) {
-    try {
-        const bytes = JSON.stringify(data||{}).length;
-        if (!this._initSeen) this._initSeen = {};
-        const isInit = !this._initSeen[refKey || 'main'];
-        if (isInit) this._initSeen[refKey || 'main'] = true;
-        this._addTraffic('down', bytes, isInit ? 'init' : 'sync', refKey || 'main');
-    } catch(e){}
-},
-_trackUp(data) { try { this._addTraffic('up', JSON.stringify(data||{}).length, 'sync', 'upload'); } catch(e){} },
-_addTraffic(dir, bytes, kind, refKey) {
-    if (!bytes || bytes < 1) return;
-    const today = new Date().toISOString().slice(0,10);
-    let stats;
-    try { stats = JSON.parse(localStorage.getItem('trafficStats') || '{}'); } catch(e) { stats = {}; }
-    if (!stats[today]) stats[today] = { down:0, up:0, downCount:0, upCount:0, initDown:0, initCount:0, bySrc:{} };
-    if (!stats[today].bySrc) stats[today].bySrc = {};
-    if (kind === 'init') {
-        stats[today].initDown = (stats[today].initDown||0) + bytes;
-        stats[today].initCount = (stats[today].initCount||0) + 1;
-    }
-    stats[today][dir] = (stats[today][dir]||0) + bytes;
-    stats[today][dir+'Count'] = (stats[today][dir+'Count']||0) + 1;
-    // 소스별 누적
-    if (refKey) {
-        if (!stats[today].bySrc[refKey]) stats[today].bySrc[refKey] = { bytes:0, count:0 };
-        stats[today].bySrc[refKey].bytes += bytes;
-        stats[today].bySrc[refKey].count += 1;
-    }
-    const cutoff = new Date(Date.now() - 30*86400*1000).toISOString().slice(0,10);
-    Object.keys(stats).forEach(d => { if (d < cutoff) delete stats[d]; });
-    try { localStorage.setItem('trafficStats', JSON.stringify(stats)); } catch(e) {}
-},
 
 // 가시성 인지 폴링 헬퍼 (탭 활성 시 5초, 비활성 시 일시중지)
 _smartPoll(fn, activeMs = 5000) {
@@ -12765,18 +12487,17 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     if (Object.keys(seatUpdates).length) seatUpdates.updatedAt = _now;
                     if (Object.keys(historyUpdates).length) historyUpdates.updatedAt = _now;
 
-                    this._trackUp(updates);
                     const mainSave = Object.keys(updates).length
                         ? update(ref(db, DB_KEY), updates)
                         : Promise.resolve();
                     const toolSave = Object.keys(toolUpdates).length
-                        ? (this._trackUp(toolUpdates), update(ref(db, DB_KEY + '_tools'), toolUpdates))
+                        ? update(ref(db, DB_KEY + '_tools'), toolUpdates)
                         : Promise.resolve();
                     const seatSave = Object.keys(seatUpdates).length
-                        ? (this._trackUp(seatUpdates), update(ref(db, DB_KEY + '_seats'), seatUpdates))
+                        ? update(ref(db, DB_KEY + '_seats'), seatUpdates)
                         : Promise.resolve();
                     const historySave = Object.keys(historyUpdates).length
-                        ? (this._trackUp(historyUpdates), update(ref(db, DB_KEY + '_history'), historyUpdates))
+                        ? update(ref(db, DB_KEY + '_history'), historyUpdates)
                         : Promise.resolve();
                     if (Object.keys(snackUpdates).length) {
                         snackUpdates.updatedAt = Date.now();
@@ -12786,7 +12507,7 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                         this._ownSnackSaveTimer = setTimeout(() => { this._ownSnackSave = false; }, 2000);
                     }
                     const snackSave = Object.keys(snackUpdates).length
-                        ? (this._trackUp(snackUpdates), update(ref(db, DB_KEY + '_snack'), snackUpdates))
+                        ? update(ref(db, DB_KEY + '_snack'), snackUpdates)
                         : Promise.resolve();
 
                     // ★ 같은 컴퓨터 다른 창에 전체 변경 즉시 broadcast (Firebase 트래픽 0)
@@ -12843,7 +12564,6 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                             || v === null || v === undefined;
                         if (!isEmpty) this._toolsHadDataFor[k] = true;
                     });
-                    this._trackDown(t, 'tools');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
                     if (t.tournamentData) {
                         this.visibleBracketTree = t.tournamentData.tree || [];
@@ -12976,7 +12696,6 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     this._seatsLoaded = true;
                     if (this.isSavingNow) return;
                     const s = snap.val() || {};
-                    this._trackDown(s, 'seats');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
                     if (s.seats !== undefined) {
                         this.seats = Array.from({length: 30}, (_, i) => {
@@ -13052,7 +12771,6 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     this._historyLoaded = true;
                     if (this.isSavingNow) return;
                     const h = snap.val() || {};
-                    this._trackDown(h, 'history');
                     const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
 
                     // Firebase는 빈 배열을 null로 저장 → undefined/null이면 빈 배열로 명시 초기화
@@ -13163,7 +12881,6 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
                     fieldUpdates.paths = cur.paths;
                 }
                 this.isBoardSaving = true;
-                this._trackUp(fieldUpdates);
                 update(ref(db, DB_KEY + '_board'), fieldUpdates)
                     .then(() => {
                         this.lastBoardSnapshot = curStr;
@@ -13348,7 +13065,6 @@ isNoiseTimeHidden: this.isNoiseTimeHidden, // ★ Peace Time 상태 추가
 
                             const parsed = snapshot.val();
                             const newSnap = JSON.stringify(parsed); // 최신 스냅샷
-                            this._trackDown(parsed, 'main');
                             // ★ 동일 데이터(캐시 일치)면 비싼 재처리 스킵 — UI 깜빡임/오버헤드 방지
                             if (this.lastDbSnapshot === newSnap) {
                                 return;
@@ -13730,7 +13446,6 @@ if (parsed.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = parsed.isNo
                         // 현재 화면 내용과 비교 — 다를 때만 적용 (캐시 유지)
                         const curSnap = JSON.stringify({ blackboardContent: this.blackboardContent || '', paths: this.paths || [] });
                         if (newSnap === curSnap) return;
-                        this._trackDown && this._trackDown(b, 'board');
                         if (this.blackboardContent !== newContent) {
                             this.blackboardContent = newContent;
                             const editor = document.getElementById('board-editor');

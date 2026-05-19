@@ -3163,7 +3163,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                     : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300 hover:bg-amber-100'">
                             <span v-if="snackSelectedStudents.includes('선생님')"
                                   class="absolute top-0.5 right-1 text-[9px] text-amber-100 font-black">✓</span>
-                            👩‍🏫 선생님
+                            선생님
                         </button>
 
                         <!-- 학생 그리드 -->
@@ -3260,8 +3260,18 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <h3 class="text-2xl font-black text-center text-amber-600">⚙️ 간식 종류 관리</h3>
 
                 <div class="max-h-[45vh] overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
-                    <div v-for="(t, idx) in snackTypes" :key="idx"
-                         class="flex items-center gap-3 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                    <div v-for="(t, idx) in snackTypes" :key="t.name + '_' + idx"
+                         :draggable="snackEditIdx !== idx"
+                         @dragstart="onSnackTypeDragStart($event, idx)"
+                         @dragover.prevent
+                         @dragenter.prevent="snackTypeDragOver = idx"
+                         @dragleave="snackTypeDragOver === idx ? snackTypeDragOver = -1 : null"
+                         @drop="onSnackTypeDrop($event, idx)"
+                         @dragend="snackTypeDragIdx = -1; snackTypeDragOver = -1"
+                         :class="['flex items-center gap-3 px-3 py-2 bg-amber-50 border-2 rounded-2xl cursor-move transition-all',
+                                   snackTypeDragOver === idx && snackTypeDragIdx !== idx ? 'border-teal-500 bg-teal-50' : 'border-amber-200',
+                                   snackTypeDragIdx === idx ? 'opacity-40' : '']">
+                        <span class="text-slate-300 text-sm select-none" title="드래그로 순서 변경">⋮⋮</span>
                         <!-- 일반 표시: 클릭 시 수정 모드 -->
                         <span v-if="snackEditIdx !== idx"
                               @click="startEditSnackType(idx)"
@@ -4789,7 +4799,19 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <div v-if="showHistoryPreview" class="fixed inset-0 bg-black/60 z-[7000] flex items-center justify-center" @click.self="showHistoryPreview = false">
             <div class="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-xl font-black text-center mb-2">배치 기록 미리보기</h3><p class="text-center text-slate-500 text-sm mb-4">{{ previewHistoryItem.date }}</p>
-                <div class="bg-slate-100 p-4 rounded-2xl flex justify-center"><div class="flex gap-4"><div v-for="bIdx in 3" :key="bIdx" class="grid grid-cols-2 gap-2"><template v-for="rIdx in 5" :key="rIdx"><div v-for="pIdx in 2" :key="pIdx" class="seat-preview cursor-default" :class="previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)] ? 'seat-active' : 'seat-empty'">{{ (s => s ? (typeof s === 'string' ? s : (s.name || '')) : '')(previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)]) }}</div></template></div></div></div>
+                <div class="bg-slate-100 p-4 rounded-2xl flex flex-col items-center gap-3">
+                    <div class="flex gap-4" style="transform: rotate(180deg);">
+                        <div v-for="bIdx in 3" :key="bIdx" class="grid grid-cols-2 gap-2">
+                            <template v-for="rIdx in 5" :key="rIdx">
+                                <div v-for="pIdx in 2" :key="pIdx"
+                                     class="seat-preview cursor-default"
+                                     style="transform: rotate(180deg);"
+                                     :class="previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)] ? 'seat-active' : 'seat-empty'">{{ (s => s ? (typeof s === 'string' ? s : (s.name || '')) : '')(previewHistoryItem.seats[getIndex(bIdx, rIdx, pIdx)]) }}</div>
+                            </template>
+                        </div>
+                    </div>
+                    <span class="bg-[#9c734f] text-white px-10 py-2 rounded-full text-base font-black inline-block shadow">교 탁</span>
+                </div>
                 <div class="flex gap-2 mt-4"><button @click="restoreHistory" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">이 배치로 적용</button><button @click="showHistoryPreview = false" class="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold">닫기</button></div>
             </div>
         </div>
@@ -6297,6 +6319,8 @@ timeBankSeconds: 0,
         snackNewName: '',
         snackNewEmoji: '',
         snackEditIdx: -1,
+        snackTypeDragIdx: -1,
+        snackTypeDragOver: -1,
         snackEditName: '',
         snackSelectedStudents: [],
         snackFloatItems: [],
@@ -7351,6 +7375,8 @@ mergedRankData() {
                 // 사이드바용: _snack 미로드 시 summary 사용, 로드 후엔 실시간 계산
                 const name = this.snackLoaded ? this.snackTopContributor : (this.snackBankSummary && this.snackBankSummary.topName) || '';
                 if (!name) return { name: '', particle: '' };
+                // ★ 선생님은 성 제거 없이 그대로 표시
+                if (name === '선생님') return { name: '선생님', particle: '이' };
                 const firstName = name.length > 1 ? name.slice(1) : name;
                 const code = firstName.charCodeAt(firstName.length - 1);
                 const hasJongseong = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
@@ -8090,6 +8116,27 @@ toggleOneMinAlarm() {
                 if (this.snackBankHistory.length > 200) this.snackBankHistory.length = 200;
                 this.snackDrawIdx++;
                 this.playSound && this.playSound('magic');
+            },
+            // ★ 간식 종류 드래그 정렬
+            onSnackTypeDragStart(e, idx) {
+                this.snackTypeDragIdx = idx;
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', String(idx)); } catch(_) {}
+                }
+            },
+            onSnackTypeDrop(e, targetIdx) {
+                const fromIdx = this.snackTypeDragIdx;
+                this.snackTypeDragIdx = -1;
+                this.snackTypeDragOver = -1;
+                if (fromIdx < 0 || fromIdx === targetIdx) return;
+                const arr = this.snackTypes.slice();
+                const [moved] = arr.splice(fromIdx, 1);
+                arr.splice(targetIdx, 0, moved);
+                this.snackTypes = arr;
+                if (this.saveToLocal) this.saveToLocal();
+                if (this.saveToFirebase) this.saveToFirebase();
+                this.playSound && this.playSound('click');
             },
             addSnackType() {
                 const name = (this.snackNewName || '').trim();

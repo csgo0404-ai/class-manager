@@ -2663,11 +2663,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
     </style>
 
     <div class="absolute top-8 right-8 flex items-center gap-4 z-50" @click.stop>
+        <button @click="openTimeBankFromAlarm"
+                title="알람 기준 시간저금통"
+                class="w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-lg border-4 border-slate-700 bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300">
+            <i class="fa-solid fa-piggy-bank text-4xl"></i>
+        </button>
+
         <button @click="showAlarmModal = true"
                 class="w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-lg border-4 border-slate-700 bg-slate-800 text-slate-500 hover:bg-slate-700">
             <svg viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
         </button>
-        
+
         <button @click="isClockMaximized = false" class="w-20 h-20 bg-slate-800 text-slate-500 border-slate-700 border-4 rounded-3xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center">
             <i class="fa-solid fa-xmark text-5xl"></i>
         </button>
@@ -2806,6 +2812,18 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <!-- 상단: 벨 애니메이션 -->
         <div class="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-3">
             <span class="text-[9rem] animate-violent">🔔</span>
+        </div>
+        <!-- 알람 중에도 보이는 우상단 버튼 -->
+        <div class="absolute top-8 right-8 flex items-center gap-4" style="z-index:200001;" @click.stop>
+            <button @click.stop="stopAlarm(); openTimeBankFromAlarm();"
+                    title="알람 기준 시간저금통"
+                    class="w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-lg border-4 border-slate-700 bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300">
+                <i class="fa-solid fa-piggy-bank text-4xl"></i>
+            </button>
+            <button @click.stop="stopAlarm()"
+                    class="w-20 h-20 bg-slate-800 text-slate-500 border-slate-700 border-4 rounded-3xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-5xl"></i>
+            </button>
         </div>
         <!-- 중앙 시간 (시계 전체화면 스타일) -->
         <div class="absolute top-[52%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center w-full pointer-events-none">
@@ -8189,6 +8207,37 @@ toggleOneMinAlarm() {
                 const s = (absSecs % 60).toString().padStart(2, '0');
                 return `${isNegative ? '-' : ''}${m}:${s}`;
             },
+            openTimeBankFromAlarm() {
+                const now = new Date();
+                const todayDow = now.getDay();
+                const candidates = (this.alarmList || []).filter(a => {
+                    if (!a || !a.on || !a.time) return false;
+                    const days = a.days !== undefined ? a.days : [0,1,2,3,4,5,6];
+                    return days.includes(todayDow);
+                });
+                if (candidates.length === 0) {
+                    this.showToast && this.showToast('⚠️ 오늘 활성화된 알람이 없습니다.');
+                    return;
+                }
+                let best = null, bestDiffMs = Infinity;
+                for (const a of candidates) {
+                    const [h, m] = a.time.split(':').map(Number);
+                    const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m || 0, 0, 0);
+                    const d = Math.abs(t - now);
+                    if (d < bestDiffMs) { bestDiffMs = d; best = { alarm: a, time: t }; }
+                }
+                const diffSec = Math.round((best.time - now) / 1000);
+                const abs = Math.abs(diffSec);
+                const isSave = diffSec >= 0;
+                this.timeBankInputType = isSave ? 'save' : 'waste';
+                this.timeBankInputMin = String(Math.floor(abs / 60));
+                this.timeBankInputSec = String(abs % 60);
+                const label = best.alarm.label || best.alarm.time;
+                this.timeBankInputMemo = `${label} 기준 ${isSave ? '절약' : '초과'}`;
+                this._timeBankSubscribed = false;
+                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
+                this.showTimeBankModal = true;
+            },
             openTimeBankModal(type) {
                 this.timeBankInputType = type;
                 this.timeBankInputMin = ''; this.timeBankInputSec = ''; this.timeBankInputMemo = '';
@@ -11529,16 +11578,28 @@ updateClock() {
                 this.currentSeconds = s;
                 this.currentTime24s = `${String(now.getHours()).padStart(2,'0')}:${m}:${s}`;
 
-                // 알람 리스트 체크 로직
+                // 알람 리스트 체크 로직 (분 단위 1회 발사 보장 — setInterval 드리프트로 00초를 놓쳐도 누락 없음)
                 if (this.alarmList && this.alarmList.length > 0) {
                     const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     const todayDow = now.getDay();
-                    this.alarmList.forEach(alarm => {
-                        if (alarm.on && alarm.time === currentHM && s === '00') {
-                            const days = alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6];
-                            if (days.includes(todayDow)) this.triggerAlarm(alarm);
-                        }
+                    const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${currentHM}`;
+                    if (!this._firedAlarmMinute) this._firedAlarmMinute = {};
+                    this.alarmList.forEach((alarm, i) => {
+                        if (!alarm.on || alarm.time !== currentHM) return;
+                        const days = alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6];
+                        if (!days.includes(todayDow)) return;
+                        const fireKey = `${minuteKey}_${i}_${alarm.time}_${alarm.label||''}`;
+                        if (this._firedAlarmMinute[fireKey]) return;
+                        this._firedAlarmMinute[fireKey] = true;
+                        this.triggerAlarm(alarm);
                     });
+                    // 다른 분으로 넘어가면 이전 키 정리 (메모리 누수 방지)
+                    if (this._lastAlarmMinuteKey !== minuteKey) {
+                        const keep = {};
+                        Object.keys(this._firedAlarmMinute).forEach(k => { if (k.startsWith(minuteKey)) keep[k] = true; });
+                        this._firedAlarmMinute = keep;
+                        this._lastAlarmMinuteKey = minuteKey;
+                    }
                 }
 
                 // ★ [동적 날짜 및 요일별 일정 실시간 갱신 로직]
@@ -14869,6 +14930,7 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         snackBank: this.snackBank,
                         snackBankHistory: this.snackBankHistory,
                         snackTypes: this.snackTypes,
+                        snackContribLog: this.snackContribLog,
                         alarmList: this.alarmList,
                         clockMessage: this.clockMessage,
                         timerSeconds: this.timerSeconds, // ★ 메인 타이머 시간 누락 추가
@@ -14894,7 +14956,7 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
 
                         // 8. UI 창 크기 및 위치
                         uiState: {
-                            timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized },
+                            timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized, bombMsgX: this.bombMsgX, bombMsgY: this.bombMsgY, bombMsgW: this.bombMsgW, bombMsgH: this.bombMsgH, bombMessage: this.bombMessage },
                             board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
                             noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
                             picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
@@ -15029,6 +15091,10 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         if (data.snackBank) this.snackBank = data.snackBank;
                         if (data.snackBankHistory) this.snackBankHistory = data.snackBankHistory;
                         if (Array.isArray(data.snackTypes) && data.snackTypes.length > 0) this.snackTypes = data.snackTypes;
+                        if (Array.isArray(data.snackContribLog)) {
+                            this.snackContribLog = data.snackContribLog;
+                            try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
+                        }
                         if (data.alarmList) this.alarmList = data.alarmList;
                         if (data.clockMessage !== undefined) this.clockMessage = data.clockMessage;
                         
@@ -15056,7 +15122,14 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
 
                         // UI 위치와 크기 복구
                         if (data.uiState) {
-                            if (data.uiState.timer) { this.timerX = data.uiState.timer.x; this.timerY = data.uiState.timer.y; this.timerSize = data.uiState.timer.size; this.isTimerMaximized = data.uiState.timer.isMaximized; }
+                            if (data.uiState.timer) {
+                                this.timerX = data.uiState.timer.x; this.timerY = data.uiState.timer.y; this.timerSize = data.uiState.timer.size; this.isTimerMaximized = data.uiState.timer.isMaximized;
+                                if (data.uiState.timer.bombMsgX !== undefined) this.bombMsgX = data.uiState.timer.bombMsgX;
+                                if (data.uiState.timer.bombMsgY !== undefined) this.bombMsgY = data.uiState.timer.bombMsgY;
+                                if (data.uiState.timer.bombMsgW !== undefined) this.bombMsgW = data.uiState.timer.bombMsgW;
+                                if (data.uiState.timer.bombMsgH !== undefined) this.bombMsgH = data.uiState.timer.bombMsgH;
+                                if (data.uiState.timer.bombMessage !== undefined) this.bombMessage = data.uiState.timer.bombMessage;
+                            }
                             if (data.uiState.board) { this.boardX = data.uiState.board.x; this.boardY = data.uiState.board.y; this.boardW = data.uiState.board.w; this.boardH = data.uiState.board.h; this.isMaximized = data.uiState.board.isMaximized; this.boardZoom = data.uiState.board.zoom; this.eraserSize = data.uiState.board.eraserSize; }
                             if (data.uiState.noise) { this.noiseX = data.uiState.noise.x; this.noiseY = data.uiState.noise.y; this.noiseW = data.uiState.noise.w; this.noiseH = data.uiState.noise.h; this.isNoiseMaximized = data.uiState.noise.isMaximized; }
                             if (data.uiState.picker) { this.pickerX = data.uiState.picker.x; this.pickerY = data.uiState.picker.y; this.pickerW = data.uiState.picker.w; this.pickerH = data.uiState.picker.h; this.isPickerMaximized = data.uiState.picker.isMaximized; }

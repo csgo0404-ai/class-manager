@@ -746,10 +746,10 @@ margin: 0 0.5cqw !important;
 }
 
 /* 버튼 가로 위치 */
-.btn-pos-1 { left: 35.5%; }  /* 초기화 */
-.btn-pos-2 { 
-    left: 43.5%; 
-    background: #b91c1c !important; 
+.btn-pos-1 { left: 43.5%; }  /* 초기화 */
+.btn-pos-2 {
+    left: 35.5%;
+    background: #b91c1c !important;
     border: 0.6cqw solid #7f1d1d !important;
 }
 
@@ -902,10 +902,7 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     
     /* [수정] 배경을 투명으로 변경 (뒤에 검은 막이 있으니까) */
     background-color: transparent !important;
-    
-    /* [추가] 기본 붉은 아우라 (폭탄 모양대로 빛남) */
-    filter: drop-shadow(0 0 50px rgba(255, 0, 0, 0.6));
-    
+
     background-size: 81% 80% auto !important; 
     width: 100vw !important;
     height: 100vh !important;
@@ -972,9 +969,9 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
 
 /* 최대화 모드일 때 버튼 가로 간격 미세 조정 (선택 사항) */
 .bomb-window.fixed.inset-0 .btn-pos-1 { left: 52%; }
-.bomb-window.fixed.inset-0 .btn-pos-2 { left: 56%; }
-.bomb-window.fixed.inset-0 .btn-pos-3 { left: 60%; }
-.bomb-window.fixed.inset-0 .btn-pos-4 { left: 64%; }
+.bomb-window.fixed.inset-0 .btn-pos-2 { left: 48%; }
+.bomb-window.fixed.inset-0 .btn-pos-3 { left: 56%; }
+.bomb-window.fixed.inset-0 .btn-pos-4 { left: 60%; }
 
     /* 버튼 입체감 유지 */
     border: 4px solid #000000 !important;
@@ -5811,7 +5808,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          height: !isTimerMaximized ? ((timerSize || 400) * 0.633) + 'px' : '100%',
          zIndex: timerZ /* ★ 조건부 삭제하고 무조건 최상단 허용 */
      }" 
-     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)"
+     @mousedown="focusWindow('timer'); !isTimerMaximized && $event.button === 0 && startTimerDrag($event)"
 @keydown.enter.stop="if(isTimerMaximized && !isEditingBombMessage){ isEditingBombMessage = true; $nextTick(() => $refs.bombMsgInput && $refs.bombMsgInput.focus()); }"
 tabindex="0">
     
@@ -5854,7 +5851,7 @@ tabindex="0">
     <button @click.stop="resetTimer" class="timer-ctrl-btn btn-pos-1" title="초기화"><i class="fa-solid fa-rotate-left"></i></button>
     <button @click.stop="toggleTimer" class="timer-ctrl-btn btn-pos-2" :class="{'timer-running': timerInterval}" title="작동/정지"><i :class="timerInterval ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i></button>
     <button @click.stop="isTimerMaximized = !isTimerMaximized; saveToLocal()" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-    <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
+    <button @click.stop="showTimer = false" @contextmenu.prevent.stop="openTimeBankFromTimer()" class="timer-ctrl-btn btn-pos-4" title="닫기 / 우클릭: 저금통"><i class="fa-solid fa-xmark"></i></button>
 
 <!-- 폭탄 타이머 활동 메시지 -->
 <div v-if="isTimerMaximized" @click.stop
@@ -5939,6 +5936,7 @@ tabindex="0">
     <div v-if="!isTimerMaximized" class="timer-resize-handle" @mousedown.stop="startTimerResize"></div></div>
 
 <div class="full-screen-explosion" :class="{'explode-active': isExploding}">BOOM!</div>
+
 
 <div v-if="showNoiseMeter"
      @mousedown.capture="focusWindow('noise')"
@@ -6680,6 +6678,7 @@ isRotatedGroup: false, isViewSwitching: false, _pendingSeatsRefresh: false, show
                 showActivityRecord: false,
                 
                 showTimer: false, timerSeconds: 0, timerInterval: null, timerX: null, timerY: null, timerSize: 400, isExploding: false,
+                timerContextMenu: { show: false, x: 0, y: 0 },
                 isTimerMaximized: true,
                inputMin: "0", 
                 inputSec: "00",
@@ -8234,6 +8233,33 @@ toggleOneMinAlarm() {
                 this.timeBankInputSec = String(abs % 60);
                 const label = best.alarm.label || best.alarm.time;
                 this.timeBankInputMemo = `${label} 기준 ${isSave ? '절약' : '초과'}`;
+                this._timeBankSubscribed = false;
+                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
+                this.showTimeBankModal = true;
+            },
+            openTimeBankFromTimer() {
+                const secs = Math.floor(this.timerSeconds);
+                if (secs <= 0) {
+                    this.showToast && this.showToast('⚠️ 기록할 시간이 없습니다.');
+                    return;
+                }
+                // 타이머/스탑워치 자동 정지
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                    if (this.timerAudio) { this.timerAudio.pause(); this.timerAudio.currentTime = 0; }
+                }
+                if (this.isStopwatchMode) {
+                    // 스탑워치: 초과한 시간만큼 감점(waste)
+                    this.timeBankInputType = 'waste';
+                    this.timeBankInputMemo = `타이머 초과 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
+                } else {
+                    // 타이머: 남은 시간만큼 절약(save)
+                    this.timeBankInputType = 'save';
+                    this.timeBankInputMemo = `타이머 절약 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
+                }
+                this.timeBankInputMin = String(Math.floor(secs / 60));
+                this.timeBankInputSec = String(secs % 60);
                 this._timeBankSubscribed = false;
                 this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
                 this.showTimeBankModal = true;
@@ -12082,6 +12108,15 @@ startTimerResize(e) {
 
     document.addEventListener('mousemove', mv);
     document.addEventListener('mouseup', mu);
+},
+showTimerContextMenu(e) {
+    const margin = 8;
+    const menuW = 180, menuH = 110;
+    let x = e.clientX + margin;
+    let y = e.clientY + margin;
+    if (x + menuW > window.innerWidth) x = e.clientX - menuW - margin;
+    if (y + menuH > window.innerHeight) y = e.clientY - menuH - margin;
+    this.timerContextMenu = { show: true, x, y };
 },
 resetTimer() {
     if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }

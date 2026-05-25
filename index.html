@@ -7587,7 +7587,11 @@ mergedRankData() {
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             tabData: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             // ★ 도구·간식·판서 실시간 동기화 (BroadcastChannel) — isSyncing 체크로 Firebase 로딩 중 broadcast 차단
-            snackBank: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
+            snackBank: { deep: true, handler() {
+                // ★ [Bug-3] snackBank 변경 시 snackBankSummary 즉시 동기화 (다른 탭 사이드바 표시용)
+                this.snackBankSummary = { count: this.snackBank ? this.snackBank.length : 0, topName: this.snackTopContributor || '' };
+                if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow();
+            } },
             snackBankHistory: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             snackContribLog: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             displayWinner(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
@@ -12681,6 +12685,7 @@ saveToLocal() {
                     currentNoisePreset: this.currentNoisePreset, noiseThreshold: this.noiseThreshold,
                     timeBankSeconds: this.timeBankSeconds, timeBankHistory: this.timeBankHistory,
                     snackBank: this.snackBank, snackBankHistory: this.snackBankHistory,
+                    snackBankSummary: { count: this.snackBank ? this.snackBank.length : 0, topName: this.snackTopContributor || '' }, // ★ [Bug-4] 요약 정보도 함께 저장
                     snackTypes: this.snackTypes, snackDrawList: this.snackDrawList,
                     snackDrawIdx: this.snackDrawIdx,
                     participantList: this.participantList, lotteryPools: this.lotteryPools,
@@ -18252,9 +18257,10 @@ initGameData(participants) {
                         this.lastFrameTime = performance.now(); 
                         this.rankingTimer = 0;
                         this.cleanupTimer = 0;
-                        this.resizeCanvas(); 
-                        window.addEventListener('resize', this.resizeCanvas); 
-                        this.animationId = requestAnimationFrame(this.loop); 
+                        this.resizeCanvas();
+                        window.removeEventListener('resize', this.resizeCanvas); // ★ [Bug-5] 중복 등록 방지
+                        window.addEventListener('resize', this.resizeCanvas);
+                        this.animationId = requestAnimationFrame(this.loop);
                     } 
                 }); 
             },

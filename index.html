@@ -3001,8 +3001,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </aside>
 
-<div v-if="showTimeBankModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showTimeBankModal = false">
-            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 animate-pop-in flex flex-col gap-4" :class="timeBankInputType === 'save' ? 'border-green-400' : 'border-red-400'">
+<div v-if="showTimeBankModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 animate-pop-in flex flex-col gap-4 relative" :class="timeBankInputType === 'save' ? 'border-green-400' : 'border-red-400'">
+                <button @click="showTimeBankModal = false" class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-slate-500 hover:text-slate-800 transition-all" title="닫기"><i class="fa-solid fa-xmark text-lg"></i></button>
                 <h3 class="text-2xl font-black text-center" :class="timeBankInputType === 'save' ? 'text-green-600' : 'text-red-500'">{{ timeBankInputType === 'save' ? '➕ 시간 절약' : '➖ 시간 낭비' }}</h3>
                 <div class="flex items-center justify-center gap-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
                     <input type="number" v-model="timeBankInputMin" @focus="$event.target.select()" class="w-16 h-12 text-3xl font-black text-center bg-transparent outline-none" placeholder="0"><span class="font-black text-slate-400 text-xl">분</span>
@@ -3016,7 +3017,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeTimeBankModal()">
+        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
             <div class="bg-white rounded-[3rem] p-8 w-[450px] max-h-[80vh] shadow-2xl border-8 border-slate-100 animate-pop-in flex flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
@@ -3027,7 +3028,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="모든 내역 삭제 및 0초로 초기화">
                             <i class="fa-solid fa-trash-can text-lg"></i>
                         </button>
-                        <button @click="closeTimeBankModal()" class="text-slate-400 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                        <button @click="closeTimeBankModal()"
+                                class="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="닫기">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -3056,7 +3060,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 저금통: 통 내용 + 랭킹 -->
-        <div v-if="showSnackBankListModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackBankList()">
+        <div v-if="showSnackBankListModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
             <div class="bg-white rounded-[2.5rem] shadow-2xl border-8 border-blue-300 animate-pop-in flex flex-col gap-3"
                  style="width:min(88vw,88vh); height:min(88vw,88vh); max-width:500px; max-height:500px; padding:clamp(14px,2.5vw,24px); overflow:hidden;">
                 <div class="flex items-center justify-between shrink-0">
@@ -3100,7 +3104,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 창고 초기화 확인 모달 -->
-        <div v-if="showSnackResetConfirm" class="fixed inset-0 bg-black/60 z-[110006] flex items-center justify-center backdrop-blur-sm" @click.self="showSnackResetConfirm = false">
+        <div v-if="showSnackResetConfirm" class="fixed inset-0 bg-black/60 z-[110006] flex items-center justify-center backdrop-blur-sm">
             <div class="bg-white rounded-[2rem] shadow-2xl border-4 border-amber-300 animate-pop-in flex flex-col items-center gap-5 p-8"
                  style="width:min(90vw,360px);">
                 <div class="text-5xl">🔄</div>
@@ -3123,7 +3127,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 넣기 모달 (리디자인) -->
-        <div v-if="showSnackInputModal" class="fixed inset-0 bg-black/60 z-[110001] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackInput()">
+        <div v-if="showSnackInputModal" class="fixed inset-0 bg-black/60 z-[110001] flex items-center justify-center backdrop-blur-sm">
             <div class="rounded-[2.5rem] p-6 w-[940px] max-w-[96vw] shadow-2xl border-4 border-teal-200 animate-pop-in flex flex-col gap-4"
                  style="background:linear-gradient(135deg,#f0fdfa 0%,#ecfdf5 45%,#f0f9ff 100%); height:min(90vh,680px); overflow:hidden;">
 
@@ -3297,7 +3301,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 누가기록 모달 -->
-        <div v-if="showSnackContribLogModal" class="fixed inset-0 bg-black/60 z-[110003] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackContribLogModal()">
+        <div v-if="showSnackContribLogModal" class="fixed inset-0 bg-black/60 z-[110003] flex items-center justify-center backdrop-blur-sm">
             <div class="bg-white rounded-[2.5rem] p-6 w-[520px] max-w-[95vw] max-h-[85vh] shadow-2xl border-8 border-sky-300 animate-pop-in flex flex-col gap-4">
                 <div class="flex items-center gap-3">
                     <h3 class="text-2xl font-black text-sky-700 flex-1">🧾 간식 누가기록</h3>
@@ -3904,7 +3908,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
   
-        <div v-if="showRankModal" class="fixed inset-0 bg-black/80 z-[8000] flex items-center justify-center" @click.self="showRankModal = false">
+        <div v-if="showRankModal" class="fixed inset-0 bg-black/80 z-[8000] flex items-center justify-center">
             <div class="bg-white w-full max-w-3xl rounded-[2rem] p-10 shadow-2xl flex flex-col max-h-[90vh]">
                 <div class="flex items-center mb-6 relative">
                     <h2 class="text-3xl font-black text-yellow-600 text-center flex-1"><i class="fa-solid fa-trophy mr-2"></i>명예의 전당</h2>
@@ -3955,21 +3959,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
             
             <div class="max-w-6xl w-full bg-slate-800 rounded-[4rem] p-10 shadow-2xl relative flex flex-col">
-                <button @click="showAnimalRace = false; stopSound('bgm_animal');" class="absolute top-8 right-8 text-slate-500 hover:text-white text-4xl">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                
+
                 <div class="flex justify-between items-end mb-8">
                     <h2 class="text-5xl font-black text-white italic">🏁 모둠 달리기</h2>
                     <div class="flex gap-4">
-                        <button @click="toggleGameSpeed" class="bg-purple-500 text-white px-6 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-purple-600 active:scale-95 transition-all flex items-center justify-center">
+                        <button @click="toggleGameSpeed" class="px-6 py-4 rounded-xl font-black text-2xl text-yellow-400 bg-transparent border-2 border-yellow-400 hover:bg-yellow-400 hover:text-slate-900 active:scale-95 transition-all flex items-center justify-center">
                             <i class="fa-solid fa-bolt mr-2"></i>X{{ gameSpeed }}
                         </button>
-                        <button v-if="animalRaceFinished" @click="startAnimalRace" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-blue-700">
+                        <button v-if="animalRaceFinished" @click="startAnimalRace" class="px-8 py-4 rounded-xl font-black text-2xl text-blue-400 bg-transparent border-2 border-blue-400 hover:bg-blue-400 hover:text-white active:scale-95 transition-all">
                             <i class="fa-solid fa-rotate-right mr-2"></i>재시합
                         </button>
-                        <button v-if="!isAnimalRacing && !showAnimalRaceCountdown && !animalRaceFinished" @click="startAnimalRace" class="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black text-4xl shadow-lg hover:bg-orange-600">
-                            <i class="fa-solid fa-play mr-2"></i>START
+                        <button v-if="!isAnimalRacing && !showAnimalRaceCountdown && !animalRaceFinished" @click="startAnimalRace" class="px-10 py-4 rounded-xl font-black text-4xl text-green-400 bg-transparent border-2 border-green-400 hover:bg-green-400 hover:text-slate-900 active:scale-95 transition-all">
+                            <i class="fa-solid fa-flag-checkered mr-2"></i>START
+                        </button>
+                        <button @click="showAnimalRace = false; stopSound('bgm_animal');" class="px-6 py-4 rounded-xl font-black text-2xl text-red-400 bg-transparent border-2 border-red-400 hover:bg-red-400 hover:text-white active:scale-95 transition-all flex items-center justify-center" title="닫기">
+                            <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 </div>
@@ -4027,7 +4031,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
   
-        <div v-if="showGroupingResultModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showGroupingResultModal = false">
+        <div v-if="showGroupingResultModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center">
     <div class="bg-white w-full max-w-5xl rounded-[3rem] p-8 shadow-2xl flex flex-col max-h-[90vh] relative overflow-hidden">
         
         <div class="flex justify-between items-center mb-6">
@@ -4056,9 +4060,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     class="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_4px_0_rgb(30,58,138)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2">
                     <i class="fa-solid fa-rotate-right"></i> 다시 편성
                 </button>
-                <button @click="showGroupingResultModal = false" 
-                    class="px-5 py-3 rounded-xl font-black text-slate-500 bg-slate-100 hover:bg-slate-200 shadow-[0_4px_0_rgb(203,213,225)] active:shadow-none active:translate-y-[4px] transition-all">
-                    닫기
+                <button @click="showGroupingResultModal = false"
+                    class="px-5 py-3 rounded-xl font-black text-slate-500 bg-slate-100 hover:bg-slate-200 shadow-[0_4px_0_rgb(203,213,225)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
         </div>
@@ -4178,7 +4182,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <div v-if="showShuffleModal" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center" @click.self="showShuffleModal = false">
+        <div v-if="showShuffleModal" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center">
             <div class="bg-white w-full max-w-2xl rounded-[3rem] p-0 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative">
                 <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 flex justify-between items-center text-white">
                     <h2 class="text-3xl font-black italic"><i class="fa-solid fa-chair mr-2"></i>자리 바꾸기</h2>
@@ -4189,6 +4193,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         </button>
                         <button @click="showShuffleSettings = !showShuffleSettings" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm" title="설정">
                             <i class="fa-solid fa-gear text-xl"></i>
+                        </button>
+                        <button @click="showShuffleModal = false" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm" title="닫기">
+                            <i class="fa-solid fa-xmark text-xl"></i>
                         </button>
                     </div>
                 </div>
@@ -12848,7 +12855,7 @@ saveToLocal() {
                 if (data.preSortLayout) this.preSortLayout = data.preSortLayout;
                 if (data.showHallOfFame !== undefined) this.showHallOfFame = data.showHallOfFame;
                 if (data.showMissionWidget !== undefined) this.showMissionWidget = data.showMissionWidget;
-                if (data.isRotated !== undefined) this.isRotated = data.isRotated;
+                // 항상 회전 상태(교탁 아래)로 시작 — 저장값 무시
                 if (data.boardPreview !== undefined) this.boardPreview = data.boardPreview;
                 if (data.blackboardContent !== undefined) this.blackboardContent = data.blackboardContent;
                 if (data.paths !== undefined) this.paths = Array.isArray(data.paths) ? data.paths : [];
@@ -13570,10 +13577,11 @@ getSummaryTabStyle() {
         : `background:#d4bb8a;color:#8f6a49;border-color:#9c734f;${base}`;
 },
 
-openRankModal() { 
-    this.rankSortKey = 'number';  // 정렬 기준: 번호
-    this.rankSortOrder = 'asc';   // 정렬 순서: 오름차순 (1, 2, 3...)
-    this.showRankModal = true; 
+openRankModal() {
+    this.rankSortKey = 'number';
+    this.rankSortOrder = 'asc';
+    this.showMainDashboard = false;
+    this.showRankModal = true;
 },
             sortRank(key) {
                 if (key === 'memo') {

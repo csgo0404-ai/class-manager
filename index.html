@@ -6827,7 +6827,7 @@ cycleProgressInfo() {
     const modeLabel = this.shuffleMode === 'mixed' ? '이성' : this.shuffleMode === 'same' ? '동성' : '랜덤';
     const modeData = this.shuffleHistoryByMode && this.shuffleHistoryByMode[modeLabel];
     const records = (modeData && Array.isArray(modeData.records)) ? modeData.records : [];
-    const current = records.filter(r => !r.isManual).length;
+    const current = records.length;
     const allStudents = Array.isArray(this.seats) ? this.seats.filter(s => s && s.name) : [];
     const poolF = allStudents.filter(s => s.gender === 'F');
     const poolM = allStudents.filter(s => s.gender === 'M');
@@ -12420,7 +12420,8 @@ this.playSound('finish', false, 0.5);
     const md = this.shuffleHistoryByMode[currentMode];
     if (!Array.isArray(md.records)) md.records = md.records ? Object.values(md.records) : [];
     md.records.unshift({ ...rec, isManual: true });
-    console.log(`[수동저장] mode=${currentMode}, records=${md.records.length}, manual=${md.records.filter(r=>r.isManual).length}, pairs=${intendedPairs.length}`);
+    md.currentRound = (md.currentRound || 0) + 1;
+    console.log(`[수동저장] mode=${currentMode}, records=${md.records.length}, currentRound=${md.currentRound}, manual=${md.records.filter(r=>r.isManual).length}, pairs=${intendedPairs.length}`);
 
     this.saveToLocal_full && this.saveToLocal_full();
 
@@ -12434,7 +12435,7 @@ this.playSound('finish', false, 0.5);
                 <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">현재 배치가 저장되었습니다!</div>
                 <div style="background:#f0f4ff;border-radius:12px;padding:12px 14px;margin-bottom:18px;text-align:left;">
                     <div style="font-size:12px;font-weight:700;color:#4c6ef5;margin-bottom:5px;">ℹ️ 수동 저장 안내</div>
-                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치는 <b style="color:#333;">짝꿍 중복 기록에 포함되지 않습니다.</b><br>자동 배치 사이클 횟수에도 영향을 주지 않아요.</div>
+                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치는 <b style="color:#333;">짝꿍 중복 기록과 사이클 횟수에 포함됩니다.</b><br>짝꿍 조합이 모두 소진되면 새 사이클로 넘어가요.</div>
                 </div>
                 <button data-close style="width:100%;padding:11px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">확인</button>
             </div>`;
@@ -17098,7 +17099,7 @@ async applyShuffle() {
             buildPartnerHistory(allRecs.slice(0, mHistLen), 'M');
             buildPartnerHistory(allRecs.slice(0, fHistLen), 'F');
         } else {
-            const filteredRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
+            const autoRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
                 if (!rec.intendedPairs || rec.intendedPairs.length === 0) return rec;
                 return {
                     ...rec,
@@ -17108,7 +17109,8 @@ async applyShuffle() {
                     })
                 };
             });
-            buildPartnerHistory(filteredRecs, null);
+            const manualRecs = allRecs.filter(r => r.isManual);
+            buildPartnerHistory([...autoRecs, ...manualRecs], null);
         }
 
         const seatHistoryMap = new Map();
@@ -17251,7 +17253,7 @@ async applyShuffle() {
         }
 
         {
-            if (allRecs.filter(r => !r.isManual).length >= effectiveMax && this.shuffleMode !== 'same') {
+            if (allRecs.length >= effectiveMax && this.shuffleMode !== 'same') {
                 this.showShuffleModal = false;
                 const result = await new Promise(resolve => {
                     const ov = document.createElement('div');
@@ -17813,7 +17815,7 @@ async applyShuffle() {
             // partnerHistoryMap에 없으면 Section 7도 중복 없다고 판단한 것 → 경고 생략
             if (!partnerHistoryMap.get(s1.name)?.has(s2.name)) continue;
             let pastCount=0;
-            allRecs.filter(r => !r.isManual).slice(0, maxCombos).forEach(rec=>{
+            [...allRecs.filter(r => !r.isManual).slice(0, maxCombos), ...allRecs.filter(r => r.isManual)].forEach(rec=>{
                 if (!rec) return;
                 let found=false;
                 const rPairs=rec.intendedPairs&&rec.intendedPairs.length>0?rec.intendedPairs:null;

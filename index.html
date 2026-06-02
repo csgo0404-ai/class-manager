@@ -17127,6 +17127,108 @@ async applyShuffle() {
         });
 
         // ================================================================
+        // 3.4  모둠 골고루 구성 (A: 이력 회피 · B: 부하 균형 · C: 회전)
+        //      ※ 짝꿍 결정 로직(Section 7)은 그대로 두고, 자리 '배치' 단계의
+        //        패널티에만 모둠 항을 더해 같은 무리가 반복되지 않게 한다.
+        // ================================================================
+        // 모둠 = '앞뒤 2책상 = 4명' : 분단(0~2) 안에서 행을 2줄씩 묶음
+        //   band 0 = 행1·2, band 1 = 행3·4 (각각 앞뒤 짝꿍 4명) → 4명씩 6모둠
+        //   band 2 = 행5 (분단당 2자리) : 25명 이상으로 5행까지 찰 때만 생기는 잔여 그룹
+        const getGroupId = (idx) => {
+            const block = Math.floor(idx / 10);        // 분단 0,1,2
+            const band  = Math.floor((idx % 10) / 4);  // 0(행1·2) / 1(행3·4) / 2(행5)
+            return block * 3 + band;                   // 0 ~ 8
+        };
+        const NUM_GROUPS = 9;
+
+        // A) 모둠 이력 맵: 현재 사이클의 모든 배치 누적 (짝꿍 로직과 동일 범위 = modeData.records)
+        //    최신 기록일수록 가중치 ↑, 사이클 내 전체 기록이 ≥1로 누적된다.
+        //    ※ 사이클 리셋(한 바퀴 완료) 시 buildGroupHistory()로 재구성한다.
+        const groupHistoryMap = new Map();
+        const buildGroupHistory = () => {
+            groupHistoryMap.clear();
+            allStudents.forEach(s => groupHistoryMap.set(s.name, new Map()));
+            // modeData.records: 현재 사이클 기록(최신이 index 0). 좌석 스냅샷 보유분만 사용.
+            modeData.records.forEach((rec, idx) => {
+                if (!rec) return;
+                const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+                if (!raw || raw.length === 0) return;
+                const hs = raw.map(s => (s && typeof s === 'object') ? s : (s ? { name: s } : null));
+                const w  = idx === 0 ? 4 : idx === 1 ? 2 : 1; // 최근성 가중: 직전 라운드 강하게 회피(연속 방지)
+                const byGroup = new Map();
+                for (let i = 0; i < 30; i++) {
+                    if (!hs[i]?.name) continue;
+                    const g = getGroupId(i);
+                    if (!byGroup.has(g)) byGroup.set(g, []);
+                    byGroup.get(g).push(hs[i].name);
+                }
+                for (const members of byGroup.values()) {
+                    for (const a of members) for (const b of members) {
+                        if (a === b) continue;
+                        const m = groupHistoryMap.get(a);
+                        if (m) m.set(b, (m.get(b) || 0) + w);
+                    }
+                }
+            });
+        };
+        buildGroupHistory();
+
+        // C) 회전 시드: 배치 횟수에 따라 모둠 선호 순서를 한 칸씩 돌림
+        //    (이력이 아직 없는 초기 배치에서도 무리가 매번 바뀌도록)
+        let groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
+
+        // 직전 라운드 같은 모둠 강하게 회피 (연속 금지): 가장 최근 배치의 모둠 멤버십
+        const prevGroupMap = new Map();
+        allStudents.forEach(s => prevGroupMap.set(s.name, new Set()));
+        (() => {
+            const rec = this.shuffleHistory[0];
+            if (!rec) return;
+            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            const byG = {};
+            for (let i = 0; i < 30; i++) {
+                const cell = raw[i]; const nm = (cell && typeof cell === 'object') ? cell.name : cell;
+                if (!nm) continue; const g = getGroupId(i); (byG[g] = byG[g] || []).push(nm);
+            }
+            for (const g in byG) { const mm = byG[g]; for (const a of mm) for (const b of mm) if (a !== b) prevGroupMap.get(a)?.add(b); }
+        })();
+
+        // 각 학생의 직전 모둠 번호 (사전 배정용)
+        const prevGroupOf = new Map();
+        (() => {
+            const rec = this.shuffleHistory[0];
+            if (!rec) return;
+            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            for (let i = 0; i < 30; i++) {
+                const cell = raw[i];
+                const nm = (cell && typeof cell === 'object') ? cell.name : cell;
+                if (nm) prevGroupOf.set(nm, getGroupId(i));
+            }
+        })();
+
+        // 모둠 항 패널티 — 물리 제약(성별·거리두기 수백만)보다 항상 작게 유지
+        const KA = 2000;  // A: 과거 같은 모둠이었던 사람과의 1:1 재회 비용
+        const KB = 1500;  // B: 한 모둠에 이력 보유자가 몰리는 정도(제곱 → 균형)
+        const KC = 300;   // C: 회전 기반 약한 타이브레이커
+        const KPREV = 500000; // 직전 라운드 같은 모둠 → 이전자리(40만)보다 강하게 회피(연속 금지)
+        const groupPen = (student, seatIdx, tempSeats) => {
+            if (!student) return 0;
+            const g    = getGroupId(seatIdx);
+            const hist = groupHistoryMap.get(student.name);
+            const prev = prevGroupMap.get(student.name);
+            let pairSum = 0, coCount = 0, prevHit = 0;
+            for (let i = 0; i < 30; i++) {
+                const other = tempSeats[i];
+                if (!other || i === seatIdx) continue;
+                if (getGroupId(i) !== g) continue;     // 같은 모둠 칸에 이미 앉은 사람만
+                const w = hist ? (hist.get(other.name) || 0) : 0;
+                if (w > 0) { pairSum += w; coCount++; } // A: 가중치 합 / B: 인원 카운트
+                if (prev && prev.has(other.name)) prevHit++; // 직전 라운드에도 같은 모둠
+            }
+            const rotBias = ((g - groupRotation + NUM_GROUPS) % NUM_GROUPS); // C
+            return pairSum * KA + (coCount * coCount) * KB + rotBias * KC + prevHit * KPREV;
+        };
+
+        // ================================================================
         // 3.5  짝꿍 매칭 함수 (사전 완료 체크를 위해 커튼 전에 정의)
         // ================================================================
         let mArrFixed = [...poolM].sort(sortByCycle);
@@ -17289,6 +17391,9 @@ async applyShuffle() {
                 allRecs = modeData.records;
                 partnerHistoryMap.clear();
                 allStudents.forEach(s => partnerHistoryMap.set(s.name, new Set()));
+                // 모둠 이력·회전도 새 사이클(빈 records) 기준으로 재구성
+                buildGroupHistory();
+                groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
                 // 새 cycleCount 기준으로 정렬 기준·배열 재계산
                 sortCycle = modeData.cycleCount % 3;
                 sortByCycle = (a, b) => {
@@ -17530,11 +17635,13 @@ async applyShuffle() {
         };
 
         const totalSeatPen = (student, seatIdx, tempSeats) =>
-            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats);
+            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats)
+            + groupPen(student, seatIdx, tempSeats);   // ★ 모둠 골고루(A·B·C)
 
         // ================================================================
         // 10. 자리 배치 함수
         // ================================================================
+
         const placeStudents = (pairs) => {
             const tempSeats   = Array(30).fill(null);
             let   seatPenalty = 0;
@@ -17680,8 +17787,25 @@ async applyShuffle() {
                     }
                 }
 
+                // [Method C] 직전 모둠원이 이미 앉은 모둠 차단 (개인 직전 모둠 + 클러스터링)
+                const prev1 = prevGroupMap.get(s1.name);
+                const prev2 = s2 ? prevGroupMap.get(s2.name) : null;
+                const hasConflict = (leftIdx) => {
+                    const g = getGroupId(leftIdx);
+                    if (prevGroupOf.get(s1.name) === g) return true;
+                    if (s2 && prevGroupOf.get(s2.name) === g) return true;
+                    for (let k = 0; k < 30; k++) {
+                        const sq = tempSeats[k];
+                        if (!sq || getGroupId(k) !== g) continue;
+                        if (prev1?.has(sq.name) || prev2?.has(sq.name)) return true;
+                    }
+                    return false;
+                };
+                const allIdxs = tempDesks.map((_,i) => i);
+                const safeIdxs = allIdxs.filter(i => !hasConflict(tempDesks[i].leftIdx));
+                const searchIdxs = safeIdxs.length > 0 ? safeIdxs : allIdxs;
                 let bestDeskIdx=-1, bestArrang=null, minPen=Infinity;
-                for (let i = 0; i < tempDesks.length; i++) {
+                for (const i of searchIdxs) {
                     const desk = tempDesks[i];
                     tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
                     const pen1=totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
@@ -17736,6 +17860,9 @@ async applyShuffle() {
                             if (other&&atI&&partnerHistoryMap.get(other.name)?.has(atI.name)) continue;
                             if (atJ&&partnerHistoryMap.get(student.name)?.has(atJ.name)) continue;
                         }
+                        // ★ 모둠 골고루: Swap이 같은-모둠 재회를 늘리면 건너뜀 (rotBias는 양변 상쇄)
+                        if (groupPen(student,j,t2)+(other?groupPen(other,i,t2):0)
+                            > groupPen(student,i,tempSeats)+(other?groupPen(other,j,tempSeats):0)) continue;
                         tempSeats[i]=other; tempSeats[j]=student;
                         break;
                     }
@@ -17771,6 +17898,42 @@ async applyShuffle() {
         // 13. 결과 적용
         // ================================================================
         this.seats = bestSeats;
+
+        // === 직전 모둠 연속 겹침 최소화 (짝꿍 유지·성별·거리두기 안전) ===
+        {
+            const S = this.seats;
+            const isLk = i => this.manualLocks.some(l => l.seatIdx === i);
+            const dl = [];
+            for (let i = 0; i < 30; i += 2) { if (safeSeatConfig[i]==='X'||safeSeatConfig[i+1]==='X'||isLk(i)||isLk(i+1)) continue; dl.push(i); }
+            const swap = (d1,d2)=>{ const a=S[d1],b=S[d1+1]; S[d1]=S[d2];S[d1+1]=S[d2+1];S[d2]=a;S[d2+1]=b; };
+            const bc = s => { let v=0; for (let i=0;i<30;i++) if (s[i]) v+=totalSeatPen(s[i],i,s); return v; };
+            const swapMakesGroupViol = (d1, d2) => {
+                const g1 = getGroupId(d1), g2 = getGroupId(d2);
+                for (const idx of [d1, d1+1]) {
+                    if (!S[idx]) continue;
+                    if (prevGroupOf.get(S[idx].name) === g2) return true;
+                    const pm = prevGroupMap.get(S[idx].name);
+                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g2&&pm.has(S[k].name)) return true; }
+                }
+                for (const idx of [d2, d2+1]) {
+                    if (!S[idx]) continue;
+                    if (prevGroupOf.get(S[idx].name) === g1) return true;
+                    const pm = prevGroupMap.get(S[idx].name);
+                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g1&&pm.has(S[k].name)) return true; }
+                }
+                return false;
+            };
+            for (let pass=0; pass<10; pass++) { let imp=false;
+              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) {
+                if (swapMakesGroupViol(dl[x],dl[y])) continue;
+                const be=bc(S); swap(dl[x],dl[y]); if (bc(S)>=be-1e-6) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
+            const violAt = (s, idx) => { const o=s[idx]; if(!o)return 0; const g=getGroupId(idx); const pv=prevGroupMap.get(o.name); if(!pv)return 0; let h=0; for(let k=0;k<30;k++){ const q=s[k]; if(q&&k!==idx&&getGroupId(k)===g&&pv.has(q.name))h++; } return h; };
+            const tv = s => { let v=0; for(let i=0;i<30;i++) v+=violAt(s,i); return v; };
+            const gOk = s => { for(let i=0;i<30;i++) if(s[i]&&genderPen(s[i],i)>0) return false; return true; };
+            const sepCost = s => { let v=0; for(let i=0;i<30;i++) if(s[i]) v+=distancePen(s[i],i,s); return v; };
+            for (let pass=0; pass<12 && tv(S)>0; pass++) { let imp=false;
+              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) { const vB=tv(S), sB=sepCost(S); swap(dl[x],dl[y]); if (!gOk(S)||sepCost(S)>sB||tv(S)>=vB) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
+        }
         if (typeof this.runReferee==='function') await this.runReferee();
         const seatedNames = new Set(this.seats.filter(s=>s).map(s=>s.name));
         this.waitingRoom  = allStudents.filter(s=>!seatedNames.has(s.name));

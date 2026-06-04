@@ -3097,6 +3097,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 <span class="font-black text-teal-600 text-xs shrink-0">🍭{{ r.count }}</span>
                             </div>
                         </div>
+                        <!-- 다음 차례 초과분 -->
+                        <div v-if="snackNextRanking.length > 0" class="mt-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-black text-orange-400">⏭ 다음 간식 창고</span>
+                                <span class="text-[10px] font-black text-orange-300">{{ snackNextRanking.reduce((a,r)=>a+r.count,0) }}개</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <div v-for="r in snackNextRanking" :key="'next'+r.name"
+                                     class="flex items-center gap-3 px-3 py-1.5 rounded-xl border border-orange-100"
+                                     style="background:#fff7ed;">
+                                    <span class="font-black text-slate-600 flex-1 truncate text-sm">{{ r.name }}</span>
+                                    <span class="font-black text-orange-400 text-xs shrink-0">🍭{{ r.count }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </template>
                 </div>
                 <button @click="openSnackInput" class="w-full py-2.5 bg-blue-400 hover:bg-blue-500 text-white font-black rounded-2xl shrink-0">간식 넣기</button>
@@ -3158,6 +3173,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                         <!-- 선생님 버튼 -->
                         <button @click="toggleSnackStudent('선생님', $event)"
+                                @contextmenu.prevent="toggleSnackStudent('선생님', $event, true)"
                                 class="relative flex items-center justify-center rounded-xl font-black text-sm transition-all active:scale-90 border-2 select-none w-full"
                                 style="min-height:40px;"
                                 :class="snackSelectedStudents.includes('선생님')
@@ -3198,6 +3214,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                     @contextmenu.prevent="clickSnackType(sn, $event, true)"
                                     draggable="true"
                                     @dragstart="snackDragFromIdx = snIdx"
+                                    @dragend="snackDragFromIdx = -1"
                                     @dragover.prevent
                                     @drop.prevent="snackDropTo(snIdx)"
                                     :class="['snack-input-card py-2.5 px-1 rounded-xl font-black text-sm transition-all active:scale-95 cursor-grab border-2 bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50', snackDragFromIdx === snIdx ? 'opacity-40' : '']"
@@ -3221,10 +3238,11 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                                   name="snack-stack" tag="div"
                                                   class="flex flex-wrap gap-1.5 content-start">
                                     <div v-for="fi in snackSessionItems" :key="fi.id"
+                                         @click="deleteSnackSessionItem(fi)"
                                          @contextmenu.prevent="deleteSnackSessionItem(fi)"
                                          class="flex items-center gap-1 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap cursor-pointer hover:opacity-80"
                                          style="background:linear-gradient(90deg,#0d9488,#14b8a6);"
-                                         title="우클릭으로 삭제">
+                                         title="클릭으로 삭제">
                                         <span class="text-teal-100">{{ fi.student }}</span>
                                         <span class="text-white/80 mx-0.5">·</span>
                                         <span>{{ fi.snack }}</span>
@@ -7354,11 +7372,16 @@ mergedRankData() {
             snackRanking() {
                 const counts = {};
                 this.allStudents.forEach(s => { counts[s.name] = 0; });
-                // 창고 잔고 + 아직 뽑히지 않은 항목 합산 (뽑힌 것은 차감됨)
-                this.snackBank.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
-                this.snackDrawList.filter(item => !item.revealed).forEach(item => {
-                    if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
-                });
+                if (this.snackDrawList.length > 0) {
+                    // 뽑기 진행 중: pool(snackDrawList)만 카운트 — 초과분 snackBank 제외
+                    this.snackDrawList.filter(item => !item.revealed).forEach(item => {
+                        if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
+                    });
+                } else {
+                    // 뽑기 전: 현재 차례분(N개)만 카운트, 초과분 제외
+                    const n = this.allStudents.length || this.snackBank.length;
+                    this.snackBank.slice(0, n).forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
+                }
                 const entries = Object.entries(counts).map(([name, count]) => ({ name, count }));
                 entries.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
                 // 동점 그룹 내 rank 부여 (1,1,3,3,5...) 후 그룹 내 이름 순 유지
@@ -7374,6 +7397,19 @@ mergedRankData() {
                     gi = gj;
                 }
                 return result;
+            },
+            snackNextRanking() {
+                const n = this.allStudents.length || 0;
+                // 뽑기 진행 중이면 snackBank 전체가 초과분(다음 차례)
+                const excess = this.snackDrawList.length > 0
+                    ? this.snackBank.slice()
+                    : this.snackBank.slice(n);
+                if (excess.length === 0) return [];
+                const counts = {};
+                excess.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
+                return Object.entries(counts)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
             },
             snackTopContributor() {
                 const top = this.snackRanking.find(r => r.count > 0);
@@ -7904,8 +7940,6 @@ toggleOneMinAlarm() {
                 if (this.snackContribLog.length > 500) this.snackContribLog.length = 500;
                 try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
                 this.playSound && this.playSound('click');
-                // Ctrl/우클릭이면 학생 선택 유지, 일반 클릭이면 해제
-                if (!keep) this.snackSelectedStudents = [];
             },
             snackRevealTitle(fullName) {
                 // "김서영" → "서영이의" / "박준" → "준의"
@@ -7915,21 +7949,19 @@ toggleOneMinAlarm() {
                 const hasJongseong = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
                 return given + (hasJongseong ? '이의' : '의');
             },
-            toggleSnackStudent(name, event, forceMulti) {
-                const isMulti = forceMulti || (event && (event.ctrlKey || event.metaKey));
-                if (!isMulti) {
-                    // 일반 클릭: 단일 선택 (이미 선택된 경우 해제)
-                    if (this.snackSelectedStudents.length === 1 && this.snackSelectedStudents[0] === name) {
-                        this.snackSelectedStudents = [];
-                    } else {
-                        this.snackSelectedStudents = [name];
-                    }
+            toggleSnackStudent(name, event, isRightClick) {
+                if (isRightClick) {
+                    // 우클릭: 해제만
+                    const i = this.snackSelectedStudents.indexOf(name);
+                    if (i >= 0) this.snackSelectedStudents.splice(i, 1);
                     return;
                 }
-                // Ctrl+클릭 / 우클릭: 다중 토글
-                const i = this.snackSelectedStudents.indexOf(name);
-                if (i >= 0) this.snackSelectedStudents.splice(i, 1);
-                else this.snackSelectedStudents.push(name);
+                // 좌클릭: 이미 선택된 경우 해제, 아니면 단일 선택 전환
+                if (this.snackSelectedStudents.includes(name)) {
+                    this.snackSelectedStudents = [];
+                } else {
+                    this.snackSelectedStudents = [name];
+                }
             },
             adjustSnackCount(snackName, delta) {
                 const cur = this.snackTypeCounts[snackName] || 0;
@@ -8077,14 +8109,13 @@ toggleOneMinAlarm() {
                 this._snackEverLoaded = true;
                 // 캡슐 뽑기: 학생 N명 ↔ 간식 N개 1:1 랜덤 매칭, 초과분은 창고에 잔류
                 const students = this.allStudents.map(s => s.name);
-                const allSnacks = this.snackBank.slice();
-                // 전체 셔플
-                for (let i = allSnacks.length - 1; i > 0; i--) {
+                // 현재 차례분(앞 N개)만 셔플 — 초과분은 순서 유지하며 leftover로 보존
+                const pool = this.snackBank.slice(0, students.length);
+                const leftover = this.snackBank.slice(students.length);
+                for (let i = pool.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i+1));
-                    [allSnacks[i], allSnacks[j]] = [allSnacks[j], allSnacks[i]];
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
                 }
-                const pool = allSnacks.slice(0, students.length);        // 이번 뽑기에 사용
-                const leftover = allSnacks.slice(students.length);       // 초과분: 창고에 남김
                 // 기부 수 내림차순 → 동점자 그룹만 내부 셔플 (pool 기준 = 표시값과 일치)
                 const counts = {};
                 pool.forEach(s => { if (s.contributor) counts[s.contributor] = (counts[s.contributor]||0) + 1; });

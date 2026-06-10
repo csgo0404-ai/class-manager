@@ -3711,17 +3711,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             @blur="saveTabName(tab.id, editingTabName)"
                             @keydown.enter.prevent.stop="saveTabName(tab.id, editingTabName)"
                             @keydown.stop
-                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;"
-                            class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
+                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;max-height:6.5rem;overflow-y:auto;"
+                            class="block px-2 py-2 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
                             autoFocus>
                         <button v-else
                             @click="currentTabId = tab.id; refreshIfChanged()"
-                            @dblclick="editingTabId = tab.id; editingTabName = tab.name"
+                            @dblclick="startEditTab(tab)"
                             :style="currentTabId === tab.id
-                                ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
-                                : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'"
-                            style="cursor:grab;"
-                            class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">{{ tab.name }}</button>
+                                ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;'
+                                : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;'"
+                            style="cursor:grab;max-height:6.5rem;overflow:hidden;"
+                            class="flex items-center justify-center px-2 py-2 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">{{ tab.name }}</button>
                         <button v-if="activityTabs.length > 1" @click.stop="removeActivityTab(tab.id)"
                             class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] hidden group-hover:flex items-center justify-center font-black leading-none z-10">×</button>
                     </div>
@@ -13880,8 +13880,34 @@ openAnimalRaceModal() {
 
             toggleCheck(student) { student.checked = !student.checked; this.saveToLocal(); },
             addActivityTab() {
-                this.activityTabs.push({ id: this.nextTabId, name: '활동' });
-                this.currentTabId = this.nextTabId; this.nextTabId++; this.saveToLocal();
+                // 기존 탭 중 가장 큰 id보다 무조건 큰 값을 사용해 id 중복(=편집 시 복제) 방지
+                const maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
+                const id = Math.max(maxId + 1, Number(this.nextTabId) || 0);
+                this.activityTabs.push({ id, name: '활동' });
+                this.currentTabId = id; this.nextTabId = id + 1; this.saveToLocal();
+            },
+            // 저장된 데이터 등으로 id가 겹친 탭이 있으면 뒤쪽 탭에 새 id를 부여해 분리
+            dedupeTabIds() {
+                const seen = new Set();
+                let maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
+                let changed = false;
+                this.activityTabs.forEach(tab => {
+                    if (seen.has(tab.id)) {
+                        const newId = ++maxId;
+                        if (this.tabData[tab.id]) {
+                            this.tabData[newId] = JSON.parse(JSON.stringify(this.tabData[tab.id]));
+                        }
+                        tab.id = newId;
+                        changed = true;
+                    }
+                    seen.add(tab.id);
+                });
+                if (changed) { this.nextTabId = maxId + 1; this.saveToLocal(); }
+            },
+            startEditTab(tab) {
+                this.dedupeTabIds();           // 편집 직전 id 중복 정리 (tab.id가 갱신될 수 있음)
+                this.editingTabId = tab.id;
+                this.editingTabName = tab.name;
             },
             dropTab(targetId) {
                 if (!this.draggingTabId || this.draggingTabId === targetId) { this.draggingTabId = null; return; }

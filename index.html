@@ -8424,9 +8424,9 @@ toggleOneMinAlarm() {
                 if (m.type === 'count') {
                     const start = new Date(m.startDate); start.setHours(0,0,0,0);
                     if (!sw && !sh) {
-                        return `${Math.floor((today - start) / 86400000) + 1}일째`;
+                        return `${Math.floor((today - start) / 86400000)}일째`;
                     }
-                    return `${this.countMissionDays(start, today, sw, sh)}일째`;
+                    return `${this.countMissionDays(start, today, sw, sh) - 1}일째`;
                 } else {
                     const target = new Date(m.targetDate); target.setHours(0,0,0,0);
                     if (!sw && !sh) {

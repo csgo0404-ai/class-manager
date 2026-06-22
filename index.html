@@ -746,10 +746,10 @@ margin: 0 0.5cqw !important;
 }
 
 /* 버튼 가로 위치 */
-.btn-pos-1 { left: 43.5%; }  /* 초기화 */
-.btn-pos-2 {
-    left: 35.5%;
-    background: #b91c1c !important;
+.btn-pos-1 { left: 35.5%; }  /* 초기화 */
+.btn-pos-2 { 
+    left: 43.5%; 
+    background: #b91c1c !important; 
     border: 0.6cqw solid #7f1d1d !important;
 }
 
@@ -902,7 +902,10 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
     
     /* [수정] 배경을 투명으로 변경 (뒤에 검은 막이 있으니까) */
     background-color: transparent !important;
-
+    
+    /* [추가] 기본 붉은 아우라 (폭탄 모양대로 빛남) */
+    filter: drop-shadow(0 0 50px rgba(255, 0, 0, 0.6));
+    
     background-size: 81% 80% auto !important; 
     width: 100vw !important;
     height: 100vh !important;
@@ -969,9 +972,9 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
 
 /* 최대화 모드일 때 버튼 가로 간격 미세 조정 (선택 사항) */
 .bomb-window.fixed.inset-0 .btn-pos-1 { left: 52%; }
-.bomb-window.fixed.inset-0 .btn-pos-2 { left: 48%; }
-.bomb-window.fixed.inset-0 .btn-pos-3 { left: 56%; }
-.bomb-window.fixed.inset-0 .btn-pos-4 { left: 60%; }
+.bomb-window.fixed.inset-0 .btn-pos-2 { left: 56%; }
+.bomb-window.fixed.inset-0 .btn-pos-3 { left: 60%; }
+.bomb-window.fixed.inset-0 .btn-pos-4 { left: 64%; }
 
     /* 버튼 입체감 유지 */
     border: 4px solid #000000 !important;
@@ -3001,9 +3004,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </aside>
 
-<div v-if="showTimeBankModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
-            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 animate-pop-in flex flex-col gap-4 relative" :class="timeBankInputType === 'save' ? 'border-green-400' : 'border-red-400'">
-                <button @click="showTimeBankModal = false" class="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-slate-500 hover:text-slate-800 transition-all" title="닫기"><i class="fa-solid fa-xmark text-lg"></i></button>
+<div v-if="showTimeBankModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="showTimeBankModal = false">
+            <div class="bg-white rounded-[2.5rem] p-8 w-80 shadow-2xl border-8 animate-pop-in flex flex-col gap-4" :class="timeBankInputType === 'save' ? 'border-green-400' : 'border-red-400'">
                 <h3 class="text-2xl font-black text-center" :class="timeBankInputType === 'save' ? 'text-green-600' : 'text-red-500'">{{ timeBankInputType === 'save' ? '➕ 시간 절약' : '➖ 시간 낭비' }}</h3>
                 <div class="flex items-center justify-center gap-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
                     <input type="number" v-model="timeBankInputMin" @focus="$event.target.select()" class="w-16 h-12 text-3xl font-black text-center bg-transparent outline-none" placeholder="0"><span class="font-black text-slate-400 text-xl">분</span>
@@ -3017,7 +3019,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
+        <div v-if="showTimeBankHistoryModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeTimeBankModal()">
             <div class="bg-white rounded-[3rem] p-8 w-[450px] max-h-[80vh] shadow-2xl border-8 border-slate-100 animate-pop-in flex flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
@@ -3028,10 +3030,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="모든 내역 삭제 및 0초로 초기화">
                             <i class="fa-solid fa-trash-can text-lg"></i>
                         </button>
-                        <button @click="closeTimeBankModal()"
-                                class="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm" title="닫기">
-                            <i class="fa-solid fa-xmark text-lg"></i>
-                        </button>
+                        <button @click="closeTimeBankModal()" class="text-slate-400 hover:text-red-500 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
 
@@ -3060,7 +3059,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 저금통: 통 내용 + 랭킹 -->
-        <div v-if="showSnackBankListModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm">
+        <div v-if="showSnackBankListModal" class="fixed inset-0 bg-black/60 z-[110000] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackBankList()">
             <div class="bg-white rounded-[2.5rem] shadow-2xl border-8 border-blue-300 animate-pop-in flex flex-col gap-3"
                  style="width:min(88vw,88vh); height:min(88vw,88vh); max-width:500px; max-height:500px; padding:clamp(14px,2.5vw,24px); overflow:hidden;">
                 <div class="flex items-center justify-between shrink-0">
@@ -3097,21 +3096,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 <span class="font-black text-teal-600 text-xs shrink-0">🍭{{ r.count }}</span>
                             </div>
                         </div>
-                        <!-- 다음 차례 초과분 -->
-                        <div v-if="snackNextRanking.length > 0" class="mt-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="text-xs font-black text-orange-400">⏭ 다음 간식 창고</span>
-                                <span class="text-[10px] font-black text-orange-300">{{ snackNextRanking.reduce((a,r)=>a+r.count,0) }}개</span>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <div v-for="r in snackNextRanking" :key="'next'+r.name"
-                                     class="flex items-center gap-3 px-3 py-1.5 rounded-xl border border-orange-100"
-                                     style="background:#fff7ed;">
-                                    <span class="font-black text-slate-600 flex-1 truncate text-sm">{{ r.name }}</span>
-                                    <span class="font-black text-orange-400 text-xs shrink-0">🍭{{ r.count }}</span>
-                                </div>
-                            </div>
-                        </div>
                     </template>
                 </div>
                 <button @click="openSnackInput" class="w-full py-2.5 bg-blue-400 hover:bg-blue-500 text-white font-black rounded-2xl shrink-0">간식 넣기</button>
@@ -3119,7 +3103,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 창고 초기화 확인 모달 -->
-        <div v-if="showSnackResetConfirm" class="fixed inset-0 bg-black/60 z-[110006] flex items-center justify-center backdrop-blur-sm">
+        <div v-if="showSnackResetConfirm" class="fixed inset-0 bg-black/60 z-[110006] flex items-center justify-center backdrop-blur-sm" @click.self="showSnackResetConfirm = false">
             <div class="bg-white rounded-[2rem] shadow-2xl border-4 border-amber-300 animate-pop-in flex flex-col items-center gap-5 p-8"
                  style="width:min(90vw,360px);">
                 <div class="text-5xl">🔄</div>
@@ -3142,7 +3126,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 넣기 모달 (리디자인) -->
-        <div v-if="showSnackInputModal" class="fixed inset-0 bg-black/60 z-[110001] flex items-center justify-center backdrop-blur-sm">
+        <div v-if="showSnackInputModal" class="fixed inset-0 bg-black/60 z-[110001] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackInput()">
             <div class="rounded-[2.5rem] p-6 w-[940px] max-w-[96vw] shadow-2xl border-4 border-teal-200 animate-pop-in flex flex-col gap-4"
                  style="background:linear-gradient(135deg,#f0fdfa 0%,#ecfdf5 45%,#f0f9ff 100%); height:min(90vh,680px); overflow:hidden;">
 
@@ -3173,7 +3157,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                         <!-- 선생님 버튼 -->
                         <button @click="toggleSnackStudent('선생님', $event)"
-                                @contextmenu.prevent="toggleSnackStudent('선생님', $event, true)"
                                 class="relative flex items-center justify-center rounded-xl font-black text-sm transition-all active:scale-90 border-2 select-none w-full"
                                 style="min-height:40px;"
                                 :class="snackSelectedStudents.includes('선생님')
@@ -3214,7 +3197,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                     @contextmenu.prevent="clickSnackType(sn, $event, true)"
                                     draggable="true"
                                     @dragstart="snackDragFromIdx = snIdx"
-                                    @dragend="snackDragFromIdx = -1"
                                     @dragover.prevent
                                     @drop.prevent="snackDropTo(snIdx)"
                                     :class="['snack-input-card py-2.5 px-1 rounded-xl font-black text-sm transition-all active:scale-95 cursor-grab border-2 bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50', snackDragFromIdx === snIdx ? 'opacity-40' : '']"
@@ -3238,11 +3220,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                                   name="snack-stack" tag="div"
                                                   class="flex flex-wrap gap-1.5 content-start">
                                     <div v-for="fi in snackSessionItems" :key="fi.id"
-                                         @click="deleteSnackSessionItem(fi)"
                                          @contextmenu.prevent="deleteSnackSessionItem(fi)"
                                          class="flex items-center gap-1 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap cursor-pointer hover:opacity-80"
                                          style="background:linear-gradient(90deg,#0d9488,#14b8a6);"
-                                         title="클릭으로 삭제">
+                                         title="우클릭으로 삭제">
                                         <span class="text-teal-100">{{ fi.student }}</span>
                                         <span class="text-white/80 mx-0.5">·</span>
                                         <span>{{ fi.snack }}</span>
@@ -3319,7 +3300,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
         <!-- 간식 누가기록 모달 -->
-        <div v-if="showSnackContribLogModal" class="fixed inset-0 bg-black/60 z-[110003] flex items-center justify-center backdrop-blur-sm">
+        <div v-if="showSnackContribLogModal" class="fixed inset-0 bg-black/60 z-[110003] flex items-center justify-center backdrop-blur-sm" @click.self="closeSnackContribLogModal()">
             <div class="bg-white rounded-[2.5rem] p-6 w-[520px] max-w-[95vw] max-h-[85vh] shadow-2xl border-8 border-sky-300 animate-pop-in flex flex-col gap-4">
                 <div class="flex items-center gap-3">
                     <h3 class="text-2xl font-black text-sky-700 flex-1">🧾 간식 누가기록</h3>
@@ -3711,17 +3692,17 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             @blur="saveTabName(tab.id, editingTabName)"
                             @keydown.enter.prevent.stop="saveTabName(tab.id, editingTabName)"
                             @keydown.stop
-                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;max-height:6.5rem;overflow-y:auto;"
-                            class="block px-2 py-2 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
+                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;"
+                            class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
                             autoFocus>
                         <button v-else
                             @click="currentTabId = tab.id; refreshIfChanged()"
-                            @dblclick="startEditTab(tab)"
+                            @dblclick="editingTabId = tab.id; editingTabName = tab.name"
                             :style="currentTabId === tab.id
-                                ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;'
-                                : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.02em;'"
-                            style="cursor:grab;max-height:6.5rem;overflow:hidden;"
-                            class="flex items-center justify-center px-2 py-2 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">{{ tab.name }}</button>
+                                ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
+                                : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'"
+                            style="cursor:grab;"
+                            class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">{{ tab.name }}</button>
                         <button v-if="activityTabs.length > 1" @click.stop="removeActivityTab(tab.id)"
                             class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] hidden group-hover:flex items-center justify-center font-black leading-none z-10">×</button>
                     </div>
@@ -3926,7 +3907,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
   
-        <div v-if="showRankModal" class="fixed inset-0 bg-black/80 z-[8000] flex items-center justify-center">
+        <div v-if="showRankModal" class="fixed inset-0 bg-black/80 z-[8000] flex items-center justify-center" @click.self="showRankModal = false">
             <div class="bg-white w-full max-w-3xl rounded-[2rem] p-10 shadow-2xl flex flex-col max-h-[90vh]">
                 <div class="flex items-center mb-6 relative">
                     <h2 class="text-3xl font-black text-yellow-600 text-center flex-1"><i class="fa-solid fa-trophy mr-2"></i>명예의 전당</h2>
@@ -3977,21 +3958,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
             
             <div class="max-w-6xl w-full bg-slate-800 rounded-[4rem] p-10 shadow-2xl relative flex flex-col">
-
+                <button @click="showAnimalRace = false; stopSound('bgm_animal');" class="absolute top-8 right-8 text-slate-500 hover:text-white text-4xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                
                 <div class="flex justify-between items-end mb-8">
                     <h2 class="text-5xl font-black text-white italic">🏁 모둠 달리기</h2>
                     <div class="flex gap-4">
-                        <button @click="toggleGameSpeed" class="px-6 py-4 rounded-xl font-black text-2xl text-yellow-400 bg-transparent border-2 border-yellow-400 hover:bg-yellow-400 hover:text-slate-900 active:scale-95 transition-all flex items-center justify-center">
+                        <button @click="toggleGameSpeed" class="bg-purple-500 text-white px-6 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-purple-600 active:scale-95 transition-all flex items-center justify-center">
                             <i class="fa-solid fa-bolt mr-2"></i>X{{ gameSpeed }}
                         </button>
-                        <button v-if="animalRaceFinished" @click="startAnimalRace" class="px-8 py-4 rounded-xl font-black text-2xl text-blue-400 bg-transparent border-2 border-blue-400 hover:bg-blue-400 hover:text-white active:scale-95 transition-all">
+                        <button v-if="animalRaceFinished" @click="startAnimalRace" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-2xl shadow-lg hover:bg-blue-700">
                             <i class="fa-solid fa-rotate-right mr-2"></i>재시합
                         </button>
-                        <button v-if="!isAnimalRacing && !showAnimalRaceCountdown && !animalRaceFinished" @click="startAnimalRace" class="px-10 py-4 rounded-xl font-black text-4xl text-green-400 bg-transparent border-2 border-green-400 hover:bg-green-400 hover:text-slate-900 active:scale-95 transition-all">
-                            <i class="fa-solid fa-flag-checkered mr-2"></i>START
-                        </button>
-                        <button @click="showAnimalRace = false; stopSound('bgm_animal');" class="px-6 py-4 rounded-xl font-black text-2xl text-red-400 bg-transparent border-2 border-red-400 hover:bg-red-400 hover:text-white active:scale-95 transition-all flex items-center justify-center" title="닫기">
-                            <i class="fa-solid fa-xmark"></i>
+                        <button v-if="!isAnimalRacing && !showAnimalRaceCountdown && !animalRaceFinished" @click="startAnimalRace" class="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black text-4xl shadow-lg hover:bg-orange-600">
+                            <i class="fa-solid fa-play mr-2"></i>START
                         </button>
                     </div>
                 </div>
@@ -4049,7 +4030,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
   
-        <div v-if="showGroupingResultModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center">
+        <div v-if="showGroupingResultModal" class="fixed inset-0 bg-black/60 z-[8000] flex items-center justify-center" @click.self="showGroupingResultModal = false">
     <div class="bg-white w-full max-w-5xl rounded-[3rem] p-8 shadow-2xl flex flex-col max-h-[90vh] relative overflow-hidden">
         
         <div class="flex justify-between items-center mb-6">
@@ -4078,9 +4059,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     class="px-5 py-3 rounded-xl font-black text-white bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_4px_0_rgb(30,58,138)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2">
                     <i class="fa-solid fa-rotate-right"></i> 다시 편성
                 </button>
-                <button @click="showGroupingResultModal = false"
-                    class="px-5 py-3 rounded-xl font-black text-slate-500 bg-slate-100 hover:bg-slate-200 shadow-[0_4px_0_rgb(203,213,225)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2">
-                    <i class="fa-solid fa-xmark"></i>
+                <button @click="showGroupingResultModal = false" 
+                    class="px-5 py-3 rounded-xl font-black text-slate-500 bg-slate-100 hover:bg-slate-200 shadow-[0_4px_0_rgb(203,213,225)] active:shadow-none active:translate-y-[4px] transition-all">
+                    닫기
                 </button>
             </div>
         </div>
@@ -4200,7 +4181,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <div v-if="showShuffleModal" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center">
+        <div v-if="showShuffleModal" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center" @click.self="showShuffleModal = false">
             <div class="bg-white w-full max-w-2xl rounded-[3rem] p-0 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative">
                 <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 flex justify-between items-center text-white">
                     <h2 class="text-3xl font-black italic"><i class="fa-solid fa-chair mr-2"></i>자리 바꾸기</h2>
@@ -4211,9 +4192,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         </button>
                         <button @click="showShuffleSettings = !showShuffleSettings" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm" title="설정">
                             <i class="fa-solid fa-gear text-xl"></i>
-                        </button>
-                        <button @click="showShuffleModal = false" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm" title="닫기">
-                            <i class="fa-solid fa-xmark text-xl"></i>
                         </button>
                     </div>
                 </div>
@@ -5833,7 +5811,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          height: !isTimerMaximized ? ((timerSize || 400) * 0.633) + 'px' : '100%',
          zIndex: timerZ /* ★ 조건부 삭제하고 무조건 최상단 허용 */
      }" 
-     @mousedown="focusWindow('timer'); !isTimerMaximized && $event.button === 0 && startTimerDrag($event)"
+     @mousedown="focusWindow('timer'); !isTimerMaximized && startTimerDrag($event)"
 @keydown.enter.stop="if(isTimerMaximized && !isEditingBombMessage){ isEditingBombMessage = true; $nextTick(() => $refs.bombMsgInput && $refs.bombMsgInput.focus()); }"
 tabindex="0">
     
@@ -5876,7 +5854,7 @@ tabindex="0">
     <button @click.stop="resetTimer" class="timer-ctrl-btn btn-pos-1" title="초기화"><i class="fa-solid fa-rotate-left"></i></button>
     <button @click.stop="toggleTimer" class="timer-ctrl-btn btn-pos-2" :class="{'timer-running': timerInterval}" title="작동/정지"><i :class="timerInterval ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i></button>
     <button @click.stop="isTimerMaximized = !isTimerMaximized; saveToLocal()" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-    <button @click.stop="showTimer = false" @contextmenu.prevent.stop="openTimeBankFromTimer()" class="timer-ctrl-btn btn-pos-4" title="닫기 / 우클릭: 저금통"><i class="fa-solid fa-xmark"></i></button>
+    <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
 
 <!-- 폭탄 타이머 활동 메시지 -->
 <div v-if="isTimerMaximized" @click.stop
@@ -5961,7 +5939,6 @@ tabindex="0">
     <div v-if="!isTimerMaximized" class="timer-resize-handle" @mousedown.stop="startTimerResize"></div></div>
 
 <div class="full-screen-explosion" :class="{'explode-active': isExploding}">BOOM!</div>
-
 
 <div v-if="showNoiseMeter"
      @mousedown.capture="focusWindow('noise')"
@@ -6703,7 +6680,6 @@ isRotatedGroup: false, isViewSwitching: false, _pendingSeatsRefresh: false, show
                 showActivityRecord: false,
                 
                 showTimer: false, timerSeconds: 0, timerInterval: null, timerX: null, timerY: null, timerSize: 400, isExploding: false,
-                timerContextMenu: { show: false, x: 0, y: 0 },
                 isTimerMaximized: true,
                inputMin: "0", 
                 inputSec: "00",
@@ -6845,7 +6821,7 @@ cycleProgressInfo() {
     const modeLabel = this.shuffleMode === 'mixed' ? '이성' : this.shuffleMode === 'same' ? '동성' : '랜덤';
     const modeData = this.shuffleHistoryByMode && this.shuffleHistoryByMode[modeLabel];
     const records = (modeData && Array.isArray(modeData.records)) ? modeData.records : [];
-    const current = records.length;
+    const current = records.filter(r => !r.isManual).length;
     const allStudents = Array.isArray(this.seats) ? this.seats.filter(s => s && s.name) : [];
     const poolF = allStudents.filter(s => s.gender === 'F');
     const poolM = allStudents.filter(s => s.gender === 'M');
@@ -7372,16 +7348,11 @@ mergedRankData() {
             snackRanking() {
                 const counts = {};
                 this.allStudents.forEach(s => { counts[s.name] = 0; });
-                if (this.snackDrawList.length > 0) {
-                    // 뽑기 진행 중: pool(snackDrawList)만 카운트 — 초과분 snackBank 제외
-                    this.snackDrawList.filter(item => !item.revealed).forEach(item => {
-                        if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
-                    });
-                } else {
-                    // 뽑기 전: 현재 차례분(N개)만 카운트, 초과분 제외
-                    const n = this.allStudents.length || this.snackBank.length;
-                    this.snackBank.slice(0, n).forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
-                }
+                // 창고 잔고 + 아직 뽑히지 않은 항목 합산 (뽑힌 것은 차감됨)
+                this.snackBank.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
+                this.snackDrawList.filter(item => !item.revealed).forEach(item => {
+                    if (item.contributor) counts[item.contributor] = (counts[item.contributor]||0)+1;
+                });
                 const entries = Object.entries(counts).map(([name, count]) => ({ name, count }));
                 entries.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
                 // 동점 그룹 내 rank 부여 (1,1,3,3,5...) 후 그룹 내 이름 순 유지
@@ -7397,19 +7368,6 @@ mergedRankData() {
                     gi = gj;
                 }
                 return result;
-            },
-            snackNextRanking() {
-                const n = this.allStudents.length || 0;
-                // 뽑기 진행 중이면 snackBank 전체가 초과분(다음 차례)
-                const excess = this.snackDrawList.length > 0
-                    ? this.snackBank.slice()
-                    : this.snackBank.slice(n);
-                if (excess.length === 0) return [];
-                const counts = {};
-                excess.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
-                return Object.entries(counts)
-                    .map(([name, count]) => ({ name, count }))
-                    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
             },
             snackTopContributor() {
                 const top = this.snackRanking.find(r => r.count > 0);
@@ -7630,11 +7588,7 @@ mergedRankData() {
             seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             tabData: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             // ★ 도구·간식·판서 실시간 동기화 (BroadcastChannel) — isSyncing 체크로 Firebase 로딩 중 broadcast 차단
-            snackBank: { deep: true, handler() {
-                // ★ [Bug-3] snackBank 변경 시 snackBankSummary 즉시 동기화 (다른 탭 사이드바 표시용)
-                this.snackBankSummary = { count: this.snackBank ? this.snackBank.length : 0, topName: this.snackTopContributor || '' };
-                if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow();
-            } },
+            snackBank: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             snackBankHistory: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             snackContribLog: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             displayWinner(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
@@ -7940,6 +7894,8 @@ toggleOneMinAlarm() {
                 if (this.snackContribLog.length > 500) this.snackContribLog.length = 500;
                 try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
                 this.playSound && this.playSound('click');
+                // Ctrl/우클릭이면 학생 선택 유지, 일반 클릭이면 해제
+                if (!keep) this.snackSelectedStudents = [];
             },
             snackRevealTitle(fullName) {
                 // "김서영" → "서영이의" / "박준" → "준의"
@@ -7949,19 +7905,21 @@ toggleOneMinAlarm() {
                 const hasJongseong = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
                 return given + (hasJongseong ? '이의' : '의');
             },
-            toggleSnackStudent(name, event, isRightClick) {
-                if (isRightClick) {
-                    // 우클릭: 해제만
-                    const i = this.snackSelectedStudents.indexOf(name);
-                    if (i >= 0) this.snackSelectedStudents.splice(i, 1);
+            toggleSnackStudent(name, event, forceMulti) {
+                const isMulti = forceMulti || (event && (event.ctrlKey || event.metaKey));
+                if (!isMulti) {
+                    // 일반 클릭: 단일 선택 (이미 선택된 경우 해제)
+                    if (this.snackSelectedStudents.length === 1 && this.snackSelectedStudents[0] === name) {
+                        this.snackSelectedStudents = [];
+                    } else {
+                        this.snackSelectedStudents = [name];
+                    }
                     return;
                 }
-                // 좌클릭: 이미 선택된 경우 해제, 아니면 단일 선택 전환
-                if (this.snackSelectedStudents.includes(name)) {
-                    this.snackSelectedStudents = [];
-                } else {
-                    this.snackSelectedStudents = [name];
-                }
+                // Ctrl+클릭 / 우클릭: 다중 토글
+                const i = this.snackSelectedStudents.indexOf(name);
+                if (i >= 0) this.snackSelectedStudents.splice(i, 1);
+                else this.snackSelectedStudents.push(name);
             },
             adjustSnackCount(snackName, delta) {
                 const cur = this.snackTypeCounts[snackName] || 0;
@@ -8109,13 +8067,14 @@ toggleOneMinAlarm() {
                 this._snackEverLoaded = true;
                 // 캡슐 뽑기: 학생 N명 ↔ 간식 N개 1:1 랜덤 매칭, 초과분은 창고에 잔류
                 const students = this.allStudents.map(s => s.name);
-                // 현재 차례분(앞 N개)만 셔플 — 초과분은 순서 유지하며 leftover로 보존
-                const pool = this.snackBank.slice(0, students.length);
-                const leftover = this.snackBank.slice(students.length);
-                for (let i = pool.length - 1; i > 0; i--) {
+                const allSnacks = this.snackBank.slice();
+                // 전체 셔플
+                for (let i = allSnacks.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i+1));
-                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                    [allSnacks[i], allSnacks[j]] = [allSnacks[j], allSnacks[i]];
                 }
+                const pool = allSnacks.slice(0, students.length);        // 이번 뽑기에 사용
+                const leftover = allSnacks.slice(students.length);       // 초과분: 창고에 남김
                 // 기부 수 내림차순 → 동점자 그룹만 내부 셔플 (pool 기준 = 표시값과 일치)
                 const counts = {};
                 pool.forEach(s => { if (s.contributor) counts[s.contributor] = (counts[s.contributor]||0) + 1; });
@@ -8279,33 +8238,6 @@ toggleOneMinAlarm() {
                 this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
                 this.showTimeBankModal = true;
             },
-            openTimeBankFromTimer() {
-                const secs = Math.floor(this.timerSeconds);
-                if (secs <= 0) {
-                    this.showToast && this.showToast('⚠️ 기록할 시간이 없습니다.');
-                    return;
-                }
-                // 타이머/스탑워치 자동 정지
-                if (this.timerInterval) {
-                    clearInterval(this.timerInterval);
-                    this.timerInterval = null;
-                    if (this.timerAudio) { this.timerAudio.pause(); this.timerAudio.currentTime = 0; }
-                }
-                if (this.isStopwatchMode) {
-                    // 스탑워치: 초과한 시간만큼 감점(waste)
-                    this.timeBankInputType = 'waste';
-                    this.timeBankInputMemo = `타이머 초과 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
-                } else {
-                    // 타이머: 남은 시간만큼 절약(save)
-                    this.timeBankInputType = 'save';
-                    this.timeBankInputMemo = `타이머 절약 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
-                }
-                this.timeBankInputMin = String(Math.floor(secs / 60));
-                this.timeBankInputSec = String(secs % 60);
-                this._timeBankSubscribed = false;
-                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
-                this.showTimeBankModal = true;
-            },
             openTimeBankModal(type) {
                 this.timeBankInputType = type;
                 this.timeBankInputMin = ''; this.timeBankInputSec = ''; this.timeBankInputMemo = '';
@@ -8424,9 +8356,9 @@ toggleOneMinAlarm() {
                 if (m.type === 'count') {
                     const start = new Date(m.startDate); start.setHours(0,0,0,0);
                     if (!sw && !sh) {
-                        return `${Math.floor((today - start) / 86400000)}일째`;
+                        return `${Math.floor((today - start) / 86400000) + 1}일째`;
                     }
-                    return `${this.countMissionDays(start, today, sw, sh) - 1}일째`;
+                    return `${this.countMissionDays(start, today, sw, sh)}일째`;
                 } else {
                     const target = new Date(m.targetDate); target.setHours(0,0,0,0);
                     if (!sw && !sh) {
@@ -10758,6 +10690,10 @@ async makeBracketLogic() {
         targetSize = 32;
     }
 
+    // [버그 수정] 이름이 비어있거나 공백뿐인 참가자(빈 좌석 데이터 등)는 제외
+    //  -> 대진표에 빈칸으로 표시되던 문제 해결
+    participants = participants.filter(p => p && typeof p.name === 'string' && p.name.trim() !== '');
+
     if (participants.length < 2) {
         alert("최소 2명의 참가자가 필요합니다.");
         return [];
@@ -12151,15 +12087,6 @@ startTimerResize(e) {
     document.addEventListener('mousemove', mv);
     document.addEventListener('mouseup', mu);
 },
-showTimerContextMenu(e) {
-    const margin = 8;
-    const menuW = 180, menuH = 110;
-    let x = e.clientX + margin;
-    let y = e.clientY + margin;
-    if (x + menuW > window.innerWidth) x = e.clientX - menuW - margin;
-    if (y + menuH > window.innerHeight) y = e.clientY - menuH - margin;
-    this.timerContextMenu = { show: true, x, y };
-},
 resetTimer() {
     if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
     this.timerSeconds = 0;
@@ -12451,8 +12378,7 @@ this.playSound('finish', false, 0.5);
     const md = this.shuffleHistoryByMode[currentMode];
     if (!Array.isArray(md.records)) md.records = md.records ? Object.values(md.records) : [];
     md.records.unshift({ ...rec, isManual: true });
-    md.currentRound = (md.currentRound || 0) + 1;
-    console.log(`[수동저장] mode=${currentMode}, records=${md.records.length}, currentRound=${md.currentRound}, manual=${md.records.filter(r=>r.isManual).length}, pairs=${intendedPairs.length}`);
+    console.log(`[수동저장] mode=${currentMode}, records=${md.records.length}, manual=${md.records.filter(r=>r.isManual).length}, pairs=${intendedPairs.length}`);
 
     this.saveToLocal_full && this.saveToLocal_full();
 
@@ -12466,7 +12392,7 @@ this.playSound('finish', false, 0.5);
                 <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">현재 배치가 저장되었습니다!</div>
                 <div style="background:#f0f4ff;border-radius:12px;padding:12px 14px;margin-bottom:18px;text-align:left;">
                     <div style="font-size:12px;font-weight:700;color:#4c6ef5;margin-bottom:5px;">ℹ️ 수동 저장 안내</div>
-                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치는 <b style="color:#333;">짝꿍 중복 기록과 사이클 횟수에 포함됩니다.</b><br>짝꿍 조합이 모두 소진되면 새 사이클로 넘어가요.</div>
+                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치는 <b style="color:#333;">짝꿍 중복 기록에 포함되지 않습니다.</b><br>자동 배치 사이클 횟수에도 영향을 주지 않아요.</div>
                 </div>
                 <button data-close style="width:100%;padding:11px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">확인</button>
             </div>`;
@@ -12724,7 +12650,6 @@ saveToLocal() {
                     currentNoisePreset: this.currentNoisePreset, noiseThreshold: this.noiseThreshold,
                     timeBankSeconds: this.timeBankSeconds, timeBankHistory: this.timeBankHistory,
                     snackBank: this.snackBank, snackBankHistory: this.snackBankHistory,
-                    snackBankSummary: { count: this.snackBank ? this.snackBank.length : 0, topName: this.snackTopContributor || '' }, // ★ [Bug-4] 요약 정보도 함께 저장
                     snackTypes: this.snackTypes, snackDrawList: this.snackDrawList,
                     snackDrawIdx: this.snackDrawIdx,
                     participantList: this.participantList, lotteryPools: this.lotteryPools,
@@ -12887,7 +12812,7 @@ saveToLocal() {
                 if (data.preSortLayout) this.preSortLayout = data.preSortLayout;
                 if (data.showHallOfFame !== undefined) this.showHallOfFame = data.showHallOfFame;
                 if (data.showMissionWidget !== undefined) this.showMissionWidget = data.showMissionWidget;
-                // 항상 회전 상태(교탁 아래)로 시작 — 저장값 무시
+                if (data.isRotated !== undefined) this.isRotated = data.isRotated;
                 if (data.boardPreview !== undefined) this.boardPreview = data.boardPreview;
                 if (data.blackboardContent !== undefined) this.blackboardContent = data.blackboardContent;
                 if (data.paths !== undefined) this.paths = Array.isArray(data.paths) ? data.paths : [];
@@ -13609,11 +13534,10 @@ getSummaryTabStyle() {
         : `background:#d4bb8a;color:#8f6a49;border-color:#9c734f;${base}`;
 },
 
-openRankModal() {
-    this.rankSortKey = 'number';
-    this.rankSortOrder = 'asc';
-    this.showMainDashboard = false;
-    this.showRankModal = true;
+openRankModal() { 
+    this.rankSortKey = 'number';  // 정렬 기준: 번호
+    this.rankSortOrder = 'asc';   // 정렬 순서: 오름차순 (1, 2, 3...)
+    this.showRankModal = true; 
 },
             sortRank(key) {
                 if (key === 'memo') {
@@ -13880,34 +13804,8 @@ openAnimalRaceModal() {
 
             toggleCheck(student) { student.checked = !student.checked; this.saveToLocal(); },
             addActivityTab() {
-                // 기존 탭 중 가장 큰 id보다 무조건 큰 값을 사용해 id 중복(=편집 시 복제) 방지
-                const maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
-                const id = Math.max(maxId + 1, Number(this.nextTabId) || 0);
-                this.activityTabs.push({ id, name: '활동' });
-                this.currentTabId = id; this.nextTabId = id + 1; this.saveToLocal();
-            },
-            // 저장된 데이터 등으로 id가 겹친 탭이 있으면 뒤쪽 탭에 새 id를 부여해 분리
-            dedupeTabIds() {
-                const seen = new Set();
-                let maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
-                let changed = false;
-                this.activityTabs.forEach(tab => {
-                    if (seen.has(tab.id)) {
-                        const newId = ++maxId;
-                        if (this.tabData[tab.id]) {
-                            this.tabData[newId] = JSON.parse(JSON.stringify(this.tabData[tab.id]));
-                        }
-                        tab.id = newId;
-                        changed = true;
-                    }
-                    seen.add(tab.id);
-                });
-                if (changed) { this.nextTabId = maxId + 1; this.saveToLocal(); }
-            },
-            startEditTab(tab) {
-                this.dedupeTabIds();           // 편집 직전 id 중복 정리 (tab.id가 갱신될 수 있음)
-                this.editingTabId = tab.id;
-                this.editingTabName = tab.name;
+                this.activityTabs.push({ id: this.nextTabId, name: '활동' });
+                this.currentTabId = this.nextTabId; this.nextTabId++; this.saveToLocal();
             },
             dropTab(targetId) {
                 if (!this.draggingTabId || this.draggingTabId === targetId) { this.draggingTabId = null; return; }
@@ -17156,7 +17054,7 @@ async applyShuffle() {
             buildPartnerHistory(allRecs.slice(0, mHistLen), 'M');
             buildPartnerHistory(allRecs.slice(0, fHistLen), 'F');
         } else {
-            const autoRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
+            const filteredRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
                 if (!rec.intendedPairs || rec.intendedPairs.length === 0) return rec;
                 return {
                     ...rec,
@@ -17166,8 +17064,7 @@ async applyShuffle() {
                     })
                 };
             });
-            const manualRecs = allRecs.filter(r => r.isManual);
-            buildPartnerHistory([...autoRecs, ...manualRecs], null);
+            buildPartnerHistory(filteredRecs, null);
         }
 
         const seatHistoryMap = new Map();
@@ -17182,108 +17079,6 @@ async applyShuffle() {
                 }
             }
         });
-
-        // ================================================================
-        // 3.4  모둠 골고루 구성 (A: 이력 회피 · B: 부하 균형 · C: 회전)
-        //      ※ 짝꿍 결정 로직(Section 7)은 그대로 두고, 자리 '배치' 단계의
-        //        패널티에만 모둠 항을 더해 같은 무리가 반복되지 않게 한다.
-        // ================================================================
-        // 모둠 = '앞뒤 2책상 = 4명' : 분단(0~2) 안에서 행을 2줄씩 묶음
-        //   band 0 = 행1·2, band 1 = 행3·4 (각각 앞뒤 짝꿍 4명) → 4명씩 6모둠
-        //   band 2 = 행5 (분단당 2자리) : 25명 이상으로 5행까지 찰 때만 생기는 잔여 그룹
-        const getGroupId = (idx) => {
-            const block = Math.floor(idx / 10);        // 분단 0,1,2
-            const band  = Math.floor((idx % 10) / 4);  // 0(행1·2) / 1(행3·4) / 2(행5)
-            return block * 3 + band;                   // 0 ~ 8
-        };
-        const NUM_GROUPS = 9;
-
-        // A) 모둠 이력 맵: 현재 사이클의 모든 배치 누적 (짝꿍 로직과 동일 범위 = modeData.records)
-        //    최신 기록일수록 가중치 ↑, 사이클 내 전체 기록이 ≥1로 누적된다.
-        //    ※ 사이클 리셋(한 바퀴 완료) 시 buildGroupHistory()로 재구성한다.
-        const groupHistoryMap = new Map();
-        const buildGroupHistory = () => {
-            groupHistoryMap.clear();
-            allStudents.forEach(s => groupHistoryMap.set(s.name, new Map()));
-            // modeData.records: 현재 사이클 기록(최신이 index 0). 좌석 스냅샷 보유분만 사용.
-            modeData.records.forEach((rec, idx) => {
-                if (!rec) return;
-                const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-                if (!raw || raw.length === 0) return;
-                const hs = raw.map(s => (s && typeof s === 'object') ? s : (s ? { name: s } : null));
-                const w  = idx === 0 ? 4 : idx === 1 ? 2 : 1; // 최근성 가중: 직전 라운드 강하게 회피(연속 방지)
-                const byGroup = new Map();
-                for (let i = 0; i < 30; i++) {
-                    if (!hs[i]?.name) continue;
-                    const g = getGroupId(i);
-                    if (!byGroup.has(g)) byGroup.set(g, []);
-                    byGroup.get(g).push(hs[i].name);
-                }
-                for (const members of byGroup.values()) {
-                    for (const a of members) for (const b of members) {
-                        if (a === b) continue;
-                        const m = groupHistoryMap.get(a);
-                        if (m) m.set(b, (m.get(b) || 0) + w);
-                    }
-                }
-            });
-        };
-        buildGroupHistory();
-
-        // C) 회전 시드: 배치 횟수에 따라 모둠 선호 순서를 한 칸씩 돌림
-        //    (이력이 아직 없는 초기 배치에서도 무리가 매번 바뀌도록)
-        let groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
-
-        // 직전 라운드 같은 모둠 강하게 회피 (연속 금지): 가장 최근 배치의 모둠 멤버십
-        const prevGroupMap = new Map();
-        allStudents.forEach(s => prevGroupMap.set(s.name, new Set()));
-        (() => {
-            const rec = this.shuffleHistory[0];
-            if (!rec) return;
-            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-            const byG = {};
-            for (let i = 0; i < 30; i++) {
-                const cell = raw[i]; const nm = (cell && typeof cell === 'object') ? cell.name : cell;
-                if (!nm) continue; const g = getGroupId(i); (byG[g] = byG[g] || []).push(nm);
-            }
-            for (const g in byG) { const mm = byG[g]; for (const a of mm) for (const b of mm) if (a !== b) prevGroupMap.get(a)?.add(b); }
-        })();
-
-        // 각 학생의 직전 모둠 번호 (사전 배정용)
-        const prevGroupOf = new Map();
-        (() => {
-            const rec = this.shuffleHistory[0];
-            if (!rec) return;
-            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
-            for (let i = 0; i < 30; i++) {
-                const cell = raw[i];
-                const nm = (cell && typeof cell === 'object') ? cell.name : cell;
-                if (nm) prevGroupOf.set(nm, getGroupId(i));
-            }
-        })();
-
-        // 모둠 항 패널티 — 물리 제약(성별·거리두기 수백만)보다 항상 작게 유지
-        const KA = 2000;  // A: 과거 같은 모둠이었던 사람과의 1:1 재회 비용
-        const KB = 1500;  // B: 한 모둠에 이력 보유자가 몰리는 정도(제곱 → 균형)
-        const KC = 300;   // C: 회전 기반 약한 타이브레이커
-        const KPREV = 500000; // 직전 라운드 같은 모둠 → 이전자리(40만)보다 강하게 회피(연속 금지)
-        const groupPen = (student, seatIdx, tempSeats) => {
-            if (!student) return 0;
-            const g    = getGroupId(seatIdx);
-            const hist = groupHistoryMap.get(student.name);
-            const prev = prevGroupMap.get(student.name);
-            let pairSum = 0, coCount = 0, prevHit = 0;
-            for (let i = 0; i < 30; i++) {
-                const other = tempSeats[i];
-                if (!other || i === seatIdx) continue;
-                if (getGroupId(i) !== g) continue;     // 같은 모둠 칸에 이미 앉은 사람만
-                const w = hist ? (hist.get(other.name) || 0) : 0;
-                if (w > 0) { pairSum += w; coCount++; } // A: 가중치 합 / B: 인원 카운트
-                if (prev && prev.has(other.name)) prevHit++; // 직전 라운드에도 같은 모둠
-            }
-            const rotBias = ((g - groupRotation + NUM_GROUPS) % NUM_GROUPS); // C
-            return pairSum * KA + (coCount * coCount) * KB + rotBias * KC + prevHit * KPREV;
-        };
 
         // ================================================================
         // 3.5  짝꿍 매칭 함수 (사전 완료 체크를 위해 커튼 전에 정의)
@@ -17412,7 +17207,7 @@ async applyShuffle() {
         }
 
         {
-            if (allRecs.length >= effectiveMax && this.shuffleMode !== 'same') {
+            if (allRecs.filter(r => !r.isManual).length >= effectiveMax && this.shuffleMode !== 'same') {
                 this.showShuffleModal = false;
                 const result = await new Promise(resolve => {
                     const ov = document.createElement('div');
@@ -17448,9 +17243,6 @@ async applyShuffle() {
                 allRecs = modeData.records;
                 partnerHistoryMap.clear();
                 allStudents.forEach(s => partnerHistoryMap.set(s.name, new Set()));
-                // 모둠 이력·회전도 새 사이클(빈 records) 기준으로 재구성
-                buildGroupHistory();
-                groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
                 // 새 cycleCount 기준으로 정렬 기준·배열 재계산
                 sortCycle = modeData.cycleCount % 3;
                 sortByCycle = (a, b) => {
@@ -17692,13 +17484,11 @@ async applyShuffle() {
         };
 
         const totalSeatPen = (student, seatIdx, tempSeats) =>
-            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats)
-            + groupPen(student, seatIdx, tempSeats);   // ★ 모둠 골고루(A·B·C)
+            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats);
 
         // ================================================================
         // 10. 자리 배치 함수
         // ================================================================
-
         const placeStudents = (pairs) => {
             const tempSeats   = Array(30).fill(null);
             let   seatPenalty = 0;
@@ -17844,25 +17634,8 @@ async applyShuffle() {
                     }
                 }
 
-                // [Method C] 직전 모둠원이 이미 앉은 모둠 차단 (개인 직전 모둠 + 클러스터링)
-                const prev1 = prevGroupMap.get(s1.name);
-                const prev2 = s2 ? prevGroupMap.get(s2.name) : null;
-                const hasConflict = (leftIdx) => {
-                    const g = getGroupId(leftIdx);
-                    if (prevGroupOf.get(s1.name) === g) return true;
-                    if (s2 && prevGroupOf.get(s2.name) === g) return true;
-                    for (let k = 0; k < 30; k++) {
-                        const sq = tempSeats[k];
-                        if (!sq || getGroupId(k) !== g) continue;
-                        if (prev1?.has(sq.name) || prev2?.has(sq.name)) return true;
-                    }
-                    return false;
-                };
-                const allIdxs = tempDesks.map((_,i) => i);
-                const safeIdxs = allIdxs.filter(i => !hasConflict(tempDesks[i].leftIdx));
-                const searchIdxs = safeIdxs.length > 0 ? safeIdxs : allIdxs;
                 let bestDeskIdx=-1, bestArrang=null, minPen=Infinity;
-                for (const i of searchIdxs) {
+                for (let i = 0; i < tempDesks.length; i++) {
                     const desk = tempDesks[i];
                     tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
                     const pen1=totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
@@ -17917,9 +17690,6 @@ async applyShuffle() {
                             if (other&&atI&&partnerHistoryMap.get(other.name)?.has(atI.name)) continue;
                             if (atJ&&partnerHistoryMap.get(student.name)?.has(atJ.name)) continue;
                         }
-                        // ★ 모둠 골고루: Swap이 같은-모둠 재회를 늘리면 건너뜀 (rotBias는 양변 상쇄)
-                        if (groupPen(student,j,t2)+(other?groupPen(other,i,t2):0)
-                            > groupPen(student,i,tempSeats)+(other?groupPen(other,j,tempSeats):0)) continue;
                         tempSeats[i]=other; tempSeats[j]=student;
                         break;
                     }
@@ -17955,42 +17725,6 @@ async applyShuffle() {
         // 13. 결과 적용
         // ================================================================
         this.seats = bestSeats;
-
-        // === 직전 모둠 연속 겹침 최소화 (짝꿍 유지·성별·거리두기 안전) ===
-        {
-            const S = this.seats;
-            const isLk = i => this.manualLocks.some(l => l.seatIdx === i);
-            const dl = [];
-            for (let i = 0; i < 30; i += 2) { if (safeSeatConfig[i]==='X'||safeSeatConfig[i+1]==='X'||isLk(i)||isLk(i+1)) continue; dl.push(i); }
-            const swap = (d1,d2)=>{ const a=S[d1],b=S[d1+1]; S[d1]=S[d2];S[d1+1]=S[d2+1];S[d2]=a;S[d2+1]=b; };
-            const bc = s => { let v=0; for (let i=0;i<30;i++) if (s[i]) v+=totalSeatPen(s[i],i,s); return v; };
-            const swapMakesGroupViol = (d1, d2) => {
-                const g1 = getGroupId(d1), g2 = getGroupId(d2);
-                for (const idx of [d1, d1+1]) {
-                    if (!S[idx]) continue;
-                    if (prevGroupOf.get(S[idx].name) === g2) return true;
-                    const pm = prevGroupMap.get(S[idx].name);
-                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g2&&pm.has(S[k].name)) return true; }
-                }
-                for (const idx of [d2, d2+1]) {
-                    if (!S[idx]) continue;
-                    if (prevGroupOf.get(S[idx].name) === g1) return true;
-                    const pm = prevGroupMap.get(S[idx].name);
-                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g1&&pm.has(S[k].name)) return true; }
-                }
-                return false;
-            };
-            for (let pass=0; pass<10; pass++) { let imp=false;
-              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) {
-                if (swapMakesGroupViol(dl[x],dl[y])) continue;
-                const be=bc(S); swap(dl[x],dl[y]); if (bc(S)>=be-1e-6) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
-            const violAt = (s, idx) => { const o=s[idx]; if(!o)return 0; const g=getGroupId(idx); const pv=prevGroupMap.get(o.name); if(!pv)return 0; let h=0; for(let k=0;k<30;k++){ const q=s[k]; if(q&&k!==idx&&getGroupId(k)===g&&pv.has(q.name))h++; } return h; };
-            const tv = s => { let v=0; for(let i=0;i<30;i++) v+=violAt(s,i); return v; };
-            const gOk = s => { for(let i=0;i<30;i++) if(s[i]&&genderPen(s[i],i)>0) return false; return true; };
-            const sepCost = s => { let v=0; for(let i=0;i<30;i++) if(s[i]) v+=distancePen(s[i],i,s); return v; };
-            for (let pass=0; pass<12 && tv(S)>0; pass++) { let imp=false;
-              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) { const vB=tv(S), sB=sepCost(S); swap(dl[x],dl[y]); if (!gOk(S)||sepCost(S)>sB||tv(S)>=vB) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
-        }
         if (typeof this.runReferee==='function') await this.runReferee();
         const seatedNames = new Set(this.seats.filter(s=>s).map(s=>s.name));
         this.waitingRoom  = allStudents.filter(s=>!seatedNames.has(s.name));
@@ -18035,7 +17769,7 @@ async applyShuffle() {
             // partnerHistoryMap에 없으면 Section 7도 중복 없다고 판단한 것 → 경고 생략
             if (!partnerHistoryMap.get(s1.name)?.has(s2.name)) continue;
             let pastCount=0;
-            [...allRecs.filter(r => !r.isManual).slice(0, maxCombos), ...allRecs.filter(r => r.isManual)].forEach(rec=>{
+            allRecs.filter(r => !r.isManual).slice(0, maxCombos).forEach(rec=>{
                 if (!rec) return;
                 let found=false;
                 const rPairs=rec.intendedPairs&&rec.intendedPairs.length>0?rec.intendedPairs:null;
@@ -18487,10 +18221,9 @@ initGameData(participants) {
                         this.lastFrameTime = performance.now(); 
                         this.rankingTimer = 0;
                         this.cleanupTimer = 0;
-                        this.resizeCanvas();
-                        window.removeEventListener('resize', this.resizeCanvas); // ★ [Bug-5] 중복 등록 방지
-                        window.addEventListener('resize', this.resizeCanvas);
-                        this.animationId = requestAnimationFrame(this.loop);
+                        this.resizeCanvas(); 
+                        window.addEventListener('resize', this.resizeCanvas); 
+                        this.animationId = requestAnimationFrame(this.loop); 
                     } 
                 }); 
             },

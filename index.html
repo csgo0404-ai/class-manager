@@ -4694,7 +4694,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <!-- 교육활동 카드 (80%) -->
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0" style="flex:8;">
                 <!-- 날씨 (상단) -->
-                <div class="flex-shrink-0 bg-[#fdf8ef] border-b border-[#e7d5b1] px-3 py-2 cursor-pointer hover:bg-[#fff3e0] transition-colors"
+                <div class="relative flex-shrink-0 bg-[#fdf8ef] border-b border-[#e7d5b1] px-3 py-2 cursor-pointer hover:bg-[#fff3e0] transition-colors"
                      @click="openUrl('https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EB%82%A0%EC%94%A8&ackey=g95jjj0g')">
                     <div v-if="dashboardWeather && !dashboardWeather.error" class="relative flex items-center justify-center flex-wrap gap-3 text-sm font-bold text-[#5d4037]">
                         <span class="text-2xl">{{ dashboardWeather.icon }}</span>
@@ -4709,12 +4709,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <span class="text-[#c8bdb0]">|</span>
                             <span class="font-black text-xs" :style="{color: dashboardWeather.pm25Level.color}">초미세 {{ dashboardWeather.pm25Level.label }}</span>
                         </span>
-                        <button @click.stop="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'info'; openStudentTab()"
-                                class="absolute right-0 top-1/2 -translate-y-1/2 text-xl font-black text-[#a1887f] hover:text-[#5d4037] transition-colors px-2 py-1 rounded-lg hover:bg-[#f5e6d0]"
-                                title="설정">⚙</button>
                     </div>
-                    <div v-else-if="!dashboardSettings.lat" class="text-xs text-[#a1887f] font-bold text-center">⚙️ 위도/경도를 설정하면 날씨가 표시됩니다</div>
-                    <div v-else class="text-xs text-[#a1887f] font-bold text-center">날씨 불러오는 중...</div>
+                    <div v-else-if="!dashboardSettings.lat" class="text-xs text-[#a1887f] font-bold text-center pr-8">⚙️ 위도/경도를 설정하면 날씨가 표시됩니다</div>
+                    <div v-else class="text-xs text-[#a1887f] font-bold text-center pr-8">날씨 불러오는 중...</div>
+                    <!-- ⚙ 설정: 날씨/위경도 유무와 무관하게 항상 표시 (새로 시작 시에도 접근 가능) -->
+                    <button @click.stop="dashboardShowSettings = !dashboardShowSettings; dashboardSettingsTab = 'info'; openStudentTab()"
+                            class="absolute right-1 top-1/2 -translate-y-1/2 text-xl font-black text-[#a1887f] hover:text-[#5d4037] transition-colors px-2 py-1 rounded-lg hover:bg-[#f5e6d0]"
+                            title="설정">⚙</button>
                 </div>
                 <!-- 달력 + 행사 -->
                 <div class="flex-1 overflow-y-auto dash-scroll px-3 pb-2 min-h-0" style="padding-top:24px;">

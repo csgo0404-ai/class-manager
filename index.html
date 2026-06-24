@@ -3096,6 +3096,21 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                 <span class="font-black text-teal-600 text-xs shrink-0">🍭{{ r.count }}</span>
                             </div>
                         </div>
+                        <!-- 다음 차례 초과분 -->
+                        <div v-if="snackNextRanking.length > 0" class="mt-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-black text-orange-400">⏭ 다음 간식 창고</span>
+                                <span class="text-[10px] font-black text-orange-300">{{ snackNextRanking.reduce((a,r)=>a+r.count,0) }}개</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <div v-for="r in snackNextRanking" :key="'next'+r.name"
+                                     class="flex items-center gap-3 px-3 py-1.5 rounded-xl border border-orange-100"
+                                     style="background:#fff7ed;">
+                                    <span class="font-black text-slate-600 flex-1 truncate text-sm">{{ r.name }}</span>
+                                    <span class="font-black text-orange-400 text-xs shrink-0">🍭{{ r.count }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </template>
                 </div>
                 <button @click="openSnackInput" class="w-full py-2.5 bg-blue-400 hover:bg-blue-500 text-white font-black rounded-2xl shrink-0">간식 넣기</button>
@@ -3701,7 +3716,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             autoFocus>
                         <button v-else
                             @click="currentTabId = tab.id; refreshIfChanged()"
-                            @dblclick="editingTabId = tab.id; editingTabName = tab.name"
+                            @dblclick="startEditTab(tab)"
                             :style="currentTabId === tab.id
                                 ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
                                 : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'"
@@ -5858,7 +5873,7 @@ tabindex="0">
     <button @click.stop="resetTimer" class="timer-ctrl-btn btn-pos-1" title="초기화"><i class="fa-solid fa-rotate-left"></i></button>
     <button @click.stop="toggleTimer" class="timer-ctrl-btn btn-pos-2" :class="{'timer-running': timerInterval}" title="작동/정지"><i :class="timerInterval ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i></button>
     <button @click.stop="isTimerMaximized = !isTimerMaximized; saveToLocal()" class="timer-ctrl-btn btn-pos-3" title="화면전환"><i :class="isTimerMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
-    <button @click.stop="showTimer = false" class="timer-ctrl-btn btn-pos-4" title="닫기"><i class="fa-solid fa-xmark"></i></button>
+    <button @click.stop="showTimer = false" @contextmenu.prevent.stop="openTimeBankFromTimer()" class="timer-ctrl-btn btn-pos-4" title="닫기 / 우클릭: 저금통"><i class="fa-solid fa-xmark"></i></button>
 
 <!-- 폭탄 타이머 활동 메시지 -->
 <div v-if="isTimerMaximized" @click.stop
@@ -6825,7 +6840,7 @@ cycleProgressInfo() {
     const modeLabel = this.shuffleMode === 'mixed' ? '이성' : this.shuffleMode === 'same' ? '동성' : '랜덤';
     const modeData = this.shuffleHistoryByMode && this.shuffleHistoryByMode[modeLabel];
     const records = (modeData && Array.isArray(modeData.records)) ? modeData.records : [];
-    const current = records.filter(r => !r.isManual).length;
+    const current = records.length;   // 수동 배치도 "12 중 N"에 포함
     const allStudents = Array.isArray(this.seats) ? this.seats.filter(s => s && s.name) : [];
     const poolF = allStudents.filter(s => s.gender === 'F');
     const poolM = allStudents.filter(s => s.gender === 'M');
@@ -6895,13 +6910,30 @@ cycleProgressInfo() {
             if (this.shuffleMode==='same') return [...circle(poolM,s%szM),...circle(poolF,s%szF)];
             return circle(allStudents,s%szAll);
         };
-        let cnt=0;
-        for(let s=0;s<maxCombos;s++){
-            if(!cand(s).some(p=>p[0]&&p[1]&&(isSepM(p[0],p[1])||isNonAdjLockFn(p[0],p[1])))) cnt++;
+        // 이미 짝이 된 거리두기 쌍이 막은 shift는 '완료된 라운드'이므로 사이클 예산에 포함
+        // (shuffle의 consumedSepShifts와 동일 — 거리두기 설정 전 짝된 라운드까지 N/12에 반영)
+        const pairedSet = new Set();
+        for (const r of records) {
+            for (const p of (r.intendedPairs || [])) {
+                const [n1, n2] = Array.isArray(p) ? p : Object.values(p);
+                if (n1 && n2) { pairedSet.add(n1+'|'+n2); pairedSet.add(n2+'|'+n1); }
+            }
         }
-        max = cnt > 0 ? cnt : 1;
+        let cnt=0, consumed=0;
+        for(let s=0;s<maxCombos;s++){
+            const c = cand(s);
+            let sepB=false, lockB=false, allPaired=true;
+            for(const p of c){
+                if(!p[0]||!p[1]) continue;
+                if(isSepM(p[0],p[1])){ sepB=true; if(!pairedSet.has(p[0].name+'|'+p[1].name)) allPaired=false; }
+                if(isNonAdjLockFn(p[0],p[1])) lockB=true;
+            }
+            if(!sepB&&!lockB) cnt++;
+            else if(sepB&&!lockB&&allPaired) consumed++;
+        }
+        max = (cnt+consumed) > 0 ? (cnt+consumed) : 1;
     }
-    max = Math.max(max - adjLockPairCountCI, 1);
+    max = Math.max(Math.min(max - adjLockPairCountCI, maxCombos), 1);
 
     return { current, max, cycleCount };
 },
@@ -7372,6 +7404,20 @@ mergedRankData() {
                     gi = gj;
                 }
                 return result;
+            },
+            // 다음 차례(인원 수 초과분) 창고 랭킹
+            snackNextRanking() {
+                const n = this.allStudents.length || 0;
+                // 뽑기 진행 중이면 snackBank 전체가 초과분(다음 차례)
+                const excess = this.snackDrawList.length > 0
+                    ? this.snackBank.slice()
+                    : this.snackBank.slice(n);
+                if (excess.length === 0) return [];
+                const counts = {};
+                excess.forEach(s => { counts[s.contributor] = (counts[s.contributor]||0)+1; });
+                return Object.entries(counts)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
             },
             snackTopContributor() {
                 const top = this.snackRanking.find(r => r.count > 0);
@@ -8262,6 +8308,33 @@ toggleOneMinAlarm() {
                 this.timeBankInputSec = String(abs % 60);
                 const label = best.alarm.label || best.alarm.time;
                 this.timeBankInputMemo = `${label} 기준 ${isSave ? '절약' : '초과'}`;
+                this._timeBankSubscribed = false;
+                this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
+                this.showTimeBankModal = true;
+            },
+            openTimeBankFromTimer() {
+                const secs = Math.floor(this.timerSeconds);
+                if (secs <= 0) {
+                    this.showToast && this.showToast('⚠️ 기록할 시간이 없습니다.');
+                    return;
+                }
+                // 타이머/스탑워치 자동 정지
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                    if (this.timerAudio) { this.timerAudio.pause(); this.timerAudio.currentTime = 0; }
+                }
+                if (this.isStopwatchMode) {
+                    // 스탑워치: 초과한 시간만큼 감점(waste)
+                    this.timeBankInputType = 'waste';
+                    this.timeBankInputMemo = `타이머 초과 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
+                } else {
+                    // 타이머: 남은 시간만큼 절약(save)
+                    this.timeBankInputType = 'save';
+                    this.timeBankInputMemo = `타이머 절약 ${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
+                }
+                this.timeBankInputMin = String(Math.floor(secs / 60));
+                this.timeBankInputSec = String(secs % 60);
                 this._timeBankSubscribed = false;
                 this.ensureTimeBankSubscribed && this.ensureTimeBankSubscribed();
                 this.showTimeBankModal = true;
@@ -12394,7 +12467,7 @@ this.playSound('finish', false, 0.5);
         if (s1?.name || s2?.name) intendedPairs.push([s1?.name||null, s2?.name||null]);
     }
 
-    const rec = { id:recId, date:dateStr, mode:currentMode, seats:pureLayoutSnapshot.map(s => s?.name || null), intendedPairs };
+    const rec = { id:recId, date:dateStr, mode:currentMode, seats:pureLayoutSnapshot.map(s => s?.name || null), intendedPairs, isManual:true };
     this.shuffleHistory.unshift(rec);
     if (this.shuffleHistory.length > 30) this.shuffleHistory.pop();
 
@@ -12420,7 +12493,7 @@ this.playSound('finish', false, 0.5);
                 <div style="font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">현재 배치가 저장되었습니다!</div>
                 <div style="background:#f0f4ff;border-radius:12px;padding:12px 14px;margin-bottom:18px;text-align:left;">
                     <div style="font-size:12px;font-weight:700;color:#4c6ef5;margin-bottom:5px;">ℹ️ 수동 저장 안내</div>
-                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치는 <b style="color:#333;">짝꿍 중복 기록에 포함되지 않습니다.</b><br>자동 배치 사이클 횟수에도 영향을 주지 않아요.</div>
+                    <div style="font-size:12px;color:#555;line-height:1.7;">수동 저장한 배치도 <b style="color:#333;">짝꿍·모둠 중복 회피에 반영</b>되며,<br>자동 배치 사이클에도 <b style="color:#333;">1회로 포함</b>됩니다.</div>
                 </div>
                 <button data-close style="width:100%;padding:11px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">확인</button>
             </div>`;
@@ -13832,8 +13905,34 @@ openAnimalRaceModal() {
 
             toggleCheck(student) { student.checked = !student.checked; this.saveToLocal(); },
             addActivityTab() {
-                this.activityTabs.push({ id: this.nextTabId, name: '활동' });
-                this.currentTabId = this.nextTabId; this.nextTabId++; this.saveToLocal();
+                // 기존 탭 중 가장 큰 id보다 무조건 큰 값을 사용해 id 중복(=편집 시 복제) 방지
+                const maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
+                const id = Math.max(maxId + 1, Number(this.nextTabId) || 0);
+                this.activityTabs.push({ id, name: '활동' });
+                this.currentTabId = id; this.nextTabId = id + 1; this.saveToLocal();
+            },
+            // 저장된 데이터 등으로 id가 겹친 탭이 있으면 뒤쪽 탭에 새 id를 부여해 분리
+            dedupeTabIds() {
+                const seen = new Set();
+                let maxId = this.activityTabs.reduce((m, t) => Math.max(m, Number(t.id) || 0), 0);
+                let changed = false;
+                this.activityTabs.forEach(tab => {
+                    if (seen.has(tab.id)) {
+                        const newId = ++maxId;
+                        if (this.tabData[tab.id]) {
+                            this.tabData[newId] = JSON.parse(JSON.stringify(this.tabData[tab.id]));
+                        }
+                        tab.id = newId;
+                        changed = true;
+                    }
+                    seen.add(tab.id);
+                });
+                if (changed) { this.nextTabId = maxId + 1; this.saveToLocal(); }
+            },
+            startEditTab(tab) {
+                this.dedupeTabIds();           // 편집 직전 id 중복 정리 (tab.id가 갱신될 수 있음)
+                this.editingTabId = tab.id;
+                this.editingTabName = tab.name;
             },
             dropTab(targetId) {
                 if (!this.draggingTabId || this.draggingTabId === targetId) { this.draggingTabId = null; return; }
@@ -17082,7 +17181,8 @@ async applyShuffle() {
             buildPartnerHistory(allRecs.slice(0, mHistLen), 'M');
             buildPartnerHistory(allRecs.slice(0, fHistLen), 'F');
         } else {
-            const filteredRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
+            // 자동 기록(사이클 제한) + 수동 기록 모두 이력에 포함 (시뮬레이터와 동일)
+            const autoRecs = allRecs.filter(r => !r.isManual).slice(0, maxCombos).map(rec => {
                 if (!rec.intendedPairs || rec.intendedPairs.length === 0) return rec;
                 return {
                     ...rec,
@@ -17092,7 +17192,8 @@ async applyShuffle() {
                     })
                 };
             });
-            buildPartnerHistory(filteredRecs, null);
+            const manualRecs = allRecs.filter(r => r.isManual);
+            buildPartnerHistory([...autoRecs, ...manualRecs], null);
         }
 
         const seatHistoryMap = new Map();
@@ -17107,6 +17208,108 @@ async applyShuffle() {
                 }
             }
         });
+
+        // ================================================================
+        // 3.4  모둠 골고루 구성 (A: 이력 회피 · B: 부하 균형 · C: 회전)
+        //      ※ 짝꿍 결정 로직(Section 7)은 그대로 두고, 자리 '배치' 단계의
+        //        패널티에만 모둠 항을 더해 같은 무리가 반복되지 않게 한다.
+        // ================================================================
+        // 모둠 = '앞뒤 2책상 = 4명' : 분단(0~2) 안에서 행을 2줄씩 묶음
+        //   band 0 = 행1·2, band 1 = 행3·4 (각각 앞뒤 짝꿍 4명) → 4명씩 6모둠
+        //   band 2 = 행5 (분단당 2자리) : 25명 이상으로 5행까지 찰 때만 생기는 잔여 그룹
+        const getGroupId = (idx) => {
+            const block = Math.floor(idx / 10);        // 분단 0,1,2
+            const band  = Math.floor((idx % 10) / 4);  // 0(행1·2) / 1(행3·4) / 2(행5)
+            return block * 3 + band;                   // 0 ~ 8
+        };
+        const NUM_GROUPS = 9;
+
+        // A) 모둠 이력 맵: 현재 사이클의 모든 배치 누적 (짝꿍 로직과 동일 범위 = modeData.records)
+        //    최신 기록일수록 가중치 ↑, 사이클 내 전체 기록이 ≥1로 누적된다.
+        //    ※ 사이클 리셋(한 바퀴 완료) 시 buildGroupHistory()로 재구성한다.
+        const groupHistoryMap = new Map();
+        const buildGroupHistory = () => {
+            groupHistoryMap.clear();
+            allStudents.forEach(s => groupHistoryMap.set(s.name, new Map()));
+            // modeData.records: 현재 사이클 기록(최신이 index 0). 좌석 스냅샷 보유분만 사용.
+            modeData.records.forEach((rec, idx) => {
+                if (!rec) return;
+                const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+                if (!raw || raw.length === 0) return;
+                const hs = raw.map(s => (s && typeof s === 'object') ? s : (s ? { name: s } : null));
+                const w  = idx === 0 ? 4 : idx === 1 ? 2 : 1; // 최근성 가중: 직전 라운드 강하게 회피(연속 방지)
+                const byGroup = new Map();
+                for (let i = 0; i < 30; i++) {
+                    if (!hs[i]?.name) continue;
+                    const g = getGroupId(i);
+                    if (!byGroup.has(g)) byGroup.set(g, []);
+                    byGroup.get(g).push(hs[i].name);
+                }
+                for (const members of byGroup.values()) {
+                    for (const a of members) for (const b of members) {
+                        if (a === b) continue;
+                        const m = groupHistoryMap.get(a);
+                        if (m) m.set(b, (m.get(b) || 0) + w);
+                    }
+                }
+            });
+        };
+        buildGroupHistory();
+
+        // C) 회전 시드: 배치 횟수에 따라 모둠 선호 순서를 한 칸씩 돌림
+        //    (이력이 아직 없는 초기 배치에서도 무리가 매번 바뀌도록)
+        let groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
+
+        // 직전 라운드 같은 모둠 강하게 회피 (연속 금지): 가장 최근 배치의 모둠 멤버십
+        const prevGroupMap = new Map();
+        allStudents.forEach(s => prevGroupMap.set(s.name, new Set()));
+        (() => {
+            const rec = this.shuffleHistory[0];
+            if (!rec) return;
+            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            const byG = {};
+            for (let i = 0; i < 30; i++) {
+                const cell = raw[i]; const nm = (cell && typeof cell === 'object') ? cell.name : cell;
+                if (!nm) continue; const g = getGroupId(i); (byG[g] = byG[g] || []).push(nm);
+            }
+            for (const g in byG) { const mm = byG[g]; for (const a of mm) for (const b of mm) if (a !== b) prevGroupMap.get(a)?.add(b); }
+        })();
+
+        // 각 학생의 직전 모둠 번호 (사전 배정용)
+        const prevGroupOf = new Map();
+        (() => {
+            const rec = this.shuffleHistory[0];
+            if (!rec) return;
+            const raw = Array.isArray(rec.seats) ? rec.seats : Object.values(rec.seats || {});
+            for (let i = 0; i < 30; i++) {
+                const cell = raw[i];
+                const nm = (cell && typeof cell === 'object') ? cell.name : cell;
+                if (nm) prevGroupOf.set(nm, getGroupId(i));
+            }
+        })();
+
+        // 모둠 항 패널티 — 물리 제약(성별·거리두기 수백만)보다 항상 작게 유지
+        const KA = 2000;  // A: 과거 같은 모둠이었던 사람과의 1:1 재회 비용
+        const KB = 1500;  // B: 한 모둠에 이력 보유자가 몰리는 정도(제곱 → 균형)
+        const KC = 300;   // C: 회전 기반 약한 타이브레이커
+        const KPREV = 500000; // 직전 라운드 같은 모둠 → 이전자리(40만)보다 강하게 회피(연속 금지)
+        const groupPen = (student, seatIdx, tempSeats) => {
+            if (!student) return 0;
+            const g    = getGroupId(seatIdx);
+            const hist = groupHistoryMap.get(student.name);
+            const prev = prevGroupMap.get(student.name);
+            let pairSum = 0, coCount = 0, prevHit = 0;
+            for (let i = 0; i < 30; i++) {
+                const other = tempSeats[i];
+                if (!other || i === seatIdx) continue;
+                if (getGroupId(i) !== g) continue;     // 같은 모둠 칸에 이미 앉은 사람만
+                const w = hist ? (hist.get(other.name) || 0) : 0;
+                if (w > 0) { pairSum += w; coCount++; } // A: 가중치 합 / B: 인원 카운트
+                if (prev && prev.has(other.name)) prevHit++; // 직전 라운드에도 같은 모둠
+            }
+            const rotBias = ((g - groupRotation + NUM_GROUPS) % NUM_GROUPS); // C
+            return pairSum * KA + (coCount * coCount) * KB + rotBias * KC + prevHit * KPREV;
+        };
 
         // ================================================================
         // 3.5  짝꿍 매칭 함수 (사전 완료 체크를 위해 커튼 전에 정의)
@@ -17186,18 +17389,27 @@ async applyShuffle() {
         // recomputeValidShifts의 비인접 체크 대상에서 제외
         const adjLockNames = new Set([...adjacentLockPairs].map(k => k.split('|')[0]));
 
+        // 거리두기로 막혔지만 그 짝이 '이미 현재 사이클 이력에 있는'(=완료된) shift 수.
+        // 거리두기 설정 전에 이미 짝이 된 라운드는 사이클(12) 예산에 포함시켜야 함.
+        let consumedSepShifts = 0;
         const recomputeValidShifts = () => {
             const vs = [];
+            consumedSepShifts = 0;
             for (let s = 0; s < maxCombos; s++) {
                 const cand = computeCandidate(s);
-                const blocked = cand.some(p => {
-                    if (!p[0] || !p[1]) return false;
-                    if (isSepForMode(p[0], p[1])) return true;
+                let sepBlocked = false, lockBlocked = false, allSepPaired = true;
+                for (const p of cand) {
+                    if (!p[0] || !p[1]) continue;
+                    if (isSepForMode(p[0], p[1])) {
+                        sepBlocked = true;
+                        if (!partnerHistoryMap.get(p[0].name)?.has(p[1].name)) allSepPaired = false;
+                    }
                     // 비인접 고정석 차단: 단, adjacentLockPairs 소속 학생은 어차피 강제 배치되므로 제외
-                    if (adjLockNames.has(p[0].name) || adjLockNames.has(p[1].name)) return false;
-                    return isNonAdjacentLockPair(p[0], p[1]);
-                });
+                    if (!adjLockNames.has(p[0].name) && !adjLockNames.has(p[1].name) && isNonAdjacentLockPair(p[0], p[1])) lockBlocked = true;
+                }
+                const blocked = sepBlocked || lockBlocked;
                 if (!blocked) vs.push(s);
+                else if (sepBlocked && !lockBlocked && allSepPaired) consumedSepShifts++; // 이미 완료된 거리두기 라운드 → 예산 인정
             }
             return vs.length > 0 ? vs : [0];
         };
@@ -17205,7 +17417,7 @@ async applyShuffle() {
         let validShifts = recomputeValidShifts();
         // 인접 고정석 쌍은 pool을 1쌍씩 줄이므로 그만큼 effectiveMax 차감
         const adjLockPairCount = adjacentLockPairs.size / 2;
-        let effectiveMax = Math.max(validShifts.length - adjLockPairCount, 1);
+        let effectiveMax = Math.max(Math.min(validShifts.length + consumedSepShifts - adjLockPairCount, maxCombos), 1);
         modeData.effectiveMax = effectiveMax;
 
         // ================================================================
@@ -17235,7 +17447,7 @@ async applyShuffle() {
         }
 
         {
-            if (allRecs.filter(r => !r.isManual).length >= effectiveMax && this.shuffleMode !== 'same') {
+            if (allRecs.length >= effectiveMax && this.shuffleMode !== 'same') {
                 this.showShuffleModal = false;
                 const result = await new Promise(resolve => {
                     const ov = document.createElement('div');
@@ -17271,6 +17483,9 @@ async applyShuffle() {
                 allRecs = modeData.records;
                 partnerHistoryMap.clear();
                 allStudents.forEach(s => partnerHistoryMap.set(s.name, new Set()));
+                // 모둠 이력·회전도 새 사이클(빈 records) 기준으로 재구성
+                buildGroupHistory();
+                groupRotation = (modeData.records.length || 0) % NUM_GROUPS;
                 // 새 cycleCount 기준으로 정렬 기준·배열 재계산
                 sortCycle = modeData.cycleCount % 3;
                 sortByCycle = (a, b) => {
@@ -17282,7 +17497,7 @@ async applyShuffle() {
                 fArrFixed = [...poolF].sort(sortByCycle);
                 // 새 사이클의 정렬 기준으로 validShifts 재계산
                 validShifts = recomputeValidShifts();
-                effectiveMax = Math.max(validShifts.length - adjLockPairCount, 1);
+                effectiveMax = Math.max(Math.min(validShifts.length + consumedSepShifts - adjLockPairCount, maxCombos), 1);
                 modeData.effectiveMax = effectiveMax;
             }
         }
@@ -17356,14 +17571,16 @@ async applyShuffle() {
                 const fBase = poolF.length > 1 ? matchCircle(poolF, fRound) : poolF.map(s => [s, null]);
                 finalPairs = [...kuhnMatch(mBase), ...kuhnMatch(fBase)];
             } else {
-            const autoRecCount = allRecs.filter(r => !r.isManual).length;
+            // 수동 배치도 사이클(12)에 1회로 포함 → 수동1+자동11=12 가 모두 중복 없이 채워지도록
+            const autoRecCount = allRecs.length;
             const baseIdx = autoRecCount % effectiveMax;
             isFullCycle = autoRecCount >= effectiveMax;
 
             if (isFullCycle) {
                 finalPairs = kuhnMatch(computeCandidate(validShifts[0]));
             } else {
-                // shiftQueue: 충돌 없는 shift를 순서대로 탐색, 스킵된 shift도 재시도
+                // shiftQueue: 충돌 없는 shift를 순서대로 탐색, 스킵된 shift도 재시도.
+                // 쓴 shift는 소비(제거)되어 한 바퀴에 각 shift를 1번씩만 사용(라운드로빈) → 중복 최소화.
                 if (!Array.isArray(modeData.shiftQueue) || modeData.shiftQueue.length === 0) {
                     modeData.shiftQueue = validShifts.slice(baseIdx);
                 } else {
@@ -17443,6 +17660,15 @@ async applyShuffle() {
             if (temp.length === 1) finalPairs.push([temp[0], null]);
         }
 
+        // === [짝꿍 진단] 시뮬레이터와 비교용: 결정적 입력값 + 결과 짝꿍 출력 ===
+        {
+            const autoRecCount = allRecs.length;
+            const pairStr = (finalPairs || []).filter(p => p[0]).map(p => `${p[0].name}↔${p[1]?.name||'∅'}`).join(', ');
+            console.log(`[짝꿍진단] mode=${this.shuffleMode}, avoidPrev=${this.avoidPrevious}, cycleCount=${modeData.cycleCount}, sortCycle=${sortCycle}(${sortCycle===0?'끝글자':sortCycle===1?'가운데':'첫글자'}), autoRecCount=${autoRecCount}, effectiveMax=${effectiveMax}, baseIdx=${autoRecCount%effectiveMax}, validShifts=[${validShifts}], shiftQueue=[${modeData.shiftQueue}]`);
+            console.log(`[짝꿍진단] 학생수=${allStudents.length}(남${poolM.length}/여${poolF.length}), 짝꿍이력쌍수=${[...partnerHistoryMap.values()].reduce((a,s)=>a+s.size,0)/2}`);
+            console.log(`[짝꿍진단] 결과: ${pairStr}`);
+        }
+
         // ================================================================
         // 8. 좌석 구조 분석
         // ================================================================
@@ -17512,7 +17738,8 @@ async applyShuffle() {
         };
 
         const totalSeatPen = (student, seatIdx, tempSeats) =>
-            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats);
+            genderPen(student, seatIdx) + prevSeatPen(student, seatIdx) + distancePen(student, seatIdx, tempSeats)
+            + groupPen(student, seatIdx, tempSeats);   // ★ 모둠 골고루(A·B·C) + 연속 금지(KPREV)
 
         // ================================================================
         // 10. 자리 배치 함수
@@ -17623,47 +17850,26 @@ async applyShuffle() {
                     continue;
                 }
 
-                const isDistTarget = (s) => this.separationPairs.some(sep => sep.student1===s.name||sep.student2===s.name);
-                const targetPlaced = (s) => this.separationPairs.some(sep => {
-                    if (sep.student1!==s.name && sep.student2!==s.name) return false;
-                    const opp = sep.student1===s.name?sep.student2:sep.student1;
-                    return tempSeats.findIndex(seat=>seat?.name===opp) !== -1;
-                });
-
-                const useFarthest = (isDistTarget(s1)||isDistTarget(s2)) &&
-                    (targetPlaced(s1)||targetPlaced(s2)) && !this.avoidPreviousSeat;
-
-                if (useFarthest) {
-                    const main = targetPlaced(s1) ? s1 : s2;
-                    let farthestIdx = -1, maxD = -1;
-                    for (let i = 0; i < tempDesks.length; i++) {
-                        const desk = tempDesks[i];
-                        let minD = Infinity;
-                        for (const sep of this.separationPairs) {
-                            if (sep.student1!==main.name && sep.student2!==main.name) continue;
-                            const opp  = sep.student1===main.name?sep.student2:sep.student1;
-                            const tIdx = tempSeats.findIndex(s=>s?.name===opp);
-                            if (tIdx===-1) continue;
-                            const d = Math.min(gridDist(desk.leftIdx,tIdx), gridDist(desk.rightIdx,tIdx));
-                            if (d < minD) minD = d;
-                        }
-                        if (minD !== Infinity && minD > maxD) { maxD = minD; farthestIdx = i; }
+                // [Method C] 직전 모둠원이 이미 앉은 모둠은 건너뜀 (개인 직전 모둠 + 클러스터링 모두 차단)
+                //   ※ 시뮬레이터와 동일: 거리두기는 distancePen(최대 9,999,999) 패널티로 처리
+                const prev1 = prevGroupMap.get(s1.name);
+                const prev2 = s2 ? prevGroupMap.get(s2.name) : null;
+                const hasConflict = (leftIdx) => {
+                    const g = getGroupId(leftIdx);
+                    if (prevGroupOf.get(s1.name) === g) return true;
+                    if (s2 && prevGroupOf.get(s2.name) === g) return true;
+                    for (let k = 0; k < 30; k++) {
+                        const sq = tempSeats[k];
+                        if (!sq || getGroupId(k) !== g) continue;
+                        if (prev1?.has(sq.name) || prev2?.has(sq.name)) return true;
                     }
-                    if (farthestIdx !== -1) {
-                        const desk = tempDesks[farthestIdx];
-                        tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
-                        const pen1 = totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
-                        tempSeats[desk.leftIdx]=s2; tempSeats[desk.rightIdx]=s1;
-                        const pen2 = totalSeatPen(s2,desk.leftIdx,tempSeats)+totalSeatPen(s1,desk.rightIdx,tempSeats);
-                        if (pen1<=pen2) { tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2; seatPenalty+=pen1; }
-                        else            { tempSeats[desk.leftIdx]=s2; tempSeats[desk.rightIdx]=s1; seatPenalty+=pen2; }
-                        tempDesks.splice(farthestIdx,1);
-                        continue;
-                    }
-                }
-
+                    return false;
+                };
+                const allIdxs = tempDesks.map((_,i) => i);
+                const safeIdxs = allIdxs.filter(i => !hasConflict(tempDesks[i].leftIdx));
+                const searchIdxs = safeIdxs.length > 0 ? safeIdxs : allIdxs;
                 let bestDeskIdx=-1, bestArrang=null, minPen=Infinity;
-                for (let i = 0; i < tempDesks.length; i++) {
+                for (const i of searchIdxs) {
                     const desk = tempDesks[i];
                     tempSeats[desk.leftIdx]=s1; tempSeats[desk.rightIdx]=s2;
                     const pen1=totalSeatPen(s1,desk.leftIdx,tempSeats)+totalSeatPen(s2,desk.rightIdx,tempSeats);
@@ -17718,6 +17924,9 @@ async applyShuffle() {
                             if (other&&atI&&partnerHistoryMap.get(other.name)?.has(atI.name)) continue;
                             if (atJ&&partnerHistoryMap.get(student.name)?.has(atJ.name)) continue;
                         }
+                        // ★ 모둠 골고루: Swap이 같은-모둠 재회를 늘리면 건너뜀 (rotBias는 양변 상쇄)
+                        if (groupPen(student,j,t2)+(other?groupPen(other,i,t2):0)
+                            > groupPen(student,i,tempSeats)+(other?groupPen(other,j,tempSeats):0)) continue;
                         tempSeats[i]=other; tempSeats[j]=student;
                         break;
                     }
@@ -17739,10 +17948,13 @@ async applyShuffle() {
         }
 
         // ================================================================
-        // 12. 실패 판정
+        // 12. 실패 판정 (1차: 배치 자체 실패만)
+        //     하드 제약(거리두기·성별·고정석) 위반 판정은 '사후최적화 이후'로 미룬다.
+        //     사후최적화가 거리두기 위반을 해소할 수 있으므로(시뮬레이터와 동일 동작),
+        //     raw bestSeatPen으로 미리 중단하면 충족 가능한 배치도 실패로 잘못 처리됨.
         // ================================================================
         const hasPhysical = this.separationPairs.length>0||this.manualLocks.length>0;
-        if (!bestSeats||(hasPhysical&&bestSeatPen>=9_000_000)) {
+        if (!bestSeats) {
             this.stopSound('making'); this.isCurtainDown=false;
             alert("거리두기 또는 고정석 설정이 물리적으로 너무 까다로워 조건을 완벽히 충족하지 못했습니다.\n거리를 조금 좁히거나 고정석을 조정해 보세요.");
             this.seats=backupSeats; this.waitingRoom=backupWaiting;
@@ -17753,6 +17965,69 @@ async applyShuffle() {
         // 13. 결과 적용
         // ================================================================
         this.seats = bestSeats;
+
+        // === 직전 모둠 연속 겹침 최소화 (짝꿍 유지·성별·거리두기 안전) ===
+        {
+            const S = this.seats;
+            const isLk = i => this.manualLocks.some(l => l.seatIdx === i);
+            const dl = [];
+            for (let i = 0; i < 30; i += 2) { if (safeSeatConfig[i]==='X'||safeSeatConfig[i+1]==='X'||isLk(i)||isLk(i+1)) continue; dl.push(i); }
+            const swap = (d1,d2)=>{ const a=S[d1],b=S[d1+1]; S[d1]=S[d2];S[d1+1]=S[d2+1];S[d2]=a;S[d2+1]=b; };
+            const bc = s => { let v=0; for (let i=0;i<30;i++) if (s[i]) v+=totalSeatPen(s[i],i,s); return v; };
+            const swapMakesGroupViol = (d1, d2) => {
+                const g1 = getGroupId(d1), g2 = getGroupId(d2);
+                for (const idx of [d1, d1+1]) {
+                    if (!S[idx]) continue;
+                    if (prevGroupOf.get(S[idx].name) === g2) return true;
+                    const pm = prevGroupMap.get(S[idx].name);
+                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g2&&pm.has(S[k].name)) return true; }
+                }
+                for (const idx of [d2, d2+1]) {
+                    if (!S[idx]) continue;
+                    if (prevGroupOf.get(S[idx].name) === g1) return true;
+                    const pm = prevGroupMap.get(S[idx].name);
+                    if (pm) for (let k=0;k<30;k++) { if (S[k]&&k!==d1&&k!==d1+1&&k!==d2&&k!==d2+1&&getGroupId(k)===g1&&pm.has(S[k].name)) return true; }
+                }
+                return false;
+            };
+            for (let pass=0; pass<10; pass++) { let imp=false;
+              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) {
+                if (swapMakesGroupViol(dl[x],dl[y])) continue;
+                const be=bc(S); swap(dl[x],dl[y]); if (bc(S)>=be-1e-6) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
+            const violAt = (s, idx) => { const o=s[idx]; if(!o)return 0; const g=getGroupId(idx); const pv=prevGroupMap.get(o.name); if(!pv)return 0; let h=0; for(let k=0;k<30;k++){ const q=s[k]; if(q&&k!==idx&&getGroupId(k)===g&&pv.has(q.name))h++; } return h; };
+            const tv = s => { let v=0; for(let i=0;i<30;i++) v+=violAt(s,i); return v; };
+            const gOk = s => { for(let i=0;i<30;i++) if(s[i]&&genderPen(s[i],i)>0) return false; return true; };
+            const sepCost = s => { let v=0; for(let i=0;i<30;i++) if(s[i]) v+=distancePen(s[i],i,s); return v; };
+            for (let pass=0; pass<12 && tv(S)>0; pass++) { let imp=false;
+              for (let x=0;x<dl.length;x++) for (let y=x+1;y<dl.length;y++) { const vB=tv(S), sB=sepCost(S); swap(dl[x],dl[y]); if (!gOk(S)||sepCost(S)>sB||tv(S)>=vB) swap(dl[x],dl[y]); else imp=true; } if (!imp) break; }
+        }
+
+        // === 실패 판정 (2차: 사후최적화 후 '하드 제약'만 검사) ===
+        //  거리두기 인접(dist<=1)·성별 불일치(좌석설정과)·고정석 불일치가 '실제로' 남았을 때만 실패.
+        //  raw bestSeatPen 합산은 소프트 패널티까지 포함돼 오판하므로, 최종 좌석에서 직접 검사한다.
+        if (hasPhysical) {
+            let hardViol = false;
+            for (const sep of this.separationPairs) {
+                const i1 = this.seats.findIndex(s => s?.name === sep.student1);
+                const i2 = this.seats.findIndex(s => s?.name === sep.student2);
+                if (i1 !== -1 && i2 !== -1 && gridDist(i1, i2) <= 1) { hardViol = true; break; }
+            }
+            if (!hardViol) for (let i = 0; i < 30; i++) {
+                const s = this.seats[i];
+                if (s && genderPen(s, i) >= 10_000_000) { hardViol = true; break; }
+            }
+            if (!hardViol) for (const lock of this.manualLocks) {
+                if (safeSeatConfig[lock.seatIdx] === 'X') continue;
+                const idx = this.seats.findIndex(s => s?.name === lock.student);
+                if (idx !== -1 && idx !== lock.seatIdx) { hardViol = true; break; }
+            }
+            if (hardViol) {
+                this.stopSound('making'); this.isCurtainDown=false;
+                alert("거리두기 또는 고정석 설정이 물리적으로 너무 까다로워 조건을 완벽히 충족하지 못했습니다.\n거리를 조금 좁히거나 고정석을 조정해 보세요.");
+                this.seats=backupSeats; this.waitingRoom=backupWaiting;
+                return;
+            }
+        }
         if (typeof this.runReferee==='function') await this.runReferee();
         const seatedNames = new Set(this.seats.filter(s=>s).map(s=>s.name));
         this.waitingRoom  = allStudents.filter(s=>!seatedNames.has(s.name));

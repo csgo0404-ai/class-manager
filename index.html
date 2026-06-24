@@ -4480,6 +4480,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <button @click="$refs.fileInput.click()" class="flex-1 bg-[#69db7c] border-b-4 border-[#40c057] text-[#1a4721] py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1">
                         <i class="fa-solid fa-file-import"></i> 불러오기
                     </button>
+                    <button @click="resetClassData" class="flex-1 bg-[#ffa8a8] border-b-4 border-[#ff8787] text-[#7a1f1f] py-2 rounded-xl font-black text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1" title="학생 명단·시간표·교육활동·모둠 이름 초기화">
+                        <i class="fa-solid fa-eraser"></i> 초기화
+                    </button>
                     <input type="file" ref="fileInput" class="hidden" accept=".json" @change="importData">
                 </div>
                 <button @click="autoBackupOnClose = !autoBackupOnClose; saveToLocal()"
@@ -4505,7 +4508,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div>
                 <p class="text-xs text-[#a1887f] font-bold mb-2">※ 이동 수업은 과목 뒤에 * 를 붙여 주세요 (예: 체육*)</p>
                 <div class="overflow-x-auto"><table class="w-full border-collapse text-xs"><thead><tr class="bg-[#f5e6d0]"><th class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">교시</th><th v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-2 py-1 font-black text-[#5d4037]">{{day}}</th></tr></thead><tbody><tr v-for="(_, pIdx) in dashboardSettings.timetable['월']" :key="pIdx" :class="pIdx%2===0?'bg-white':'bg-[#fdf8ef]'"><td class="border border-[#e7d5b1] px-2 py-1 text-center font-black text-[#8d6e63]">{{pIdx+1}}교시</td><td v-for="day in ['월','화','수','목','금']" :key="day" class="border border-[#e7d5b1] px-1 py-0.5"><input v-model="dashboardSettings.timetable[day][pIdx]" type="text" placeholder="과목" class="w-full px-1 py-0.5 text-center text-xs font-bold text-[#5d4037] outline-none bg-transparent focus:bg-yellow-50 rounded"></td></tr></tbody></table></div>
-                <div class="flex gap-2 mt-2"><button @click="dashboardAddPeriod()" class="px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 교시 추가</button><button @click="dashboardRemovePeriod()" v-if="(dashboardSettings.timetable['월']||[]).length>1" class="px-3 py-1 rounded-lg bg-[#ffcdd2] border-b-2 border-[#ef9a9a] text-[#c62828] font-black text-xs">- 삭제</button></div>
+                <div class="flex gap-2 mt-2"><button @click="dashboardAddPeriod()" class="px-3 py-1 rounded-lg bg-[#c8e6c9] border-b-2 border-[#a5d6a7] text-[#2e7d32] font-black text-xs">+ 교시 추가</button><button @click="dashboardRemovePeriod()" v-if="(dashboardSettings.timetable['월']||[]).length>1" class="px-3 py-1 rounded-lg bg-[#ffcdd2] border-b-2 border-[#ef9a9a] text-[#c62828] font-black text-xs">- 삭제</button><button @click="clearTimetableContent()" class="ml-auto px-3 py-1 rounded-lg bg-[#ffe0b2] border-b-2 border-[#ffb74d] text-[#e65100] font-black text-xs">🧹 내용 일괄 삭제</button></div>
             </div>
             <!-- 수업 시간 설정 (시간표 하단) -->
             <div class="border-t-2 border-[#e7d5b1] pt-3">
@@ -14126,6 +14129,63 @@ if(this.allMode) {
                 this.groupNames = [];
                 this._saveGroupNamesToFirebase();
             },
+            // 시간표 내용만 일괄 삭제 (교시 수는 유지)
+            clearTimetableContent() {
+                if (!confirm('시간표 내용을 모두 비울까요?\n(교시 수와 수업 시간은 그대로 유지됩니다)')) return;
+                const pCount = ((this.dashboardSettings.timetable && this.dashboardSettings.timetable['월']) || []).length || 6;
+                this.dashboardSettings.timetable = {
+                    월: Array(pCount).fill(''), 화: Array(pCount).fill(''), 수: Array(pCount).fill(''),
+                    목: Array(pCount).fill(''), 금: Array(pCount).fill('')
+                };
+                this.saveDashboardSettings && this.saveDashboardSettings();
+            },
+            // 불러오기 옆 '초기화' — 학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통 초기화 (자리기록·미션 등은 유지)
+            resetClassData() {
+                if (!confirm('학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통을 모두 초기화할까요?\n(자리 바꾸기 기록·미션 등 나머지는 그대로 유지됩니다)')) return;
+                // 2차 확인
+                if (!confirm('⚠️ 정말 초기화할까요?\n초기화한 데이터는 되돌릴 수 없습니다.')) return;
+                // 비밀번호 확인
+                const pw = prompt('초기화하려면 비밀번호를 입력하세요.');
+                if (pw === null) return;            // 취소
+                if (pw !== 'csgo10') { alert('비밀번호가 올바르지 않습니다. 초기화를 취소합니다.'); return; }
+                // 1) 학생 명단 (좌석/대기/고정석/입력칸 + 뽑기 풀 + 활동 체크·점수 초기화)
+                this.seats = Array(30).fill(null);
+                this.waitingRoom = [];
+                this.manualLocks = [];
+                this.tempNameList = '';
+                this.capsules = [];
+                this.lotteryPools = { all: [], M: [], F: [] };
+                this.displayWinner = '?';
+                this.tabData = {};   // 활동 탭의 학생별 체크/점수(과제 보충·명예의 전당 등) 비우기 — 학생 사라지면 고아 데이터 제거
+                setTimeout(() => { try { this.initCapsules && this.initCapsules(); } catch (_) {} }, 50);
+                // 2) 시간표 (현재 교시 수 유지하며 비우기)
+                const pCount = ((this.dashboardSettings.timetable && this.dashboardSettings.timetable['월']) || []).length || 6;
+                this.dashboardSettings.timetable = {
+                    월: Array(pCount).fill(''), 화: Array(pCount).fill(''), 수: Array(pCount).fill(''),
+                    목: Array(pCount).fill(''), 금: Array(pCount).fill('')
+                };
+                // 3) 교육활동(월별 계획)
+                this.dashboardSettings.monthlyPlans = [];
+                // 4) 모둠 이름
+                this.groupNames = [];
+                this._saveGroupNamesToFirebase && this._saveGroupNamesToFirebase();
+                // 5) 간식 창고 (창고 내용·기록·뽑기·요약 비우기. 간식 '종류'(snackTypes)는 유지)
+                this.snackBank = [];
+                this.snackBankHistory = [];
+                this.snackBankSummary = { count: 0, topName: '' };
+                this.snackDrawList = [];
+                this.snackDrawIdx = 0;
+                this.snackContribLog = [];
+                try { localStorage.removeItem('snackContribLog'); } catch (_) {}
+                // 6) 시간 저금통
+                this.timeBankSeconds = 0;
+                this.timeBankHistory = [];
+                // 저장 + 패널 닫기
+                this.saveDashboardSettings && this.saveDashboardSettings();
+                this.saveToLocal_full && this.saveToLocal_full();
+                this.dashboardShowSettings = false;
+                alert('초기화 완료 ✅\n학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통이 비워졌습니다.');
+            },
             _saveGroupNamesToFirebase() {
                 try {
                     const arr = (this.groupNames || []).slice();
@@ -15103,6 +15163,15 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         // 9. 메인 대시보드 설정
                         dashboardSettings: this.dashboardSettings,
 
+                        // 10. 보완: 활성 탭·진행중 간식뽑기·뷰 토글·볼륨·판서 프리뷰
+                        currentTabId: this.currentTabId,
+                        snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx,
+                        showStudentNumber: this.showStudentNumber, isSortedByNumber: this.isSortedByNumber,
+                        showHallOfFame: this.showHallOfFame, showMissionWidget: this.showMissionWidget,
+                        isRotated: this.isRotated,
+                        alarmVolume: this.alarmVolume, bgmVolume: this.bgmVolume, sfxVolume: this.sfxVolume,
+                        boardPreview: this.boardPreview,
+
                         version: "2.1",
                         exportDate: new Date().toLocaleString()
                     };
@@ -15251,6 +15320,20 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         }
 
                         if (data.dashboardSettings) this.dashboardSettings = Object.assign({}, this.dashboardSettings, data.dashboardSettings);
+
+                        // 보완 항목 복원
+                        if (data.currentTabId !== undefined) this.currentTabId = data.currentTabId;
+                        if (Array.isArray(data.snackDrawList)) this.snackDrawList = data.snackDrawList;
+                        if (data.snackDrawIdx !== undefined) this.snackDrawIdx = data.snackDrawIdx;
+                        if (data.showStudentNumber !== undefined) this.showStudentNumber = data.showStudentNumber;
+                        if (data.isSortedByNumber !== undefined) this.isSortedByNumber = data.isSortedByNumber;
+                        if (data.showHallOfFame !== undefined) this.showHallOfFame = data.showHallOfFame;
+                        if (data.showMissionWidget !== undefined) this.showMissionWidget = data.showMissionWidget;
+                        if (data.isRotated !== undefined) this.isRotated = data.isRotated;
+                        if (data.alarmVolume !== undefined) this.alarmVolume = data.alarmVolume;
+                        if (data.bgmVolume !== undefined) this.bgmVolume = data.bgmVolume;
+                        if (data.sfxVolume !== undefined) this.sfxVolume = data.sfxVolume;
+                        if (data.boardPreview !== undefined) this.boardPreview = data.boardPreview;
 
                         // UI 위치와 크기 복구
                         if (data.uiState) {
@@ -19269,11 +19352,58 @@ startReverseLadderGame(endColIdx) {
                 if (!this.autoBackupOnClose) return;
                 try {
                     const backupData = {
-                        seats: this.seats, waitingRoom: this.waitingRoom,
-                        seatConfig: this.seatConfig, manualLocks: this.manualLocks,
-                        separationPairs: this.separationPairs,
+                        // 좌석/명단
+                        seats: this.seats, waitingRoom: this.waitingRoom, seatConfig: this.seatConfig,
+                        manualLocks: this.manualLocks, separationPairs: this.separationPairs,
                         shuffleHistory: this.shuffleHistory, shuffleHistoryByMode: this.shuffleHistoryByMode,
-                        activityTabs: this.activityTabs, tabData: this.tabData,
+                        preSortLayout: this.preSortLayout,
+                        // 활동탭/모둠
+                        activityTabs: this.activityTabs, nextTabId: this.nextTabId, tabData: this.tabData,
+                        missions: this.missions, statsWarningCount: this.statsWarningCount, statsPenaltyCount: this.statsPenaltyCount,
+                        daySchedules: this.daySchedules, groups: this.groups, groupingList: this.groupingList,
+                        savedGroupings: this.savedGroupings, groupNames: this.groupNames, groupLabelOrder: this.groupLabelOrder,
+                        // 뽑기/게임
+                        participantList: this.participantList, deductWinnerCount: this.deductWinnerCount,
+                        rememberParticipants: this.rememberParticipants, animalRaceResults: this.animalRaceResults,
+                        raceCompleted: this.raceCompleted, lotteryPools: this.lotteryPools, lastWinners: this.lastWinners,
+                        lotteryMode: this.lotteryMode, savedRoulettes: this.savedRoulettes, rouletteInput: this.rouletteInput,
+                        capsules: this.capsules, showGenderHint: this.showGenderHint,
+                        // 판서/일정
+                        defaultCheckMode: this.defaultCheckMode, scheduleVersions: this.scheduleVersions,
+                        currentScheduleVersion: this.currentScheduleVersion, blackboardContent: this.blackboardContent,
+                        paths: this.paths, savedBoards: this.savedBoards,
+                        // 저금통/간식/알람/타이머
+                        timeBankSeconds: this.timeBankSeconds, timeBankHistory: this.timeBankHistory,
+                        snackBank: this.snackBank, snackBankHistory: this.snackBankHistory,
+                        snackTypes: this.snackTypes, snackContribLog: this.snackContribLog,
+                        alarmList: this.alarmList, clockMessage: this.clockMessage,
+                        timerSeconds: this.timerSeconds, inputMin: this.inputMin, inputSec: this.inputSec, isStopwatchMode: this.isStopwatchMode,
+                        // 소음
+                        noiseLevels: this.noiseLevels, noiseThreshold: this.noiseThreshold, thresholdReading: this.thresholdReading,
+                        thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset,
+                        noiseRecordSeconds: this.noiseRecordSeconds, isNoiseTimeHidden: this.isNoiseTimeHidden,
+                        // 자리바꾸기 설정
+                        shuffleMode: this.shuffleMode, mixedOrder: this.mixedOrder, sameOrder: this.sameOrder,
+                        avoidPrevious: this.avoidPrevious, avoidPreviousSeat: this.avoidPreviousSeat,
+                        // UI/토너먼트
+                        uiState: {
+                            timer: { x: this.timerX, y: this.timerY, size: this.timerSize, isMaximized: this.isTimerMaximized, bombMsgX: this.bombMsgX, bombMsgY: this.bombMsgY, bombMsgW: this.bombMsgW, bombMsgH: this.bombMsgH, bombMessage: this.bombMessage },
+                            board: { x: this.boardX, y: this.boardY, w: this.boardW, h: this.boardH, isMaximized: this.isMaximized, zoom: this.boardZoom, eraserSize: this.eraserSize },
+                            noise: { x: this.noiseX, y: this.noiseY, w: this.noiseW, h: this.noiseH, isMaximized: this.isNoiseMaximized },
+                            picker: { x: this.pickerX, y: this.pickerY, w: this.pickerW, h: this.pickerH, isMaximized: this.isPickerMaximized },
+                            raceSetup: { w: this.setupW, h: this.setupH }
+                        },
+                        tournamentData: { tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket },
+                        // ★ 메인 대시보드 설정 (시간표·교육활동 포함)
+                        dashboardSettings: this.dashboardSettings,
+                        // 보완: 활성 탭·진행중 간식뽑기·뷰 토글·볼륨·판서 프리뷰
+                        currentTabId: this.currentTabId,
+                        snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx,
+                        showStudentNumber: this.showStudentNumber, isSortedByNumber: this.isSortedByNumber,
+                        showHallOfFame: this.showHallOfFame, showMissionWidget: this.showMissionWidget,
+                        isRotated: this.isRotated,
+                        alarmVolume: this.alarmVolume, bgmVolume: this.bgmVolume, sfxVolume: this.sfxVolume,
+                        boardPreview: this.boardPreview,
                         version: "2.1", exportDate: new Date().toLocaleString()
                     };
                     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });

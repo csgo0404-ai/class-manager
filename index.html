@@ -17666,7 +17666,8 @@ async applyShuffle() {
                 // shiftQueue: 충돌 없는 shift를 순서대로 탐색, 스킵된 shift도 재시도.
                 // 쓴 shift는 소비(제거)되어 한 바퀴에 각 shift를 1번씩만 사용(라운드로빈) → 중복 최소화.
                 if (!Array.isArray(modeData.shiftQueue) || modeData.shiftQueue.length === 0) {
-                    modeData.shiftQueue = validShifts.slice(baseIdx);
+                    // baseIdx가 validShifts 길이를 넘어도(이미 짝된 거리두기로 effectiveMax가 큰 경우) 빈 큐가 되지 않게 wrap
+                    modeData.shiftQueue = validShifts.slice(baseIdx % validShifts.length);
                 } else {
                     modeData.shiftQueue = modeData.shiftQueue.filter(s => validShifts.includes(s));
                     for (const s of validShifts) {

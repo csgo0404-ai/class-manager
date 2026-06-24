@@ -2891,7 +2891,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <!-- 항아리 SVG (내부만 차오름) — 뽑기 진행 중이면 뽑기창, 아니면 랭킹창 -->
                         <div class="shrink-0 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
                              style="width:82px;height:94px;"
-                             @click.stop="ensureSnackSubscribed && ensureSnackSubscribed(); snackDrawList && snackDrawList.length > 0 ? showSnackDrawModal = true : (snackBankFull ? drawSnack() : showSnackDrawModal = true)">
+                             @click.stop="openSnackJar()">
                             <svg viewBox="0 0 90 100" width="82" height="94" style="overflow:visible;">
                                 <defs>
                                     <clipPath id="jarClipMd">
@@ -3195,11 +3195,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <button v-for="(sn, snIdx) in snackTypes" :key="sn.name"
                                     @click="clickSnackType(sn, $event)"
                                     @contextmenu.prevent="clickSnackType(sn, $event, true)"
-                                    draggable="true"
-                                    @dragstart="snackDragFromIdx = snIdx"
-                                    @dragover.prevent
-                                    @drop.prevent="snackDropTo(snIdx)"
-                                    :class="['snack-input-card py-2.5 px-1 rounded-xl font-black text-sm transition-all active:scale-95 cursor-grab border-2 bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50', snackDragFromIdx === snIdx ? 'opacity-40' : '']"
+                                    class="snack-input-card py-2.5 px-1 rounded-xl font-black text-sm transition-all active:scale-95 cursor-pointer border-2 bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50"
                                     style="min-height:48px;">
                                 <span class="truncate w-full block text-center">{{ sn.name }}</span>
                             </button>
@@ -3266,7 +3262,15 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                 <div class="max-h-[45vh] overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
                     <div v-for="(t, idx) in snackTypes" :key="idx"
-                         class="flex items-center gap-3 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                         @dragover.prevent @drop.prevent="snackDropTo(idx)"
+                         class="flex items-center gap-2 px-3 py-2 bg-amber-50 border-2 border-amber-200 rounded-2xl transition-all"
+                         :class="snackDragFromIdx === idx ? 'opacity-40' : ''">
+                        <!-- 드래그 핸들: 여기서만 순서 변경 -->
+                        <span draggable="true"
+                              @dragstart="snackDragFromIdx = idx"
+                              @dragend="snackDragFromIdx = -1"
+                              class="cursor-grab active:cursor-grabbing text-amber-400 hover:text-amber-600 font-black select-none px-1"
+                              title="드래그해서 순서 변경">⋮⋮</span>
                         <!-- 일반 표시: 클릭 시 수정 모드 -->
                         <span v-if="snackEditIdx !== idx"
                               @click="startEditSnackType(idx)"
@@ -3374,10 +3378,10 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             style="background:linear-gradient(135deg,#f9a8d4,#ec4899);">닫기</button>
                 </div>
 
-                <!-- 뽑기 순서: 한 줄 정사각형 -->
-                <div v-if="snackDrawList && snackDrawList.length > 0" class="relative z-10 pb-2 px-1">
-                    <div class="grid gap-1" :style="'grid-template-columns: repeat('+snackDrawList.length+', minmax(0, 1fr))'">
-                        <div v-for="(item, qIdx) in snackDrawList" :key="'q'+qIdx"
+                <!-- 기부 순위: 간식 많이 넣은 순으로 정렬 (하단 하트와 무관, 항상 정렬) -->
+                <div v-if="snackDrawTopList && snackDrawTopList.length > 0" class="relative z-10 pb-2 px-1">
+                    <div class="grid gap-1" :style="'grid-template-columns: repeat('+snackDrawTopList.length+', minmax(0, 1fr))'">
+                        <div v-for="(item, qIdx) in snackDrawTopList" :key="'q'+item.student"
                              class="rounded-xl shadow border-2 transition-all relative flex flex-col items-center justify-center gap-1.5 py-2"
                              :class="qIdx < snackDrawIdx ? 'border-slate-300 bg-slate-100 opacity-40' : 'border-pink-300'"
                              :style="qIdx < snackDrawIdx ? '' : 'background:linear-gradient(135deg,#fce7f3,#fbcfe8);'"
@@ -3390,7 +3394,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <!-- 기부 개수: 0이면 공간만 확보 -->
                             <span class="font-black leading-none text-pink-400"
                                   style="font-size:clamp(6px,0.85vw,10px); min-height:1em;">
-                                <template v-if="snackContribByStudent[item.student]">🍭 {{ snackContribByStudent[item.student] }}</template>
+                                <template v-if="item.count">🍭 {{ item.count }}</template>
                             </span>
                         </div>
                     </div>
@@ -3402,9 +3406,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <div v-for="(item, idx) in snackDrawList" :key="idx"
                              @click="revealCell(idx)"
                              class="relative w-full heart-card"
-                             :class="!revealedMap[idx] ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : 'cursor-default'"
+                             :class="!(revealedMap[idx] || item.revealed) ? 'cursor-pointer hover:scale-105 active:scale-95 transition-transform' : 'cursor-default'"
                              style="aspect-ratio:1/1;">
-                            <div class="heart-card-inner" :class="revealedMap[idx] ? 'flipped' : ''">
+                            <div class="heart-card-inner" :class="(revealedMap[idx] || item.revealed) ? 'flipped' : ''">
                                 <!-- 앞면: 분홍 하트 -->
                                 <div class="heart-card-face" style="pointer-events:none;">
                                     <svg viewBox="0 0 60 56" class="absolute inset-0 w-full h-full">
@@ -7380,6 +7384,24 @@ mergedRankData() {
                 });
                 return counts;
             },
+            // 상단 표시용: 모든 학생을 1번씩(0개여도 포함), 기부 수 내림차순 — 동점은 랜덤 배치.
+            // 랜덤 기준은 snackDrawList(뽑기 때 이미 셔플됨)의 첫 등장 순서 → 새로고침해도 동일 순서 유지.
+            snackDrawTopList() {
+                const counts = this.snackContribByStudent;
+                const firstIdx = {};
+                this.snackDrawList.forEach((item, i) => {
+                    if (item.contributor != null && firstIdx[item.contributor] === undefined) firstIdx[item.contributor] = i;
+                });
+                const N = this.snackDrawList.length;
+                return this.allStudents
+                    .map((s, i) => ({
+                        student: s.name,
+                        count: counts[s.name] || 0,
+                        // 기부자: 랜덤 셔플된 등장 위치 / 0개 학생: 명단 순서로 뒤에 배치
+                        _k: firstIdx[s.name] !== undefined ? firstIdx[s.name] : (N + i)
+                    }))
+                    .sort((a, b) => b.count - a.count || a._k - b._k);
+            },
             snackContributorDisplay() {
                 // 사이드바용: _snack 미로드 시 summary 사용, 로드 후엔 실시간 계산
                 const name = this.snackLoaded ? this.snackTopContributor : (this.snackBankSummary && this.snackBankSummary.topName) || '';
@@ -7894,10 +7916,12 @@ toggleOneMinAlarm() {
                 if (this.snackContribLog.length > 500) this.snackContribLog.length = 500;
                 try { localStorage.setItem('snackContribLog', JSON.stringify(this.snackContribLog)); } catch(e) {}
                 this.playSound && this.playSound('click');
-                // Ctrl/우클릭이면 학생 선택 유지, 일반 클릭이면 해제
-                if (!keep) this.snackSelectedStudents = [];
+                // 간식 클릭 후에도 학생 선택 유지 → 한 학생에게 간식 여러 개 연속 추가 가능.
+                // 다른 학생을 누르면 toggleSnackStudent가 기존 선택을 교체함.
             },
             snackRevealTitle(fullName) {
+                // "선생님"은 성을 떼지 않고 그대로
+                if (fullName === '선생님') return '선생님의';
                 // "김서영" → "서영이의" / "박준" → "준의"
                 const given = fullName && fullName.length > 1 ? fullName.slice(1) : fullName || '';
                 if (!given) return '';
@@ -8059,46 +8083,45 @@ toggleOneMinAlarm() {
                 this.snackBankHistory = [];
                 if (this.saveToLocal) this.saveToLocal();
             },
+            // 항아리 클릭: 진행 중인 뽑기는 이어서, 끝난 뽑기는 (간식 다시 차면) 새로 시작
+            openSnackJar() {
+                this.ensureSnackSubscribed && this.ensureSnackSubscribed();
+                const hasDraw = this.snackDrawList && this.snackDrawList.length > 0;
+                const finished = hasDraw && this.snackDrawIdx >= this.snackDrawList.length;
+                if (hasDraw && !finished) {
+                    // 아직 안 끝난 뽑기 → 이어서 진행
+                    this.showSnackDrawModal = true;
+                } else if (this.snackBankFull) {
+                    // 진행 중인 게 없거나, 이미 끝난 뽑기인데 간식이 다시 찼으면 → 새 뽑기
+                    if (finished) this.completeSnackDraw();   // 끝난 뽑기 정리 후
+                    this.drawSnack();
+                } else {
+                    // 간식 부족 → 안내(빈 상태) 모달
+                    this.showSnackDrawModal = true;
+                }
+            },
             drawSnack() {
                 if (this.snackBank.length === 0) { alert('통에 간식이 없어요!'); return; }
                 if (!this.snackBankFull) { alert('아직 간식이 다 모이지 않았어요!'); return; }
                 // 뽑기 시작 시 snackLoaded 강제 true — 비동기 ensureSnackSubscribed 완료 전이어도 현재 상태로 저장 허용
                 this.snackLoaded = true;
                 this._snackEverLoaded = true;
-                // 캡슐 뽑기: 학생 N명 ↔ 간식 N개 1:1 랜덤 매칭, 초과분은 창고에 잔류
-                const students = this.allStudents.map(s => s.name);
+                // 간식 창고 OPEN: 넣은 사람 ↔ 그 사람이 넣은 간식을 "진짜 짝"으로 공개, 순서는 랜덤
+                const N = this.allStudents.length;
                 const allSnacks = this.snackBank.slice();
-                // 전체 셔플
+                // 전체 셔플 → 하트 배치 순서가 랜덤이 됨 (이름순 정렬 X)
                 for (let i = allSnacks.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i+1));
                     [allSnacks[i], allSnacks[j]] = [allSnacks[j], allSnacks[i]];
                 }
-                const pool = allSnacks.slice(0, students.length);        // 이번 뽑기에 사용
-                const leftover = allSnacks.slice(students.length);       // 초과분: 창고에 남김
-                // 기부 수 내림차순 → 동점자 그룹만 내부 셔플 (pool 기준 = 표시값과 일치)
-                const counts = {};
-                pool.forEach(s => { if (s.contributor) counts[s.contributor] = (counts[s.contributor]||0) + 1; });
-                const groups = new Map(); // count → [학생...]
-                students.forEach(name => {
-                    const c = counts[name] || 0;
-                    if (!groups.has(c)) groups.set(c, []);
-                    groups.get(c).push(name);
-                });
-                const sortedCounts = [...groups.keys()].sort((a, b) => b - a);
-                const studentOrder = [];
-                for (const c of sortedCounts) {
-                    const grp = groups.get(c);
-                    for (let i = grp.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i+1));
-                        [grp[i], grp[j]] = [grp[j], grp[i]];
-                    }
-                    studentOrder.push(...grp);
-                }
-                this.snackDrawList = studentOrder.map((stu, idx) => ({
-                    student: stu,
-                    snack: pool[idx].snack,
-                    emoji: pool[idx].emoji,
-                    contributor: pool[idx].contributor,
+                const pool = allSnacks.slice(0, N);        // 이번 뽑기에 사용 (이미 랜덤 순서)
+                const leftover = allSnacks.slice(N);       // 초과분: 창고에 잔류
+                // 각 칸 = 실제 기부자(student)와 그 사람이 넣은 간식(snack) — 항상 일치
+                this.snackDrawList = pool.map(s => ({
+                    student: s.contributor,
+                    snack: s.snack,
+                    emoji: s.emoji,
+                    contributor: s.contributor,
                     revealed: false,
                 }));
                 this.snackDrawIdx = 0;
@@ -8114,7 +8137,7 @@ toggleOneMinAlarm() {
             },
             revealCell(idx) {
                 const cell = this.snackDrawList[idx];
-                if (!cell || this.revealedMap[idx]) return;
+                if (!cell || this.revealedMap[idx] || cell.revealed) return;
                 this.revealedMap[idx] = true;
                 this.snackDrawList[idx] = Object.assign({}, cell, { revealed: true });
                 this.snackBankHistory.unshift({
@@ -8124,6 +8147,9 @@ toggleOneMinAlarm() {
                 if (this.snackBankHistory.length > 200) this.snackBankHistory.length = 200;
                 this.snackDrawIdx++;
                 this.playSound && this.playSound('magic');
+                // 진행 상태(공개된 하트 + 상단 회색)를 저장 → 나갔다 와도/새로고침해도 기억
+                if (this.saveToLocal) this.saveToLocal();
+                this.saveToLocal_full && this.saveToLocal_full();
             },
             snackDropTo(toIdx) {
                 const from = this.snackDragFromIdx;
@@ -8172,6 +8198,8 @@ toggleOneMinAlarm() {
                     });
                     this.snackDrawIdx++;
                 }
+                if (this.saveToLocal) this.saveToLocal();
+                this.saveToLocal_full && this.saveToLocal_full();
             },
             closeSnackDraw() {
                 // × 버튼: 모달만 숨기기, 진행 상태 유지 (재진입 시 이어서 뽑기)

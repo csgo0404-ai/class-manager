@@ -9470,7 +9470,10 @@ _broadcastNow() {
         if (!this._tabChannel) return;
         // Vue 3 Proxy → plain object 변환. 섹션별 독립 처리: 한 섹션 실패해도 나머지 broadcast 유지
         const rawSafe = v => { try { return JSON.parse(JSON.stringify(v)); } catch(_) { return null; } };
-        const seatsData  = rawSafe({ seats: this.seats, waitingRoom: this.waitingRoom, groups: this.groups, seatConfig: this.seatConfig, manualLocks: this.manualLocks, separationPairs: this.separationPairs });
+        // ★ 정렬 중에는 원래 배치(preSortLayout)를 보낸다 — 다른 탭에 정렬본이 영구화되는 것 방지
+        const _bcSeats   = (this.isSortedByNumber && this.preSortLayout && this.preSortLayout.seats) ? this.preSortLayout.seats : this.seats;
+        const _bcWaiting = (this.isSortedByNumber && this.preSortLayout && this.preSortLayout.waitingRoom) ? this.preSortLayout.waitingRoom : this.waitingRoom;
+        const seatsData  = rawSafe({ seats: _bcSeats, waitingRoom: _bcWaiting, groups: this.groups, seatConfig: this.seatConfig, manualLocks: this.manualLocks, separationPairs: this.separationPairs });
         const mainData   = rawSafe({ activityTabs: this.activityTabs, tabData: this.tabData, nextTabId: this.nextTabId, daySchedules: this.daySchedules, scheduleVersions: this.scheduleVersions, currentScheduleVersion: this.currentScheduleVersion, clockMessage: this.clockMessage, bombMessage: this.bombMessage, bombMsgX: this.bombMsgX, bombMsgY: this.bombMsgY, bombMsgW: this.bombMsgW, bombMsgH: this.bombMsgH, boardPreview: this.boardPreview, showStudentNumber: this.showStudentNumber, thresholdReading: this.thresholdReading, thresholdDiscussion: this.thresholdDiscussion, currentNoisePreset: this.currentNoisePreset, noiseLevels: this.noiseLevels, alarmList: this.alarmList, alarmVolume: this.alarmVolume, bgmVolume: this.bgmVolume, sfxVolume: this.sfxVolume, missions: this.missions, showHallOfFame: this.showHallOfFame, showMissionWidget: this.showMissionWidget, statsWarningCount: this.statsWarningCount, statsPenaltyCount: this.statsPenaltyCount, shuffleMode: this.shuffleMode, mixedOrder: this.mixedOrder, sameOrder: this.sameOrder, avoidPrevious: this.avoidPrevious, avoidPreviousSeat: this.avoidPreviousSeat, snackBankSummary: this.snackBankSummary, timeBankSeconds: this.timeBankSeconds, isOneMinAlarmOn: this.isOneMinAlarmOn, isNoiseTimeHidden: this.isNoiseTimeHidden, noiseRecordSeconds: this.noiseRecordSeconds, noiseWarningCount: this.noiseWarningCount, noisePenaltyCount: this.noisePenaltyCount, maxWarnings: this.maxWarnings });
         const toolsData  = rawSafe({ tournamentData: { tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket }, animalRunners: this.animalRunners, animalRaceResults: this.animalRaceResults, animalRaceFinished: this.animalRaceFinished, participantList: this.participantList, deductWinnerCount: this.deductWinnerCount, rememberParticipants: this.rememberParticipants, rouletteInput: this.rouletteInput, savedRoulettes: this.savedRoulettes, savedGroupings: this.savedGroupings, groupingList: this.groupingList, savedBoards: this.savedBoards, capsules: this.capsules, lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode, displayWinner: this.displayWinner, groupNames: this.groupNames, groupLabelOrder: this.groupLabelOrder, raceCompleted: this.raceCompleted });
         const snackData  = rawSafe({ snackBank: this.snackBank, snackTypes: this.snackTypes, snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx, snackBankHistory: this.snackBankHistory, snackContribLog: this.snackContribLog });
@@ -17015,9 +17018,12 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     this.preSortLayout = null;
                 } else {
                     // [번호순 모드] — 메모리에만 유지, Firebase 저장 안 함
+                    // ★ 얕은 복사(slice)로 학생 객체 '참조'를 유지한다.
+                    //   깊은 복사하면 정렬 중 단 메모/변경이 원본과 끊겨 원위치 복원 시 사라진다.
+                    //   배열만 새로 만들고 학생 객체는 공유 → 정렬 화면에서 단 메모가 원본에도 그대로 반영됨.
                     this.preSortLayout = {
-                        seats: JSON.parse(JSON.stringify(this.seats)),
-                        waitingRoom: JSON.parse(JSON.stringify(this.waitingRoom))
+                        seats: this.seats.slice(),
+                        waitingRoom: this.waitingRoom.slice()
                     };
                     // ★ seats 변경 전에 플래그를 먼저 켜야 중간에 끼는 저장이 차단됨
                     this.isSortedByNumber = true;

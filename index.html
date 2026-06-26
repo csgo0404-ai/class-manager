@@ -7657,7 +7657,7 @@ mergedRankData() {
             showBlackboard(v) {
                 if (v) { this.ensureBoardSubscribed && this.ensureBoardSubscribed(); }
             },
-            seats: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            seats: { deep: true, handler() { if (!this.isSyncing) { this.saveToLocal(); this._queueFullSave(); } } },
             tabData: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             // ★ 도구·간식·판서 실시간 동기화 (BroadcastChannel) — isSyncing 체크로 Firebase 로딩 중 broadcast 차단
             snackBank: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
@@ -7683,8 +7683,8 @@ mergedRankData() {
                     this.repositionSortedSeats && this.repositionSortedSeats();
                 }
             },
-            waitingRoom: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
-            groups: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
+            waitingRoom: { deep: true, handler() { if (!this.isSyncing) { this.saveToLocal(); this._queueFullSave(); } } },
+            groups: { deep: true, handler() { if (!this.isSyncing) { this.saveToLocal(); this._queueFullSave(); } } },
             dashboardSettings: { deep: true, handler() { if (!this.isSyncing) this.saveToLocal(); } },
             showCheckedStudentPanel(val) { if (!this.isSyncing) this.saveToLocal(); },
             dashboardCurrentSupplyKey: {
@@ -12533,6 +12533,29 @@ saveToLocal() {
     if (!this.__bcApplying) this._broadcastNow && this._broadcastNow();
 },
 
+// ★ 좌석/모둠 변경(메모 포함)을 디바운스로 localStorage에 영구 저장.
+//   saveToLocal()은 일부 설정값만 저장하므로, 메모 등 좌석 데이터가 영구화되지 않아
+//   새로고침·캐시 재적용 시 이전 데이터로 덮어써지던 문제를 막는다.
+_queueFullSave() {
+    if (this.isSyncing || this.isInitialLoad) return;
+    // ★ 번호순 정렬 상태는 메모리에만 유지하는 것이 설계 의도(toggleSortByNumber 참고).
+    //   정렬된 배치를 영구 저장하면 새로고침 시 정렬 잔재가 남고 참조 공유가 깨진다.
+    //   정렬 해제 시 seats가 재할당되며 watcher가 다시 발동해 원본이 저장된다.
+    if (this.isSortedByNumber) {
+        // 정렬 진입 직전 일반 모드에서 예약된 저장이 남아 있으면 취소해야
+        // 정렬본이 그 타이머로 저장되는 것을 막는다.
+        if (this._fullSaveTimer) { clearTimeout(this._fullSaveTimer); this._fullSaveTimer = null; }
+        return;
+    }
+    if (this._fullSaveTimer) clearTimeout(this._fullSaveTimer);
+    this._fullSaveTimer = setTimeout(() => {
+        this._fullSaveTimer = null;
+        // ★ 디바운스(400ms) 동안 상태가 바뀌었을 수 있으므로 발동 시점에 재검사.
+        if (this.isSyncing || this.isInitialLoad || this.isSortedByNumber) return;
+        this.saveToLocal_full && this.saveToLocal_full();
+    }, 400);
+},
+
 
             saveToFirebase() {
                 this.saveToLocal_full();
@@ -16796,6 +16819,9 @@ deleteGrouping(idx) {
                     this.waitingRoom = all.filter(s => !seatedNames.has(s.name));
                     this.showHistoryPreview = false;
                     this.showShuffleHistory = false;
+                    // ★ 복원된 배치가 곧 정식 자리이므로 번호순 정렬 상태/백업 해제
+                    this.isSortedByNumber = false;
+                    this.preSortLayout = null;
                     this.saveToLocal_full && this.saveToLocal_full();
                     if (unmatched.length > 0) {
                         alert(`배치를 복구했습니다.\n\n⚠ 현재 명단에 없는 이름 ${unmatched.length}명: ${unmatched.join(', ')}\n(이름만 표시됩니다)`);
@@ -18338,6 +18364,11 @@ async applyShuffle() {
             liveModeData.roundM = (liveModeData.roundM ?? 0) + 1;
             liveModeData.roundF = (liveModeData.roundF ?? 0) + 1;
         }
+
+        // ★ 새 배치가 곧 정식 자리이므로 번호순 정렬 상태/백업을 해제한다.
+        //   (정렬 켠 채 섞으면 낡은 preSortLayout으로 되돌아가 새 배치가 사라지는 문제 방지)
+        this.isSortedByNumber = false;
+        this.preSortLayout = null;
 
         this.saveToLocal();
         this.saveToLocal_full && this.saveToLocal_full();

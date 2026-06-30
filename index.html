@@ -987,6 +987,10 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
         .score-rainbow { border: 4px solid transparent !important; background-image: linear-gradient(#fff, #fff), linear-gradient(to right, #ff2400, #e8b21d, #1de840, #1ddde8, #2b1de8, #dd00f3) !important; background-origin: border-box !important; background-clip: padding-box, border-box !important; animation: rainbow-flow 2s linear infinite !important; }
         @keyframes rainbow-flow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
         .aura-gold { box-shadow: 0 0 20px #fbbf24, 0 0 40px #fbbf24 !important; border-color: #fbbf24 !important; animation: aura-blink 1s infinite alternate !important; z-index: 10 !important; }
+        /* 모둠 뽑기: 현재 뽑힌 학생 빛남 / 이전 학생 회색 */
+        @keyframes seatDrawGlow { 0%,100%{box-shadow:0 0 18px 4px rgba(250,204,21,.85)} 50%{box-shadow:0 0 34px 10px rgba(250,204,21,1)} }
+        .seat-draw-current { z-index:60 !important; transform:scale(1.08); animation:seatDrawGlow 1.1s ease-in-out infinite; outline:3px solid #facc15; outline-offset:2px; }
+        .seat-draw-past { filter:grayscale(100%); opacity:.45; transition:filter .4s, opacity .4s; }
 @keyframes aura-blink {
     0% { transform: scale(1); }
     100% { transform: scale(1.03); } /* 1.05 -> 1.03 */
@@ -3528,7 +3532,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             :class="isSortedByNumber ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_15px_rgba(79,70,229,0.6)]' : 'bg-blue-500'">
                         <i class="fa-solid text-2xl" :class="isSortedByNumber ? 'fa-arrow-down-1-9' : (showStudentNumber ? 'fa-eye' : 'fa-eye-slash')"></i>
                     </button>
-                    <button title="자리 바꾸기" @click="openShuffleModal" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                    <button title="자리 바꾸기 (우클릭: 모둠 뽑기)" @click="openShuffleModal" @contextmenu.prevent="openGroupDraw" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
                         <i class="fa-solid fa-chair text-2xl"></i>
                     </button>
                     <button @click="openRockRace" title="돌 굴러가유~" class="w-14 h-14 bg-purple-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
@@ -3647,7 +3651,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
 (view !== 'order' && ((currentTabId !== 'summary' && ((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked) || (currentTabId === 'summary' && getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0))) ? 'ring-4 ring-[#5c3d1e] ring-offset-2 !border-[#5c3d1e] shadow-[0_0_15px_rgba(92,61,30,0.8)]' : '',
 
-                                         { 'aura-gold': allMode && view !== 'order' }
+                                         { 'aura-gold': allMode && view !== 'order' },
+                                         groupDrawStateOf(seats[getIndex(bIdx, rIdx, pIdx)].name) === 'current' ? 'seat-draw-current' : (groupDrawStateOf(seats[getIndex(bIdx, rIdx, pIdx)].name) === 'past' ? 'seat-draw-past' : '')
                                      ]">
                                     <div class="content-reverse card-container">
                                         <div class="font-black text-xl leading-none mb-3 flex items-center justify-center gap-1"
@@ -4293,7 +4298,85 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 <div class="p-6 bg-white border-t border-slate-100 flex justify-center"><button @click="ensureHistorySubscribed && ensureHistorySubscribed(); showShuffleHistory = true" class="px-8 py-3 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 지난 기록 보기</button></div>
             </div>
         </div>
-  
+
+        <!-- 모둠 뽑기 설정 모달 (자리 바꾸기 우클릭) -->
+        <div v-if="showGroupDraw" class="fixed inset-0 bg-black/60 z-[5000] flex items-center justify-center p-4" @click.self="showGroupDraw = false">
+            <div class="bg-white w-full rounded-[3rem] p-0 shadow-2xl flex flex-col overflow-hidden relative transition-all" :class="showGroupDrawSettings ? 'max-w-2xl' : 'max-w-lg'">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 flex justify-between items-center text-white">
+                    <h2 class="text-3xl font-black italic">🎯 모둠 뽑기</h2>
+                    <div class="flex items-center gap-2">
+                        <button @click="toggleGroupDrawSettings" :title="showGroupDrawSettings ? '뽑기로 돌아가기' : '모둠별 좌석 설정'" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm"><i class="fa-solid text-xl" :class="showGroupDrawSettings ? 'fa-arrow-left' : 'fa-gear'"></i></button>
+                        <button @click="showGroupDraw = false" class="w-11 h-11 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all shadow-sm"><i class="fa-solid fa-xmark text-2xl"></i></button>
+                    </div>
+                </div>
+
+                <!-- 뽑기 인원 설정 -->
+                <div v-if="!showGroupDrawSettings" class="p-8 bg-slate-50 flex flex-col gap-8 items-center">
+                    <div class="text-center">
+                        <div class="text-lg font-black text-slate-700 mb-1">한 번에 뽑을 인원</div>
+                        <div class="text-xs text-slate-400 font-bold">모둠을 랜덤 순서로 돌며 전원이 다 뽑힐 때까지 진행합니다.</div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <button @click="groupDrawPerGroup = Math.max(1, groupDrawPerGroup - 1)" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">−</button>
+                        <span class="text-6xl font-black text-indigo-600 w-20 text-center">{{ groupDrawPerGroup }}</span>
+                        <button @click="groupDrawPerGroup = Math.min(8, groupDrawPerGroup + 1)" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">＋</button>
+                    </div>
+                    <button @click="startGroupDraw" class="relative group mt-2"><div class="absolute inset-0 bg-indigo-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div><div class="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative z-10 group-hover:scale-105 transition-transform duration-300 border-8 border-white/20"><i class="fa-solid fa-wand-magic-sparkles text-5xl mb-3"></i><span class="text-3xl font-black tracking-tighter">START</span></div></button>
+                </div>
+
+                <!-- 모둠별 좌석 설정 -->
+                <div v-else class="p-6 bg-slate-50 flex flex-col gap-4 items-center max-h-[80vh] overflow-y-auto">
+                    <div class="text-center">
+                        <div class="text-base font-black text-slate-700">모둠별 좌석 설정</div>
+                        <div class="text-xs text-slate-400 font-bold">모둠 색을 고른 뒤 좌석을 눌러 모둠을 지정하세요.</div>
+                    </div>
+                    <!-- 모둠 색 팔레트 -->
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button v-for="n in 8" :key="n" @click="groupBrush = n"
+                            class="w-10 h-10 rounded-xl font-black text-white text-sm shadow-sm transition-all"
+                            :style="{ background: groupColors[n-1], outline: groupBrush === n ? '3px solid #1e293b' : 'none', outlineOffset: '2px' }">{{ n }}</button>
+                        <button @click="groupBrush = 0" title="모둠 없음(뽑기 제외)"
+                            class="w-10 h-10 rounded-xl font-black text-slate-500 text-sm shadow-sm bg-white border-2 transition-all"
+                            :style="{ borderColor: groupBrush === 0 ? '#1e293b' : '#e2e8f0' }"><i class="fa-solid fa-ban"></i></button>
+                    </div>
+                    <!-- 교탁 -->
+                    <div class="w-full max-w-md bg-slate-200 text-slate-500 text-center font-black text-sm py-2 rounded-xl">교 탁</div>
+                    <!-- 좌석 그리드 (3분단 × 5행 × 2) -->
+                    <div class="flex justify-center gap-4">
+                        <div v-for="b in 3" :key="'b'+b" class="flex flex-col gap-2">
+                            <div v-for="r in 5" :key="'r'+r" class="flex gap-2">
+                                <template v-for="p in 2">
+                                    <div :key="'s'+b+r+p" @click="paintSeatGroup(getIndex(b,r,p))"
+                                        class="w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center text-[9px] leading-none select-none transition-all"
+                                        :class="(seats[getIndex(b,r,p)] && seats[getIndex(b,r,p)].name) ? 'cursor-pointer hover:scale-105' : 'opacity-30'"
+                                        :style="(seats[getIndex(b,r,p)] && seats[getIndex(b,r,p)].name && displaySeatGroup(getIndex(b,r,p)) > 0)
+                                            ? { background: groupColors[displaySeatGroup(getIndex(b,r,p))-1] + '26', borderColor: groupColors[displaySeatGroup(getIndex(b,r,p))-1] }
+                                            : { background: '#fff', borderColor: '#e2e8f0' }">
+                                        <span v-if="seats[getIndex(b,r,p)] && seats[getIndex(b,r,p)].name && displaySeatGroup(getIndex(b,r,p)) > 0"
+                                            class="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-black"
+                                            :style="{ background: groupColors[displaySeatGroup(getIndex(b,r,p))-1] }">{{ displaySeatGroup(getIndex(b,r,p)) }}</span>
+                                        <span class="truncate w-full text-center text-slate-600 font-bold mt-0.5">{{ (seats[getIndex(b,r,p)] && seats[getIndex(b,r,p)].name) || '' }}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-1">
+                        <button @click="resetSeatGroups" class="px-5 py-2.5 rounded-2xl bg-white border-2 border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-100 transition-all"><i class="fa-solid fa-rotate-left mr-1"></i> 기본 모둠으로</button>
+                        <button @click="showGroupDrawSettings = false" class="px-6 py-2.5 rounded-2xl bg-indigo-600 text-white font-black text-sm shadow hover:bg-indigo-700 transition-all">완료</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모둠 뽑기 진행 플로팅 바 -->
+        <div v-if="groupDrawActive" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[5200] bg-white rounded-[2rem] shadow-2xl border-4 border-indigo-100 px-6 py-4 flex items-center gap-4">
+            <span class="font-black text-slate-500 text-sm">{{ groupDrawRevealed }} / {{ groupDrawQueue.length }}</span>
+            <button @click="drawNext" :disabled="groupDrawRevealed >= groupDrawQueue.length" class="px-7 py-3 rounded-2xl font-black text-white shadow-lg transition-all flex items-center gap-2" :class="groupDrawRevealed >= groupDrawQueue.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-105'"><i class="fa-solid fa-hand-pointer"></i> 다음 뽑기</button>
+            <button @click="startGroupDraw" title="다시 뽑기" class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 text-xl shadow-sm hover:bg-amber-200 transition-all"><i class="fa-solid fa-rotate-right"></i></button>
+            <button @click="endGroupDraw" title="닫기" class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 text-xl shadow-sm hover:bg-rose-200 transition-all"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
         <div v-if="showShuffleHistory" class="fixed inset-0 z-[6000] bg-black/60 flex items-center justify-center p-4" @click.self="showShuffleHistory = false">
     <div class="bg-[#fdfbf7] w-full max-w-md rounded-[3rem] p-6 h-[75vh] flex flex-col shadow-2xl border-8 border-white relative overflow-hidden animate-fade-in">
         
@@ -6411,6 +6494,19 @@ freeParticipants: [],
                 winnerCount: 1,
                 penaltyCount: 1,
                 seats: Array(30).fill(null), waitingRoom: [],
+                showGroupDraw: false,        // 모둠 뽑기 설정 모달
+                groupDrawPerGroup: 1,        // 모둠당 뽑을 인원(전 모둠 공통)
+                groupDrawQueue: [],          // [{name, groupId}] 라운드로빈 추첨 순서
+                groupDrawRevealed: 0,        // 지금까지 공개한 인원 수
+                groupDrawCurStart: 0,        // 이번 클릭에 공개 시작한 위치(동시 공개 배치)
+                groupDrawBatchStarts: [],    // 각 배치(같은 모둠 N명) 시작 위치
+                groupDrawBatchIdx: 0,        // 지금까지 공개한 배치 수
+                showGroupDrawSettings: false, // 모둠별 좌석 설정 패널
+                customSeatGroups: JSON.parse(localStorage.getItem('customSeatGroups') || 'null'), // 좌석별 모둠번호(1~) / null=기본
+                groupBrush: 1,               // 현재 칠하는 모둠 번호(0=빈 모둠)
+                groupColors: ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316'],
+                groupDrawActive: false,      // 추첨 진행 중(플로팅 컨트롤 표시)
+                _groupDrawPos: {},           // name -> 큐 위치(O(1) 조회 캐시)
                 groups: Array(6).fill().map(() => ({ score: 0, checked: false, memo: "", starred: false, members: [], showMembers: false })),
                 groupLabelOrder: JSON.parse(localStorage.getItem('groupLabelOrder') || '[1,2,3,4,5,6]'),
                 groupNames: [],
@@ -16986,6 +17082,130 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                 this.ensureSeatsSubscribed && this.ensureSeatsSubscribed();
                 this.showShuffleModal = true;
                 this.showShuffleSettings = false;
+            },
+            // ===== 모둠 뽑기 (자리 바꾸기 우클릭) =====
+            // 기본(좌석 위치) 모둠 번호: 분단3×밴드3 → 1~9
+            defaultSeatGroupNum(idx) {
+                const block = Math.floor(idx / 10);
+                const band = Math.floor((idx % 10) / 4);
+                return block * 3 + band + 1;
+            },
+            // 좌석 인덱스 -> 모둠 id (커스텀 설정 우선, 없으면 기본). 0/미지정은 -1(뽑기 제외)
+            seatGroupId(idx) {
+                if (this.customSeatGroups) {
+                    const v = this.customSeatGroups[idx];
+                    return v > 0 ? v : -1;
+                }
+                return this.defaultSeatGroupNum(idx);
+            },
+            // 설정 그리드 표시용 모둠 번호
+            displaySeatGroup(idx) {
+                if (this.customSeatGroups) return this.customSeatGroups[idx] || 0;
+                return this.defaultSeatGroupNum(idx);
+            },
+            toggleGroupDrawSettings() {
+                this.showGroupDrawSettings = !this.showGroupDrawSettings;
+            },
+            // 좌석에 현재 브러시 모둠 번호 칠하기 (학생이 있는 칸만)
+            paintSeatGroup(idx) {
+                if (!this.seats[idx] || !this.seats[idx].name) return;
+                if (!this.customSeatGroups) {
+                    // 처음 편집 시 기본값으로 초기화 (빈 칸은 0)
+                    this.customSeatGroups = Array.from({ length: 30 }, (_, i) =>
+                        (this.seats[i] && this.seats[i].name) ? this.defaultSeatGroupNum(i) : 0);
+                }
+                this.customSeatGroups[idx] = this.groupBrush;
+                this.saveCustomSeatGroups();
+            },
+            resetSeatGroups() {
+                this.customSeatGroups = null;
+                localStorage.removeItem('customSeatGroups');
+            },
+            saveCustomSeatGroups() {
+                try { localStorage.setItem('customSeatGroups', JSON.stringify(this.customSeatGroups)); } catch (e) {}
+            },
+            openGroupDraw() {
+                if (this.isSortedByNumber) {
+                    alert("번호순 정렬 중에는 모둠 뽑기를 할 수 없습니다.\n먼저 [원위치] 버튼을 눌러 원래 자리로 돌아가주세요!");
+                    return;
+                }
+                this.showGroupDraw = true;
+            },
+            startGroupDraw() {
+                // 현재 좌석을 모둠별로 버킷팅
+                const buckets = {};
+                for (let i = 0; i < 30; i++) {
+                    const s = this.seats[i];
+                    if (!s || !s.name) continue;
+                    const g = this.seatGroupId(i);
+                    if (g < 0) continue; // 모둠 미지정 좌석은 제외
+                    (buckets[g] = buckets[g] || []).push(s.name);
+                }
+                const groupIds = Object.keys(buckets).map(Number);
+                if (groupIds.length === 0) { alert("좌석에 배치된 학생이 없습니다."); return; }
+                const shuffle = (arr) => {
+                    for (let i = arr.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [arr[i], arr[j]] = [arr[j], arr[i]];
+                    }
+                    return arr;
+                };
+                const N = Math.max(1, parseInt(this.groupDrawPerGroup) || 1); // 한 배치(같은 모둠) 인원
+                // 각 모둠 멤버 랜덤
+                const remaining = {};
+                groupIds.forEach(g => { remaining[g] = shuffle(buckets[g].slice()); });
+                // 한 바퀴마다 모둠 순서를 새로 랜덤화하며 전원 소진까지 배치 구성
+                const queue = [], batchStarts = [];
+                let safety = 0;
+                while (safety++ < 1000) {
+                    const active = groupIds.filter(g => remaining[g].length > 0);
+                    if (active.length === 0) break;
+                    shuffle(active); // ★ 매 바퀴 모둠 순서 랜덤
+                    active.forEach(g => {
+                        const take = remaining[g].splice(0, N); // 같은 모둠에서 N명
+                        batchStarts.push(queue.length);
+                        take.forEach(name => queue.push({ name, groupId: g }));
+                    });
+                }
+                const pos = {};
+                queue.forEach((q, i) => { pos[q.name] = i; });
+                this.groupDrawQueue = queue;
+                this._groupDrawPos = pos;
+                this.groupDrawBatchStarts = batchStarts;
+                this.groupDrawBatchIdx = 0;
+                this.groupDrawRevealed = 0;
+                this.groupDrawCurStart = 0;
+                this.groupDrawActive = true;
+                this.showGroupDraw = false;
+                this.playSound('magic');
+            },
+            drawNext() {
+                if (this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length) return;
+                // 다음 배치(같은 모둠 N명)를 한 번에 공개
+                this.groupDrawCurStart = this.groupDrawBatchStarts[this.groupDrawBatchIdx];
+                this.groupDrawBatchIdx++;
+                this.groupDrawRevealed = (this.groupDrawBatchIdx < this.groupDrawBatchStarts.length)
+                    ? this.groupDrawBatchStarts[this.groupDrawBatchIdx]
+                    : this.groupDrawQueue.length;
+                this.playSound('beep', false, 0.6);
+                if (this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length) this.playSound('magic');
+            },
+            endGroupDraw() {
+                this.groupDrawActive = false;
+                this.groupDrawQueue = [];
+                this._groupDrawPos = {};
+                this.groupDrawBatchStarts = [];
+                this.groupDrawBatchIdx = 0;
+                this.groupDrawRevealed = 0;
+                this.groupDrawCurStart = 0;
+            },
+            groupDrawStateOf(name) {
+                if (!this.groupDrawActive || !name) return '';
+                const pos = this._groupDrawPos[name];
+                if (pos === undefined) return '';
+                if (pos >= this.groupDrawCurStart && pos < this.groupDrawRevealed) return 'current'; // 이번에 동시 공개된 인원
+                if (pos < this.groupDrawCurStart) return 'past';
+                return '';
             },
 // ★ 번호순 정렬 자리 배치 (회전 상태 반영) — toggleSortByNumber와 isRotated watcher가 공유
             repositionSortedSeats() {

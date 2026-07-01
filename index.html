@@ -3709,6 +3709,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                          draggable="true"
                          @dragstart="draggingTabId = tab.id"
                          @dragover.prevent
+                         @dragend="draggingTabId = null"
                          @drop.prevent="dropTab(tab.id)"
                          :class="draggingTabId === tab.id ? 'opacity-40' : ''">
                         <input v-if="editingTabId === tab.id"
@@ -3716,8 +3717,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             @blur="saveTabName(tab.id, editingTabName)"
                             @keydown.enter.prevent.stop="saveTabName(tab.id, editingTabName)"
                             @keydown.stop
-                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;"
-                            class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[60px]"
+                            size="1" maxlength="10"
+                            style="background:#eaddca;color:#8f6a49;border-color:#9c734f;outline:none;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;height:150px;"
+                            class="block px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base w-10 min-h-[150px]"
                             autoFocus>
                         <button v-else
                             @click="currentTabId = tab.id; refreshIfChanged()"

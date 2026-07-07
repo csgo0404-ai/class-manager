@@ -1,0 +1,6 @@
+name = "class-manager"
+compatibility_date = "2025-06-01"
+
+# 정적 HTML/JS/CSS/이미지 파일을 그대로 서빙 (빌드 불필요)
+[assets]
+directory = "./"

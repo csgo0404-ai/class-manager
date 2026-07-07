@@ -4739,7 +4739,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         <!-- ─── 가운데 컬럼: 알림장(60%) + 과제 보충(40%) ─── -->
         <div class="flex flex-col gap-2 overflow-hidden min-h-0">
             <!-- 알림장 카드 (flex-1) -->
-            <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+            <div class="rounded-2xl border-2 border-[#e7d5b1] shadow-sm overflow-hidden flex flex-col min-h-0 flex-1"
+                 :class="boardCardYellow ? 'bg-[#ffe8d6]' : 'bg-white'"
+                 @contextmenu.prevent="boardCardYellow=!boardCardYellow">
                 <div class="flex items-center justify-between px-3 pt-2 pb-1 flex-shrink-0">
                     <div class="text-xl font-black text-[#8d6e63]">📋 알림장</div>
                     <button @click="ensureBoardSubscribed && ensureBoardSubscribed(); showMainDashboard=false; returnToDashboardOnClose=true; $nextTick(()=>showBlackboard=true)" class="text-sm text-[#a1887f] hover:text-[#5d4037] font-bold"> →</button>
@@ -6681,6 +6683,7 @@ showDatePalette: false,
         dashboardBulkPasteText: '',
         isFetchingHolidays: false,
         returnToDashboardOnClose: false,
+        boardCardYellow: localStorage.getItem('boardCardYellow') === '1',
         dashboardMarkedStudents: {},
         dashboardEditingDate: null,
         dashboardEditingPlans: [],
@@ -7727,6 +7730,10 @@ mergedRankData() {
         },
 
         watch: {
+            // 알림장 카드 배경색 선택을 localStorage에 영속화 (새로고침해도 유지)
+            boardCardYellow(v) {
+                try { localStorage.setItem('boardCardYellow', v ? '1' : '0'); } catch(e) {}
+            },
             // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독 + 직전 변경사항 flush
             view(newView) {
                 // 창 전환 시 회전 애니메이션 없이 즉시 전환
@@ -11793,7 +11800,11 @@ updateClock() {
                     const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     const todayDow = now.getDay();
                     const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${currentHM}`;
-                    if (!this._firedAlarmMinute) this._firedAlarmMinute = {};
+                    // 발사 기록을 localStorage에 영속화 → 알람 분(分)에 새로고침해도 재발사 방지
+                    if (!this._firedAlarmMinute) {
+                        try { this._firedAlarmMinute = JSON.parse(localStorage.getItem('firedAlarmMinute')) || {}; }
+                        catch(e) { this._firedAlarmMinute = {}; }
+                    }
                     this.alarmList.forEach((alarm, i) => {
                         if (!alarm.on || alarm.time !== currentHM) return;
                         const days = alarm.days !== undefined ? alarm.days : [0,1,2,3,4,5,6];
@@ -11801,6 +11812,7 @@ updateClock() {
                         const fireKey = `${minuteKey}_${i}_${alarm.time}_${alarm.label||''}`;
                         if (this._firedAlarmMinute[fireKey]) return;
                         this._firedAlarmMinute[fireKey] = true;
+                        try { localStorage.setItem('firedAlarmMinute', JSON.stringify(this._firedAlarmMinute)); } catch(e) {}
                         this.triggerAlarm(alarm);
                     });
                     // 다른 분으로 넘어가면 이전 키 정리 (메모리 누수 방지)
@@ -11809,6 +11821,7 @@ updateClock() {
                         Object.keys(this._firedAlarmMinute).forEach(k => { if (k.startsWith(minuteKey)) keep[k] = true; });
                         this._firedAlarmMinute = keep;
                         this._lastAlarmMinuteKey = minuteKey;
+                        try { localStorage.setItem('firedAlarmMinute', JSON.stringify(keep)); } catch(e) {}
                     }
                 }
 

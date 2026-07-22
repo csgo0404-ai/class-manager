@@ -2773,9 +2773,16 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                                class="flex-1 accent-yellow-400 h-2 cursor-pointer">
                         <span class="text-sm font-mono font-black text-slate-500 w-9 text-right">{{ Math.round(alarmVolume * 100) }}%</span>
                     </div>
-                    <button @click="addTimetableAlarms" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-base hover:bg-emerald-100 transition-all border-2 border-emerald-200 active:scale-95">
-                        📅 수업 시작 알람 추가
+                    <button @click="addTimetableAlarms()" class="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-700 font-black text-base hover:bg-emerald-100 transition-all border-2 border-emerald-200 active:scale-95">
+                        📅 수업 시작 알람 추가 <span class="text-xs font-bold opacity-70">{{ semesterEndMode ? '(전부 정각)' : '(전담 5분전)' }}</span>
                     </button>
+                    <div @click="toggleSemesterEndMode()" class="flex items-center justify-between px-4 py-2.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-95"
+                         :class="semesterEndMode ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'">
+                        <span class="font-black text-base" :class="semesterEndMode ? 'text-amber-700' : 'text-slate-500'">🏫 학기말 모드 <span class="text-xs font-bold opacity-70">(전담도 정각)</span></span>
+                        <div class="w-14 h-9 rounded-full flex items-center transition-colors p-1 shrink-0" :class="semesterEndMode ? 'bg-amber-500' : 'bg-slate-300'">
+                            <div class="w-7 h-7 bg-white rounded-full shadow-sm transition-transform" :class="semesterEndMode ? 'translate-x-5' : 'translate-x-0'"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 오른쪽: 알람 목록 -->
@@ -6609,6 +6616,7 @@ alarmMinute: "00", // 기본 분
 alarmDays: [1,2,3,4,5], // 기본: 평일(월~금)
 alarmLabel: '',
 alarmList: [],
+        semesterEndMode: false, // 학기말 모드: on이면 전담도 정각으로 알람 등록
         isAlarmOn: false,
         showAlarmModal: false,
 editingAlarmIndex: null,
@@ -9292,7 +9300,7 @@ async scanFirebaseUnused() {
         'noiseThreshold','timeBankSeconds','timeBankHistory','snackBank','snackBankHistory','snackTypes','missions','currentView',
         'isRotated','noiseLevels','noiseRecordSeconds','isNoiseTimeHidden',
         'showGenderHint','showStudentNumber','statsWarningCount','statsPenaltyCount',
-        'clockMessage','alarmList','shuffleMode','avoidPrevious','avoidPreviousSeat',
+        'clockMessage','alarmList','semesterEndMode','shuffleMode','avoidPrevious','avoidPreviousSeat',
         'activityTabs','currentTabId','nextTabId','tabData','isSortedByNumber',
         'alarmVolume','bgmVolume','sfxVolume','showCheckedStudentPanel',
         'dashboardSettings','uiState','mixedOrder','sameOrder'
@@ -9477,6 +9485,7 @@ _applyBroadcastUpdate(m) {
         if (d.currentNoisePreset !== undefined) this.currentNoisePreset = d.currentNoisePreset;
         if (d.noiseLevels !== undefined) this.noiseLevels = d.noiseLevels;
         if (d.alarmList !== undefined) this.alarmList = toArr(d.alarmList);
+        if (d.semesterEndMode !== undefined) this.semesterEndMode = !!d.semesterEndMode;
         if (d.alarmVolume !== undefined) this.alarmVolume = d.alarmVolume;
         if (d.bgmVolume !== undefined) this.bgmVolume = d.bgmVolume;
         if (d.sfxVolume !== undefined) this.sfxVolume = d.sfxVolume;
@@ -11913,28 +11922,57 @@ toggleAlarmDay(dayIdx) {
         this.alarmDays.push(dayIdx);
     }
 },
+// "HH:MM" 에서 n분을 더한/뺀 시각
+_shiftTime(str, n) {
+    const [h, m] = str.split(':').map(Number);
+    let total = h * 60 + (m || 0) + n;
+    total = ((total % 1440) + 1440) % 1440;
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+},
+// 시간표 알람의 현재 모드 기준 시각/라벨 (이동수업은 학기말 OFF일 때만 5분 전)
+_ttTime(a) { return (a.move && !this.semesterEndMode) ? this._shiftTime(a.start, -5) : a.start; },
+_ttLabel(a) { return a.baseLabel + ((a.move && !this.semesterEndMode) ? ' (이동 5분전)' : ''); },
+// 시간표를 읽어 요일별로 수업 시작 알람을 등록.
+// 이동수업(전담, 과목 뒤 '*')은 학기말 모드 OFF일 때 5분 전, 그 외에는 정각.
 addTimetableAlarms() {
-    const schedule = this.dashboardWeeklySchedule && this.dashboardWeeklySchedule.schedule;
-    if (!schedule || schedule.length === 0) {
+    const timeSchedule = this.dashboardSettings.timeSchedule || [];
+    const timetable = this.dashboardSettings.timetable || {};
+    if (timeSchedule.length === 0) {
         this.showToast('⚠️ 설정에서 시간표를 먼저 입력해주세요.');
         return;
     }
+    const dayIdxMap = { 월: 1, 화: 2, 수: 3, 목: 4, 금: 5 };
+    // (start|과목|이동여부) 키로 묶어 요일을 합침 (모드와 무관한 키)
+    const grouped = {};
+    Object.keys(dayIdxMap).forEach(day => {
+        const row = timetable[day] || [];
+        row.forEach((subjRaw, i) => {
+            const subj = (subjRaw || '').trim();
+            if (!subj) return;
+            const start = timeSchedule[i] && timeSchedule[i].startTime;
+            if (!start || !/^\d{1,2}:\d{2}$/.test(start)) return;
+            const isMove = subj.endsWith('*');
+            const cleanSubj = subj.replace(/\*+$/, '').trim();
+            const key = start + '|' + cleanSubj + '|' + (isMove ? '1' : '0');
+            if (!grouped[key]) grouped[key] = { start, baseLabel: cleanSubj, move: isMove, days: [] };
+            grouped[key].days.push(dayIdxMap[day]);
+        });
+    });
     let added = 0;
-    schedule.forEach(sch => {
-        // 수업 시작 알람
-        if (sch.startTime) {
-            const startKey = sch.startTime + '_start';
-            if (!this.alarmList.some(a => a.time === sch.startTime && a.label === sch.label + ' 시작')) {
-                this.alarmList.push({ time: sch.startTime, on: true, days: [1,2,3,4,5], label: sch.label + ' 시작' });
-                added++;
-            }
-        }
-        // 수업 종료 알람
-        if (sch.endTime) {
-            if (!this.alarmList.some(a => a.time === sch.endTime && a.label === sch.label + ' 종료')) {
-                this.alarmList.push({ time: sch.endTime, on: true, days: [1,2,3,4,5], label: sch.label + ' 종료' });
-                added++;
-            }
+    Object.values(grouped).forEach(g => {
+        // 같은 수업(시작시각·과목·이동여부)인 시간표 알람이 이미 있으면 요일만 병합
+        const exist = this.alarmList.find(a => a.tt && a.start === g.start && a.baseLabel === g.baseLabel && a.move === g.move);
+        if (exist) {
+            const before = (exist.days || []).length;
+            g.days.forEach(d => { if (!exist.days.includes(d)) exist.days.push(d); });
+            exist.days.sort((a, b) => a - b);
+            if (exist.days.length !== before) added++;
+        } else {
+            const a = { tt: true, move: g.move, start: g.start, baseLabel: g.baseLabel, on: true, days: g.days.sort((a, b) => a - b) };
+            a.time = this._ttTime(a);
+            a.label = this._ttLabel(a);
+            this.alarmList.push(a);
+            added++;
         }
     });
     if (added > 0) {
@@ -11944,6 +11982,26 @@ addTimetableAlarms() {
     } else {
         this.showToast('이미 모두 등록된 알람입니다.');
     }
+},
+// 학기말 모드 on/off → 기존 시간표(이동수업) 알람도 즉시 정각↔5분전으로 변환
+toggleSemesterEndMode() {
+    this.semesterEndMode = !this.semesterEndMode;
+    this.alarmList.forEach(a => {
+        // 구버전 알람(메타 없음) 마이그레이션: 라벨로 이동수업 판별
+        if (!a.tt && typeof a.label === 'string' && a.label.endsWith(' (이동 5분전)')) {
+            a.tt = true;
+            a.move = true;
+            a.baseLabel = a.label.replace(/ \(이동 5분전\)$/, '');
+            a.start = this._shiftTime(a.time, 5); // 현재 5분전 시각 → 실제 시작시각
+        }
+        if (a.tt) {
+            a.time = this._ttTime(a);
+            a.label = this._ttLabel(a);
+        }
+    });
+    this.alarmList.sort((a, b) => a.time.localeCompare(b.time));
+    this.saveToLocal();
+    this.showToast(this.semesterEndMode ? '🏫 학기말 모드 ON (전담도 정각)' : '📅 학기말 모드 OFF (전담 5분전)');
 },
 padTime(key) {
     let val = parseInt(this[key]);
@@ -12919,7 +12977,7 @@ _queueBoardLocalSave() {
                     daySchedules: this.daySchedules, scheduleVersions: this.scheduleVersions,
                     currentScheduleVersion: this.currentScheduleVersion,
                     dashboardSettings: this.dashboardSettings,
-                    clockMessage: this.clockMessage, alarmList: this.alarmList,
+                    clockMessage: this.clockMessage, alarmList: this.alarmList, semesterEndMode: this.semesterEndMode,
                     noiseLevels: this.noiseLevels, thresholdReading: this.thresholdReading,
                     thresholdDiscussion: this.thresholdDiscussion,
                     currentNoisePreset: this.currentNoisePreset, noiseThreshold: this.noiseThreshold,

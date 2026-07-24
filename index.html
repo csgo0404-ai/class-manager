@@ -4737,8 +4737,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <div v-if="dashboardMeal.length > 0 && dashboardMeal[dashboardMealIndex]">
                         <div class="text-[0.92rem] font-bold text-[#5d4037] whitespace-pre-line leading-snug">{{ dashboardMeal[dashboardMealIndex].menu }}</div>
                     </div>
-                    <div v-else class="text-center text-[#a1887f] font-bold text-sm py-2">
-                        {{ dashboardSettings.neisApiKey ? '급식 정보가 없습니다' : '⚙️ NEIS API 키를 설정해 주세요' }}
+                    <div v-else-if="!dashboardSettings.neisApiKey" class="text-center text-[#a1887f] font-bold text-sm py-2">
+                        ⚙️ NEIS API 키를 설정해 주세요
                     </div>
                 </div>
             </div>
@@ -4770,7 +4770,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <div class="rounded-2xl border-2 border-[#e7d5b1] bg-white shadow-sm px-3 py-2 overflow-hidden flex flex-col" style="flex: 0 0 22%; min-height: 80px;">
                 <div class="text-xl font-black text-[#8d6e63] mb-1.5 flex-shrink-0">🌱 과제 보충</div>
                 <div class="flex-1 overflow-y-auto dash-scroll min-h-0">
-                    <div v-if="dashboardCheckedStudents.length === 0" class="text-center text-[#a1887f] text-sm font-bold py-1">체크된 학생이 없습니다</div>
                     <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-1.5">
                         <span class="text-sm font-black text-[#8d6e63] mr-1">{{ group.tabName }}:</span>
                         <button v-for="name in group.names" :key="name"
@@ -4890,7 +4889,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             <button @click.stop="removeMission(idx)" class="w-5 h-5 rounded bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
-                    <div v-if="missions.length === 0" class="text-center text-[#a1887f] font-bold text-sm py-3">🚀 클릭해서 미션을 추가해 보세요</div>
                 </div>
             </div>
         </div>
@@ -5135,7 +5133,6 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button @mousedown.prevent="showCheckedStudentPanel = false" class="text-slate-400 hover:text-red-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div v-if="dashboardCheckedStudents.length === 0" class="text-base text-slate-400 font-bold text-center py-8">체크된 학생이 없습니다</div>
             <div v-for="group in dashboardCheckedStudents" :key="group.tabId" class="mb-5">
                 <div @mousedown.prevent.stop="insertGroupToBoard(group)"
                      class="text-lg font-black text-slate-700 mb-2 pb-1 border-b border-slate-200 cursor-pointer hover:text-emerald-600 transition-colors"
@@ -5388,6 +5385,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                        hover:bg-emerald-500 hover:border-emerald-400 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
                 :title="'현재 탭(' + (getCurrentTabName() || '-') + ')에서 체크된 학생으로 캡슐 교체'">
             <i class="fa-solid fa-check text-3xl"></i>
+        </button>
+
+        <button @click="invertCapsules"
+                class="w-20 h-20 bg-white/10 text-white rounded-2xl transition-all shadow-md flex items-center justify-center border-2 border-white/20 group cursor-pointer backdrop-blur-sm active:scale-90 box-border
+                       hover:bg-amber-500 hover:border-amber-400 hover:text-white"
+                title="반전 (열린 건 닫고, 닫힌 건 열기)">
+            <i class="fa-solid fa-arrows-rotate text-3xl group-hover:rotate-180 transition-transform duration-500"></i>
         </button>
 
         <button @click="shuffleCapsules"
@@ -12568,6 +12572,16 @@ this.playSound('finish', false, 0.5);
     this.saveToLocal(); 
 },
 
+    // [신규] 캡슐 반전 (열린 건 닫고, 닫힌 건 열기)
+    invertCapsules() {
+        if (!this.capsules.length) return;
+        this.playSound('finish', false, 0.5);
+        this.capsules.forEach(c => { if (c) c.revealed = !c.revealed; });
+        // 스위치 표시 상태: 남은(닫힌) 캡슐이 없으면 '열기', 있으면 '닫기'로 갱신
+        this.capsuleSwitchState = this.capsules.every(c => c.revealed) ? 'open' : 'closed';
+        this.saveToLocal();
+    },
+
 // [신규] 스위치 토글 함수
     toggleCapsuleSwitch() {
         if (this.capsuleSwitchState === 'closed') {
@@ -14601,7 +14615,7 @@ if(this.allMode) {
             },
             // 불러오기 옆 '초기화' — 학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통 초기화 (자리기록·미션 등은 유지)
             resetClassData() {
-                if (!confirm('학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통을 모두 초기화할까요?\n(자리 바꾸기 기록·미션 등 나머지는 그대로 유지됩니다)')) return;
+                if (!confirm('학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통·우리반 미션을 모두 초기화할까요?\n(자리 바꾸기 기록 등 나머지는 그대로 유지됩니다)')) return;
                 // 2차 확인
                 if (!confirm('⚠️ 정말 초기화할까요?\n초기화한 데이터는 되돌릴 수 없습니다.')) return;
                 // 비밀번호 확인
@@ -14640,11 +14654,13 @@ if(this.allMode) {
                 // 6) 시간 저금통
                 this.timeBankSeconds = 0;
                 this.timeBankHistory = [];
+                // 7) 우리반 미션
+                this.missions = [];
                 // 저장 + 패널 닫기
                 this.saveDashboardSettings && this.saveDashboardSettings();
                 this.saveToLocal_full && this.saveToLocal_full();
                 this.dashboardShowSettings = false;
-                alert('초기화 완료 ✅\n학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통이 비워졌습니다.');
+                alert('초기화 완료 ✅\n학생 명단·시간표·교육활동·모둠 이름·간식 창고·시간 저금통·우리반 미션이 비워졌습니다.');
             },
             _saveGroupNamesToFirebase() {
                 try {

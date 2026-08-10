@@ -6080,6 +6080,7 @@ tabindex="0">
             <i class="fa-solid fa-bell"></i> 주의집중
         </h2>
         <div class="flex items-center gap-3">
+
             <button @mousedown.prevent.stop="isNoiseMaximized = !isNoiseMaximized" class="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center text-white text-xl transition-all"><i :class="isNoiseMaximized ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i></button>
             <button @mousedown.prevent.stop="showNoiseMeter = false; stopNoiseMeasurement(); stopCamera(); if(returnToDashboardOnClose){ showMainDashboard=true; returnToDashboardOnClose=false; }" class="w-12 h-12 bg-red-500/80 hover:bg-red-600 rounded-xl flex items-center justify-center text-white text-2xl transition-all"><i class="fa-solid fa-xmark"></i></button>
         </div>
@@ -6096,6 +6097,16 @@ tabindex="0">
                 :class="noiseMode === 'meter' ? 'bg-white text-teal-600 border-b-4 border-teal-600' : 'text-slate-400 hover:text-slate-600'">
             <span>🎤</span> 소음 측정
         </button>
+        <button @click="openPresentMeter()"
+                class="flex-1 py-4 font-black text-lg transition-all flex items-center justify-center gap-2"
+                :class="presentMeterOpen ? 'bg-white text-violet-600 border-b-4 border-violet-600' : 'text-slate-400 hover:text-slate-600'">
+            <span>🎙️</span> 발표 측정
+        </button>
+        <button @click="setNoiseMode('present')"
+                class="flex-1 py-4 font-black text-lg transition-all flex items-center justify-center gap-2"
+                :class="noiseMode === 'present' && !presentMeterOpen ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-400 hover:text-slate-600'">
+            <span>🙋</span> 발표 도우미
+        </button>
     </div>
 
     <div class="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
@@ -6106,7 +6117,7 @@ tabindex="0">
 
             <!-- 카메라 비디오 -->
             <video v-if="isCameraOn" ref="cameraVideo" autoplay playsinline muted
-                   class="absolute inset-0 w-full h-full object-contain" style="z-index:1;background:#000;"></video>
+                   class="absolute inset-0 w-full h-full object-contain" style="z-index:1;background:#000;transform:scaleX(-1);"></video>
 
             <!-- 타이머 + 카메라 버튼 -->
             <div class="absolute flex items-center gap-2" style="top:1.5rem;left:1.5rem;z-index:30;">
@@ -6206,7 +6217,7 @@ tabindex="0">
                             </div>
                         </div>
                         <div class="flex items-baseline font-mono font-black transition-colors duration-500 leading-none"
-                             :class="displayedDb > noiseThreshold ? 'text-red-600' : (displayedDb > noiseThreshold * 0.8 ? 'text-orange-500' : 'text-slate-700')"
+                             :class="(presentVoiceMode ? displayedDb < noiseThreshold : displayedDb > noiseThreshold) ? 'text-red-600' : ((presentVoiceMode ? displayedDb < noiseThreshold * 1.2 : displayedDb > noiseThreshold * 0.8) ? 'text-orange-500' : 'text-slate-700')"
                              style="font-size:30cqmin;gap:20px;">
                             <span>{{ displayedDb }}</span>
                             <span class="ml-4 tracking-widest" style="font-family:'Dongle',sans-serif!important;font-weight:700;font-size:10cqmin;color:#475569;text-shadow:0 2px 4px rgba(0,0,0,0.1);">와글</span>
@@ -6215,7 +6226,7 @@ tabindex="0">
                 </div>
                 <div class="mt-4 shrink-0 pb-6">
                     <div class="flex justify-between items-end mb-2 px-2">
-                        <span class="font-black text-slate-600 text-lg">⚠️ 소음 경보</span>
+                        <span class="font-black text-slate-600 text-lg">{{ presentVoiceMode ? '🎤 목소리가 작아요' : '⚠️ 소음 경보' }}</span>
                         <span class="font-mono font-bold text-xl" :class="noiseGauge > 80 ? 'text-red-500' : (noiseGauge > 50 ? 'text-orange-500' : 'text-teal-600')">{{ noiseGauge.toFixed(0) }}%</span>
                     </div>
                     <div class="w-full h-20 bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner border-4 border-slate-300 relative">
@@ -6230,16 +6241,16 @@ tabindex="0">
             </div>
 
             <!-- 카메라 ON: 소음 경보 (하단 오버레이) -->
-            <div v-if="isCameraOn" class="absolute bottom-0 left-0 right-0 px-4 py-2 bg-slate-900 flex items-center gap-3" style="z-index:5;">
-                <span class="font-black text-yellow-400 text-sm whitespace-nowrap">⚠️ 소음</span>
-                <div class="flex-1 h-8 bg-white/20 rounded-full overflow-hidden relative">
-                    <div class="h-full transition-all duration-500 ease-linear rounded-full"
+            <div v-if="isCameraOn" class="absolute top-0 bottom-0 right-0 w-24 px-3 py-4 bg-slate-900/85 flex flex-col items-center gap-3" style="z-index:5;">
+                <span class="font-black text-yellow-400 text-xs text-center leading-tight">{{ presentVoiceMode ? '🎤 목소리' : '⚠️ 소음' }}</span>
+                <div class="flex-1 w-10 bg-white/20 rounded-full overflow-hidden relative flex flex-col justify-end">
+                    <div class="w-full transition-all duration-500 ease-linear rounded-full"
                          :class="[noiseGauge > 80 ? 'bg-red-500' : (noiseGauge > 50 ? 'bg-orange-400' : 'bg-teal-500'), { 'animate-pulse': noiseGauge > 90 }]"
-                         :style="{ width: noiseGauge + '%' }">
+                         :style="{ height: noiseGauge + '%' }">
                     </div>
                 </div>
-                <span class="font-black text-sm whitespace-nowrap transition-colors"
-                      :class="noiseGauge > 80 ? 'text-red-400' : (noiseGauge > 50 ? 'text-orange-400' : 'text-teal-300')">와글 {{ displayedDb }}</span>
+                <span class="font-black text-sm text-center leading-tight transition-colors"
+                      :class="noiseGauge > 80 ? 'text-red-400' : (noiseGauge > 50 ? 'text-orange-400' : 'text-teal-300')">와글<br>{{ displayedDb }}</span>
             </div>
 
             </div><!-- end 비디오/측정 영역 -->
@@ -6318,6 +6329,132 @@ tabindex="0">
             </div>
         </div>
 
+        <!-- ⚙️ 주의집중 설정 — 화면 가운데 작은 창으로 띄운다 (예전에는 화면을 통째로 덮어 크기·위치가 어긋났다) -->
+        <div v-if="pdSettingsOpen" class="absolute inset-0 flex items-center justify-center bg-black/40 p-4" style="z-index:60;"
+             @click.self="pdSettingsOpen = false">
+            <div class="bg-slate-50 rounded-2xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col"
+                 style="width:min(546px,94%);max-height:90%;">
+                <div class="h-12 bg-gradient-to-r from-slate-600 to-slate-700 flex items-center justify-between px-4 shrink-0">
+                    <span class="text-white font-black text-base">⚙️ 설정</span>
+                    <button @click.stop="pdSettingsOpen = false" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center text-white text-base transition-all">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                    <label class="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-4 py-3 cursor-pointer">
+                        <span>
+                            <span class="font-black text-slate-700 text-sm">🔁 이미 뽑힌 사람 제외</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">발표한 학생은 다시 뽑지 않아요 (전원 발표하면 자동 초기화)</span>
+                        </span>
+                        <input type="checkbox" v-model="pdExcludePicked" @change="applyPdSettings()" class="w-5 h-5 accent-indigo-500 cursor-pointer shrink-0 ml-3">
+                    </label>
+
+                    <label class="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-4 py-3 cursor-pointer">
+                        <span>
+                            <span class="font-black text-slate-700 text-sm">🖼 당첨자 얼굴 크게 띄우기</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">뽑힌 학생 얼굴을 3초간 화면 가운데에 크게 보여줘요</span>
+                        </span>
+                        <input type="checkbox" v-model="pdBigFace" @change="applyPdSettings()" class="w-5 h-5 accent-indigo-500 cursor-pointer shrink-0 ml-3">
+                    </label>
+
+                    <button @click.stop="clearPdPicked()"
+                            class="px-4 py-3 rounded-xl border border-slate-300 bg-white font-black text-sm text-slate-600 hover:border-indigo-300 hover:text-indigo-600">
+                        🔄 뽑기 기록 초기화 (전원 다시 후보로)
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- 발표 도우미: React 앱을 Shadow DOM 에 마운트 (Tailwind v4 스타일이 매니저와 섞이지 않도록 격리) -->
+        <div v-show="noiseMode === 'present' || presentMeterOpen"
+             class="w-full h-full overflow-hidden bg-[#101223] relative"
+             :class="(presentMeterOpen && noiseMode !== 'present') ? 'absolute inset-0 z-[35]' : 'flex-1'">
+            <div ref="presentHost" class="absolute inset-0"></div>
+
+            <!-- 당첨자 얼굴 크게 -->
+            <!-- 크기 기준은 화면(vh)이 아니라 이 창(cqmin) — 창을 작게 줄여도 밖으로 넘치지 않는다 -->
+            <div v-if="pdBigFaceSrc" class="absolute inset-0 flex items-center justify-center bg-black/70 pointer-events-none"
+                 style="z-index:40;container-type:size;">
+                <div class="flex flex-col items-center" style="gap:3cqmin;">
+                    <img :src="pdBigFaceSrc" class="rounded-full border-[10px] border-amber-300 shadow-2xl bg-white object-cover animate-bounce-slow"
+                         style="width:62cqmin;height:62cqmin;">
+                    <span class="font-black text-white drop-shadow-lg whitespace-nowrap" style="font-size:9cqmin;">🎉 발표할 사람!</span>
+                </div>
+            </div>
+
+            <!-- 발표 측정: 소음 측정 오른쪽 탭에서 열리며, 어느 탭에서든 위에 뜬다 -->
+            <div v-if="presentMeterOpen" class="absolute inset-0 bg-slate-50 flex flex-col" style="z-index:30;container-type:size;">
+                <!-- 조작 바: 소음 측정기와 같은 구성(기준 슬라이더 + 시작/일시정지/중지) -->
+                <div class="w-full flex justify-end px-6 pt-4 shrink-0">
+                    <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex items-center gap-4">
+                        <span class="font-black text-slate-400 text-lg">🔈 작게</span>
+                        <div class="relative w-48 flex items-center">
+                            <input type="range" v-model.number="presentThreshold" @input="savePresentThreshold" min="10" max="120"
+                                   class="w-full h-4 bg-slate-100 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all border border-slate-200">
+                        </div>
+                        <span class="font-black text-slate-400 text-lg">🔊 크게</span>
+                        <div class="w-px h-8 bg-slate-200 mx-1"></div>
+                        <span class="font-mono font-black text-indigo-600 text-3xl w-14 text-center">{{ presentThreshold }}</span>
+                        <div class="ml-2 flex gap-2">
+                            <button v-if="!isMeasuring" @click="startNoiseMeasurement"
+                                    class="w-12 h-12 bg-indigo-500 text-white rounded-xl shadow-md hover:bg-indigo-600 transition-all flex items-center justify-center active:scale-95" title="측정 시작">
+                                <i class="fa-solid fa-play text-xl pl-1"></i>
+                            </button>
+                            <button v-else @click="pauseNoiseMeasurement"
+                                    class="w-12 h-12 bg-yellow-400 text-white rounded-xl shadow-md hover:bg-yellow-500 transition-all flex items-center justify-center active:scale-95" title="일시 정지">
+                                <i class="fa-solid fa-pause text-xl"></i>
+                            </button>
+                            <button @click="stopPresentMeasurement"
+                                    class="w-12 h-12 bg-slate-200 text-slate-500 rounded-xl shadow-sm hover:bg-red-100 hover:text-red-500 transition-all flex items-center justify-center active:scale-95 border border-slate-300" title="중지 및 점수 초기화">
+                                <i class="fa-solid fa-stop text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 소음 측정기와 같은 크기감: 이모지·수치는 화면을 꽉 채우고 게이지는 바닥에 넓게 -->
+                <div class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden px-6">
+                    <div class="flex flex-row items-center justify-center w-full" style="gap:8cqmin;">
+                        <div class="transition-transform duration-1000 ease-out origin-center"
+                             :style="{ transform: `scale(${1 + noiseGauge / presentGoal * 0.33})` }">
+                            <div class="filter drop-shadow-2xl transition-all duration-500 leading-none"
+                                 :class="{ 'grayscale opacity-50': !isMeasuring, 'animate-bounce': noiseGauge >= presentGoal }"
+                                 style="font-size:40cqmin;">
+                                <span v-if="pdShouting">🚨</span>
+                                <span v-else-if="noiseGauge >= presentGoal">🏆</span>
+                                <span v-else-if="displayedDb >= presentThreshold">😃</span>
+                                <span v-else-if="displayedDb >= presentThreshold * 0.8">🙂</span>
+                                <span v-else>🤫</span>
+                            </div>
+                        </div>
+                        <div class="flex items-baseline font-mono font-black leading-none transition-colors duration-500"
+                             :class="displayedDb >= presentThreshold ? 'text-emerald-600' : (displayedDb >= presentThreshold * 0.8 ? 'text-orange-500' : 'text-slate-400')"
+                             style="font-size:30cqmin;gap:20px;">
+                            <span>{{ displayedDb }}</span>
+                            <span class="ml-4 tracking-widest" style="font-family:'Dongle',sans-serif!important;font-weight:700;font-size:10cqmin;color:#475569;text-shadow:0 2px 4px rgba(0,0,0,0.1);">와글</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shrink-0 px-6 pb-5">
+                    <div class="flex justify-between items-end mb-2 px-2">
+                        <span class="font-black text-slate-600 text-xl">🎤 발표 점수</span>
+                        <span class="font-mono font-black text-2xl" :class="noiseGauge >= presentGoal ? 'text-emerald-600' : (noiseGauge > presentGoal/2 ? 'text-teal-600' : 'text-slate-400')">{{ (noiseGauge / presentGoal * 100).toFixed(0) }}%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-[2.5rem] overflow-hidden shadow-inner border-4 border-slate-300 relative" style="height:14cqmin;min-height:70px;">
+                        <div class="h-full transition-all duration-500 ease-linear flex items-center justify-end px-5"
+                             :class="[noiseGauge >= presentGoal ? 'bg-emerald-500' : (noiseGauge > presentGoal/2 ? 'bg-teal-400' : 'bg-sky-400'), { 'animate-pulse': noiseGauge >= presentGoal }]"
+                             :style="{ width: (noiseGauge / presentGoal * 100) + '%' }">
+                            <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-20"></div>
+                            <span v-if="noiseGauge > presentGoal * 0.1" class="text-white font-black text-3xl opacity-50 tracking-widest">///</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
         <div v-if="!isNoiseMaximized" class="resize-handle" @mousedown.stop="startNoiseResize"></div>
     </div>
 
@@ -6330,7 +6467,8 @@ tabindex="0">
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-110">
         
-        <div v-if="notificationMsg"
+        <!-- 큰 경고창은 '-big' 알림에만 쓴다. 그 외(안내·성공)는 아래 작은 토스트로 뜬다. -->
+        <div v-if="notificationMsg && String(notificationType).endsWith('-big')"
              class="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
              @click="notificationMsg = ''">
             <div class="bg-white rounded-[3rem] shadow-2xl border-[8px] flex flex-col items-center justify-center text-center animate-bounce-slow"
@@ -6351,6 +6489,23 @@ tabindex="0">
                     {{ notificationMsg }}
                 </span>
             </div>
+        </div>
+    </transition>
+
+    <!-- 작은 안내 토스트 (설정 안내·성공 메시지 등) -->
+    <transition
+        enter-active-class="transition ease-out duration-200"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-150"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0">
+        <div v-if="notificationMsg && !String(notificationType).endsWith('-big')"
+             class="fixed left-1/2 -translate-x-1/2 z-[100001] px-5 py-3 rounded-2xl shadow-xl font-black text-white text-base whitespace-pre-line cursor-pointer"
+             :class="notificationType === 'success' ? 'bg-emerald-600' : (notificationType === 'info' ? 'bg-slate-700' : 'bg-orange-500')"
+             style="bottom: 4vh; max-width: 80vw;"
+             @click="notificationMsg = ''">
+            {{ notificationMsg }}
         </div>
     </transition>
     <!-- 클라우드 저장 확인 토스트는 _showCloudToast()가 body에 직접 DOM 주입 -->
@@ -6788,6 +6943,17 @@ fullBracketTree: [],
         noiseRecordingInterval: null,
         noiseRecordingSeconds: 0,
 noiseMode: 'sound',
+        presentVoiceMode: false,  // [발표 도우미] 게이지를 '목소리가 작으면 경고'로 반전
+        presentMeterOpen: false,  // [발표 도우미] 발표 측정 화면 표시 여부
+        // 발표 측정 기준은 소음 측정과 따로 둔다.
+        // 같이 쓰면 발표용으로 조절한 값이 학급 소음 기준(독서/토의 프리셋)을 덮어쓴다.
+        presentThreshold: (Number(localStorage.getItem('presentThreshold_v1')) || 55),
+        presentGoal: 100,   // 발표 측정 목표 점수 (고정)
+        pdExcludePicked: localStorage.getItem('pdExcludePicked_v1') !== '0',    // 이미 뽑힌 사람 제외(기본 켬)
+        pdBigFace: localStorage.getItem('pdBigFace_v1') !== '0',                // 당첨자 얼굴 크게(기본 켬)
+        pdSettingsOpen: false,
+        pdBigFaceSrc: null,
+        pdShouting: false,
         isWarningCooldown: false,
         isPenaltyShock: false,
 notificationMsg: '', // 알림 텍스트
@@ -7744,6 +7910,10 @@ mergedRankData() {
         },
 
         watch: {
+            // [발표 도우미] 모달 최대화 = 앱의 전체화면 상태
+            isNoiseMaximized(v) {
+                if (window.__pdFullscreenChanged) window.__pdFullscreenChanged(!!v);
+            },
             // 알림장 카드 배경색 선택을 localStorage에 영속화 (새로고침해도 유지)
             boardCardYellow(v) {
                 try { localStorage.setItem('boardCardYellow', v ? '1' : '0'); } catch(e) {}
@@ -7837,6 +8007,14 @@ mergedRankData() {
                     this.focusWindow('noise');
                 } else {
                     this.stopNoiseMeasurement();
+                    // [발표 도우미] 창을 닫으면 앱을 내리고 공유 카메라도 반납한다
+                    // (X 버튼은 stopCamera 를 직접 부르지만 ESC 로 닫는 경로는 부르지 않았다)
+                    this.pdSettingsOpen = false;   // 설정 화면을 연 채 닫으면 다음에 열 때도 설정이 먼저 보인다
+                    clearTimeout(this._pdBigFaceTimer);
+                    this.pdBigFaceSrc = null;      // 얼굴 크게 띄운 채 닫으면 다시 열 때 남아있다
+                    this.closePresentMeter();
+                    this.unmountPresentHelper();
+                    this.stopCamera();
                 }
             },
             // [통합됨] 모드 변경 시 데이터 초기화 및 당첨자 표시 갱신
@@ -9301,7 +9479,8 @@ async scanFirebaseUnused() {
         'daySchedules','scheduleVersions','currentScheduleVersion','boardPreview',
         'thresholdReading','thresholdDiscussion','currentNoisePreset',
         'isOneMinAlarmOn','bombMessage','bombMsgX','bombMsgY','bombMsgW','bombMsgH',
-        'noiseThreshold','timeBankSeconds','timeBankHistory','snackBank','snackBankHistory','snackTypes','missions','currentView',
+        'noiseThreshold','presentThreshold','presentGoal','pdExcludePicked','pdBigFace',
+        'timeBankSeconds','timeBankHistory','snackBank','snackBankHistory','snackTypes','missions','currentView',
         'isRotated','noiseLevels','noiseRecordSeconds','isNoiseTimeHidden',
         'showGenderHint','showStudentNumber','statsWarningCount','statsPenaltyCount',
         'clockMessage','alarmList','semesterEndMode','shuffleMode','avoidPrevious','avoidPreviousSeat',
@@ -9486,6 +9665,9 @@ _applyBroadcastUpdate(m) {
         if (d.showStudentNumber !== undefined) this.showStudentNumber = d.showStudentNumber;
         if (d.thresholdReading !== undefined) this.thresholdReading = Number(d.thresholdReading);
         if (d.thresholdDiscussion !== undefined) this.thresholdDiscussion = Number(d.thresholdDiscussion);
+        if (Number(d.presentThreshold) > 0) this.presentThreshold = Number(d.presentThreshold);
+        if (d.pdExcludePicked !== undefined) this.pdExcludePicked = !!d.pdExcludePicked;
+        if (d.pdBigFace !== undefined) this.pdBigFace = !!d.pdBigFace;
         if (d.currentNoisePreset !== undefined) this.currentNoisePreset = d.currentNoisePreset;
         if (d.noiseLevels !== undefined) this.noiseLevels = d.noiseLevels;
         if (d.alarmList !== undefined) this.alarmList = toArr(d.alarmList);
@@ -10313,7 +10495,7 @@ startGroupShuffle() {
             startNoiseTimer() {
                 if (!this.noiseRecordInterval) {
                     this.noiseRecordInterval = setInterval(() => {
-                        if (this.isMeasuring && this.noiseGauge < 100) {
+                        if (this.isMeasuring && !this.presentVoiceMode && this.noiseGauge < 100) {
                             this.noiseRecordSeconds++;
                             // ★ saveToLocal 제거 — 측정 중 RTDB 쓰기/다운 0
                             //   측정 종료 시 stopNoiseTimer / stopAndReset에서 1회만 저장
@@ -10505,6 +10687,7 @@ startGroupShuffle() {
                 if (this.isNoiseCooldown) return;
                 this.isNoiseCooldown = true;
 
+
                 this.stopAndReset(); // 폭탄 터져도 0초 리셋
                 this.noiseRecordSeconds = 0; 
 
@@ -10557,8 +10740,26 @@ startGroupShuffle() {
                 if (this._volBuf.length > 30) this._volBuf.shift();
                 const avgDb = this._volBuf.reduce((s, v) => s + v, 0) / this._volBuf.length;
 
-                if (avgDb > this.noiseThreshold) {
-                    const gap = avgDb - this.noiseThreshold;
+                // [발표 측정] 기준보다 크게 말하면 점수가 쌓인다. 쉬는 동안 깎이지 않고,
+                // 100점을 채우면 성공. (소음 측정의 '경보 누적'과는 반대 방향)
+                if (this.presentVoiceMode) {
+                    const over = avgDb - this.presentThreshold;
+                    if (over > 0) {
+                        // 적정 구간(기준~+25)에서 가장 빨리 오르고, 더 지르면 점점 느려진다
+                        const sweet = Math.min(over, 25);
+                        // '너무 커요' 경고는 화면에 보이는 값이 100 와글을 넘을 때
+                        const shout = Math.max(0, avgDb - 100);
+                        this.pdShouting = this.displayedDb >= 100;
+                        this.noiseGauge = Math.min(this.presentGoal,
+                            this.noiseGauge + Math.min(0.15, 0.008 + sweet * 0.005) * Math.max(0.15, 1 - shout / 30));
+                    } else { this.pdShouting = false; }
+                    if (this.noiseGauge >= this.presentGoal) this.handlePresentSuccess();
+                    this.volumeInterval = requestAnimationFrame(() => this.updateVolume());
+                    return;
+                }
+                const th = this.noiseThreshold;
+                const gap = avgDb - th;
+                if (gap > 0) {
                     this.noiseGauge += Math.min(0.15, 0.008 + gap * 0.005);
                 } else {
                     this.noiseGauge -= 0.01;
@@ -10601,6 +10802,7 @@ handleWarning() {
     // 대시보드에서 열릴 때 미니창이 위에 뜨지 않도록 대시보드 닫기
     if (this.showMainDashboard) { this.showMainDashboard = false; this.returnToDashboardOnClose = true; }
     this.showNoiseMeter = true;
+    if (this.noiseMode === 'present') this.unmountPresentHelper(); // [발표 도우미] 숨은 채 카메라 점유 방지
     this.noiseMode = 'sound'; // 열릴 때 항상 사운드 모드
     this.stopNoiseMeasurement(); // 마이크는 일단 꺼둠
     this.focusWindow('noise');
@@ -10613,12 +10815,204 @@ handleWarning() {
     }
 },
 setNoiseMode(mode) {
+    const prev = this.noiseMode;
+    this.pdSettingsOpen = false;   // 설정창은 발표 도우미 화면에서 여는 창이라 탭을 옮기면 닫는다
+    // 발표 측정은 이제 별도 탭이므로, 다른 탭을 누르면 항상 닫는다 (마이크 반납 + 게이지 초기화)
+    this.closePresentMeter();
     this.noiseMode = mode;
     if (mode === 'meter') {
         this.startNoiseMeasurement(); // 측정기 탭일 때만 마이크 켬
     } else {
         this.stopNoiseMeasurement(); // 사운드 탭이면 마이크 끔
     }
+    // 발표 도우미 탭: 소음측정과 카메라를 공유하므로 끄지 않고 그대로 넘겨준다
+    if (mode === 'present') {
+        // 소음측정 녹화 중이면 여기서 마무리해 저장한다. (바로 위 stopNoiseMeasurement 가 마이크
+        //  트랙을 끊으므로 그냥 두면 오디오가 죽은 채 계속 녹화돼 결과물이 깨진다)
+        if (this.isNoiseRecording) this.stopNoiseRecording();
+        const hadCam = this._pdCamAlive();
+        this.$nextTick(async () => {
+            this.mountPresentHelper();
+            await this.ensureCameraStream();   // 이미 켜져 있으면 재사용, 없으면 여기서 1회만 인식
+            // 인식하는 동안 사용자가 다른 탭으로 가버렸으면, 방금 켠 카메라는 되돌린다
+            if (this.noiseMode !== 'present') { if (!hadCam) this.stopCamera(); return; }
+            await this.capSharedCameraForDetection();
+            this.autoStartPresentCamera();     // 앱의 '허용' 단계를 건너뛰고 바로 화면 표시
+        });
+    } else if (prev === 'present') {
+        this.unmountPresentHelper();   // 앱만 내린다 (공유 카메라는 유지)
+        if (mode === 'meter') this.reattachSharedCamera();
+    }
+},
+openPdSettings() { this.pdSettingsOpen = true; },
+clearPdPicked() {
+    // 앱을 한 번도 안 열었으면 지울 기록 자체가 없다 (없는데 '초기화했어요'라고 하면 거짓말)
+    if (!window.__PD_CLEAR_PICKED__) { this.showToast && this.showToast('초기화할 뽑기 기록이 없어요', 'info'); return; }
+    window.__PD_CLEAR_PICKED__();
+    this.showToast && this.showToast('뽑기 기록을 초기화했어요', 'success');
+},
+applyPdSettings() {
+    window.__PD_EXCLUDE__ = !!this.pdExcludePicked;
+    try {
+        localStorage.setItem('pdExcludePicked_v1', this.pdExcludePicked ? '1' : '0');
+        localStorage.setItem('pdBigFace_v1', this.pdBigFace ? '1' : '0');
+        localStorage.setItem('presentGoal_v1', String(this.presentGoal));
+        localStorage.setItem('presentThreshold_v1', String(this.presentThreshold));
+    } catch (e) {}
+    if (this._queueFullSave) this._queueFullSave(); else this.saveToLocal_full && this.saveToLocal_full();
+},
+showPdBigFace(src) {
+    if (!this.pdBigFace || !src) return;
+    this.pdBigFaceSrc = src;
+    clearTimeout(this._pdBigFaceTimer);
+    this._pdBigFaceTimer = setTimeout(() => { this.pdBigFaceSrc = null; }, 3000);
+},
+handlePresentSuccess() {
+    if (this._pdSuccessDone) return;
+    this._pdSuccessDone = true;
+    this.playCustomSound('./correct.mp3');
+    this.showToast("🎉 " + this.presentGoal + "점! 발표 성공!", "success-big");
+},
+savePresentThreshold() {
+    try { localStorage.setItem('presentThreshold_v1', String(this.presentThreshold)); } catch (e) {}
+    // 전체 스냅샷에 담겨야 클라우드까지 올라간다. 슬라이더 드래그 중 폭주하지 않도록 디바운스 저장.
+    if (this._queueFullSave) this._queueFullSave(); else this.saveToLocal_full && this.saveToLocal_full();
+},
+// [발표 측정] 중지 = 마이크 반납 + 점수 0점.
+// 소음 측정의 stopAndReset 과 달리 'Peace Time'(noiseRecordSeconds)은 건드리지 않는다.
+stopPresentMeasurement() {
+    // stopAndReset 은 Peace Time(누적 시간)까지 0으로 만든다. 발표 측정 중지는 그것과 무관하므로
+    // 누적 시간을 보존하는 stopNoiseMeasurement 를 쓴다 (마이크 반납 + 게이지/표시값 초기화 포함).
+    this.stopNoiseMeasurement();
+    this.noiseGauge = 0;
+    this.pdShouting = false;
+    this._pdSuccessDone = false;   // 다시 목표를 채우면 성공 안내가 또 나오도록
+},
+// [발표 측정] 소음 측정 오른쪽 탭 — 발표 도우미 안의 '발표 측정' 버튼과 같은 동작
+openPresentMeter() {
+    if (this.presentMeterOpen) return;
+    this.presentVoiceMode = true;
+    this._pdSuccessDone = false;   // 목표 달성 안내는 한 번만
+    this.noiseGauge = 0;           // 0점에서 시작
+    this.presentMeterOpen = true;
+    this.startNoiseMeasurement();
+},
+closePresentMeter() {
+    if (!this.presentMeterOpen) return;
+    this.presentMeterOpen = false;
+    this.presentVoiceMode = false;
+    this.pdShouting = false;   // '너무 커요' 표시가 남은 채 다시 열리지 않도록
+    this._pdSuccessDone = false;
+    this.noiseGauge = 0;
+    // 마이크는 여기서 반납만 한다. 탭에 맞게 다시 켜는 일은 setNoiseMode 가 이어서 처리한다
+    // (양쪽이 같이 켜면 getUserMedia 가 겹쳐 스트림이 새고 마이크가 안 꺼진다).
+    this.stopNoiseMeasurement();
+},
+// [발표 도우미] 소음측정·발표 도우미가 공유하는 카메라 스트림 (권한/인식은 1회만)
+_pdCamAlive() {
+    return !!(this.cameraStream && this.cameraStream.getVideoTracks().some(t => t.readyState === 'live'));
+},
+async ensureCameraStream() {
+    if (this._pdCamAlive()) { this.isCameraOn = true; this.reattachSharedCamera(); return this.cameraStream; }
+    if (this._pdCamPromise) return this._pdCamPromise;   // 동시 호출은 하나로 합친다
+    // ★ __PD_ACQUIRING__ 없이 startCamera 를 부르면 그 안의 getUserMedia 가 다시
+    //   이 함수로 되돌아와 무한 재귀가 된다 (앱 활성 중엔 video 요청을 가로채므로)
+    window.__PD_ACQUIRING__ = true;
+    this._pdCamPromise = (async () => {
+        try { await this.startCamera(); }
+        finally { window.__PD_ACQUIRING__ = false; this._pdCamPromise = null; }
+        return this.cameraStream;
+    })();
+    return this._pdCamPromise;
+},
+// 소음측정은 4K(ideal 3840)로 카메라를 잡는데, 얼굴 탐지를 4K 프레임에서 돌리면
+// 1080p 대비 4배 무거워 저사양 PC에서 인식이 사실상 멈춘다. 공유 시엔 1080p로 낮춘다.
+async capSharedCameraForDetection() {
+    const track = this.cameraStream && this.cameraStream.getVideoTracks()[0];
+    if (!track) return;
+    // 녹화 중에 해상도를 바꾸면 진행 중인 MediaRecorder 결과물이 깨질 수 있다
+    if (this.isNoiseRecording) return;
+    try {
+        const s = track.getSettings ? track.getSettings() : {};
+        if (!s.width || s.width <= 1920) return;
+        await track.applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 } });
+    } catch (e) { /* 지원하지 않는 카메라면 그대로 둔다 */ }
+},
+// 소음측정 탭으로 돌아왔을 때 공유 스트림을 매니저 video 에 다시 붙인다
+reattachSharedCamera() {
+    if (!this.cameraStream) return;
+    this.$nextTick(() => {
+        const vid = this.$refs.cameraVideo;
+        if (vid && vid.srcObject !== this.cameraStream) vid.srcObject = this.cameraStream;
+    });
+},
+// 앱의 시작 화면('✅ 허용')을 자동으로 눌러 카메라 화면을 바로 띄운다
+autoStartPresentCamera(tries = 0) {
+    const host = this.$refs.presentHost;
+    if (!host || !host._pdRoot || !host._pdShadow) return;
+    if (this.noiseMode !== 'present') return;
+    // 카메라를 못 잡았으면 자동 클릭하지 않는다 (앱이 다시 요청해 권한 경고가 두 번 뜬다)
+    if (!this._pdCamAlive()) return;
+    const btn = [...host._pdShadow.querySelectorAll('button')].find(b => b.textContent.includes('허용'));
+    if (btn) { btn.click(); return; }
+    if (tries < 20) setTimeout(() => this.autoStartPresentCamera(tries + 1), 150); // React 렌더 대기
+},
+// [발표 도우미] Shadow DOM 안에 React 앱을 띄운다 (스타일 격리 + 필요할 때만 로드)
+mountPresentHelper() {
+    const host = this.$refs.presentHost;
+    if (!host) return;
+    if (host._pdPendingUnmount) host._pdPendingUnmount();  // 지연된 unmount가 남아있으면 먼저 정리
+    if (host._pdRoot) return;
+    if (!window.__PD_MOUNT__) { this.showToast && this.showToast('발표 도우미를 불러오지 못했습니다.'); return; }
+    window.__PD_HOST__ = {
+        toggleMax: () => { this.isNoiseMaximized = !this.isNoiseMaximized; return this.isNoiseMaximized; },
+        close: () => { this.setNoiseMode('sound'); }
+    };
+    window.__PD_SHARE__ = () => this.ensureCameraStream();  // 앱의 카메라 요청 → 공유 스트림
+    window.__PD_VOICE_MODE__ = () => this.openPresentMeter();   // 앱의 "발표 측정" 버튼 → 같은 화면
+    window.__PD_SETTINGS__ = () => this.openPdSettings();
+    window.__PD_BIGFACE__ = (src) => this.showPdBigFace(src);
+    this.applyPdSettings();   // __PD_EXCLUDE__ 초기 반영
+    if (!host._pdShadow) {
+        host._pdShadow = host.attachShadow({ mode: 'open' });
+        const st = document.createElement('style');
+        // 앱 자체 타이틀바(Electron 창 버튼)는 모달 헤더와 중복이라 숨긴다
+        st.textContent = window.__PD_CSS__ + PD_SKIN;
+        host._pdShadow.appendChild(st);
+        const mountPoint = document.createElement('div');
+        mountPoint.id = 'root';
+        mountPoint.style.cssText = 'width:100%;height:100%;';
+        host._pdShadow.appendChild(mountPoint);
+        host._pdMount = mountPoint;
+    }
+    host._pdRoot = window.__PD_MOUNT__(host._pdMount);
+    // 마운트가 확실히 끝난 뒤에 켠다 — 실패 시 매니저 카메라 버튼까지 가로채면 안 된다
+    window.__PD_GEN__ = (window.__PD_GEN__ || 0) + 1;   // 이전에 열었을 때의 타이머와 구분하기 위한 세대 번호
+    window.__PD_APP_ACTIVE__ = true;
+},
+unmountPresentHelper() {
+    const host = this.$refs.presentHost;
+    if (!host || !host._pdRoot) return;
+    const root = host._pdRoot;
+    host._pdRoot = null;
+    window.__PD_HOST__ = null;
+    window.__PD_APP_ACTIVE__ = false;
+    // ★ 발표 도우미 원본은 스트림을 스스로 끄지 않는다(Electron 프로세스 종료에 의존했음).
+    //   공유 카메라는 유지하고(재인식 방지), 앱이 따로 잡은 스트림만 정지한다.
+    try {
+        const shared = this.cameraStream;
+        host._pdShadow && host._pdShadow.querySelectorAll('video, audio').forEach(el => {
+            const s = el.srcObject;
+            if (s && s !== shared && s.getTracks) s.getTracks().forEach(t => t.stop());
+            el.srcObject = null;
+        });
+    } catch (e) {}
+    // 앱의 ✕ 버튼(React 이벤트 핸들러) 안에서 호출될 수 있어 동기 unmount는 React 경고를 낸다
+    host._pdPendingUnmount = () => {
+        host._pdPendingUnmount = null;
+        try { root.unmount(); } catch (e) {}
+    };
+    setTimeout(() => { if (host._pdPendingUnmount) host._pdPendingUnmount(); }, 0);
 },
 // [수정] 타이머 열기 시 위치 체크
    openTimer() {
@@ -12995,6 +13389,9 @@ _queueBoardLocalSave() {
                     noiseLevels: this.noiseLevels, thresholdReading: this.thresholdReading,
                     thresholdDiscussion: this.thresholdDiscussion,
                     currentNoisePreset: this.currentNoisePreset, noiseThreshold: this.noiseThreshold,
+                    // [발표 측정] 기준·목표도 소음 측정과 똑같이 서버에 저장한다
+                    presentThreshold: this.presentThreshold, presentGoal: this.presentGoal,
+                    pdExcludePicked: this.pdExcludePicked, pdBigFace: this.pdBigFace,
                     timeBankSeconds: this.timeBankSeconds, timeBankHistory: this.timeBankHistory,
                     snackBank: this.snackBank, snackBankHistory: this.snackBankHistory,
                     snackTypes: this.snackTypes, snackDrawList: this.snackDrawList,
@@ -13341,6 +13738,10 @@ _queueBoardLocalSave() {
                 if (data.thresholdDiscussion !== undefined) this.thresholdDiscussion = data.thresholdDiscussion;
                 if (data.currentNoisePreset) this.currentNoisePreset = data.currentNoisePreset;
                 if (data.noiseThreshold !== undefined) this.noiseThreshold = data.noiseThreshold;
+                if (+data.presentThreshold > 0) this.presentThreshold = +data.presentThreshold;
+                if (+data.presentGoal > 0) this.presentGoal = +data.presentGoal;
+                if (data.pdExcludePicked !== undefined) this.pdExcludePicked = !!data.pdExcludePicked;
+                if (data.pdBigFace !== undefined) this.pdBigFace = !!data.pdBigFace;
                 if (data.timeBankSeconds !== undefined) this.timeBankSeconds = +data.timeBankSeconds;
                 if (data.timeBankHistory) this.timeBankHistory = toArr(data.timeBankHistory);
                 if (data.snackBank) this.snackBank = data.snackBank;
@@ -15611,8 +16012,12 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
 
                         // 6. 소음 측정기 관련
                         noiseLevels: this.noiseLevels,
-                        noiseThreshold: this.noiseThreshold, 
-                        thresholdReading: this.thresholdReading, 
+                        noiseThreshold: this.noiseThreshold,
+                        presentThreshold: this.presentThreshold,   // 발표 측정 기준
+                        presentGoal: this.presentGoal,             // 발표 측정 목표 점수
+                        pdExcludePicked: this.pdExcludePicked,
+                        pdBigFace: this.pdBigFace,
+                        thresholdReading: this.thresholdReading,
                         thresholdDiscussion: this.thresholdDiscussion, 
                         currentNoisePreset: this.currentNoisePreset, 
                         noiseRecordSeconds: this.noiseRecordSeconds, // ★ 소음 측정 누적 시간 누락 추가
@@ -15789,6 +16194,9 @@ showGenderHint: this.showGenderHint, // ★ 성별 힌트 백업 추가
                         // 소음 설정 및 타이머 누적 시간 복구
                         if (data.noiseLevels) this.noiseLevels = data.noiseLevels;
                         if (data.noiseThreshold !== undefined) this.noiseThreshold = data.noiseThreshold;
+                        if (+data.presentThreshold > 0) this.presentThreshold = +data.presentThreshold;
+                        if (data.pdExcludePicked !== undefined) this.pdExcludePicked = !!data.pdExcludePicked;
+                        if (data.pdBigFace !== undefined) this.pdBigFace = !!data.pdBigFace;
                         if (data.thresholdReading !== undefined) this.thresholdReading = data.thresholdReading;
                         if (data.thresholdDiscussion !== undefined) this.thresholdDiscussion = data.thresholdDiscussion;
                         if (data.currentNoisePreset) this.currentNoisePreset = data.currentNoisePreset;
@@ -20101,5 +20509,9 @@ startReverseLadderGame(endColIdx) {
         });
     }
 </script>
+
+<!-- ═══ 발표 도우미 (Electron 앱 내장) — 주의집중 모달의 세 번째 탭 ═══ -->
+<!-- 자산·번들이 커서 pd.js 로 분리했다. 같은 폴더에 함께 배포할 것. -->
+<script src="pd.js"></script>
 </body>
 </html>

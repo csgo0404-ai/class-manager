@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.13/lunar.js"></script>
+    <!-- ★ 캐릭터 카드(이벤트 상점 아바타) — 읽기 전용 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏫</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1079,6 +1082,351 @@ animation: stopwatch-heart-beat 2s infinite ease-in-out !important;
         .float-active { z-index: 9999 !important; box-shadow: 0 30px 60px rgba(0,0,0,0.4) !important; transform: scale(1.1); }
         .chaos-move { transition: transform 0.15s ease-in-out !important; }
         .landing { transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important; }
+
+        /* ===== ★ 캐릭터 카드 (이벤트 상점 저학년판 이식) =====
+           좌석배치도·대기번호에서 '아바타 켜기'를 누르면 좌석 칸이 세로로 늘어나고
+           그 안에 레벨 게이지 + 캐릭터 + 이름표가 들어간다.
+           칸이 커진 만큼 교실 바닥 전체를 zoom으로 줄여 화면에 담는다. */
+        /* 오른쪽 도구 버튼 줄 — 화면이 낮으면 위/아래 줄이 서로 겹친다(캐릭터 버튼이 한 칸 늘어난 뒤로는
+           1600×900 같은 흔한 해상도에서도 닿는다) → 낮은 화면에서만 버튼을 조금 줄인다.
+           ⚠️ '.tool-col > div'에는 대기번호의 가로 버튼 묶음(flex-row)도 걸린다 → 둥근 버튼 모양만 골라 줄인다. */
+        /* ★ 캐릭터 뽑기 — 저학년 상점의 연출 그대로: 카드가 하나씩 튀어오르다 당첨자에서 멈춘다 */
+        .rgw-roll { transform: translateY(-6px) scale(1.05); z-index: 40 !important;
+                    box-shadow: 0 0 0 5px rgba(255,112,67,.5), 0 10px 20px rgba(0,0,0,.25) !important;
+                    border-color: #FF7043 !important; transition: transform .08s ease; }
+        /* 이미 뽑힌 학생 표시 — 누가 아직 안 걸렸는지 한눈에 (카드는 가리지 않게 작게) */
+        /* 오른쪽 점수 배지와 같은 높이(레벨 게이지 아래)에서 시작해 게이지를 가리지 않는다 */
+        .rgw-drawn-mark { position: absolute; left: 3%; top: calc(var(--rgw-h,200px) * .135); z-index: 30; width: calc(var(--rgw-h,200px) * .1); height: calc(var(--rgw-h,200px) * .1);
+                          border-radius: 999px; background: rgba(120,90,60,.75); color: #fff;
+                          font-size: calc(var(--rgw-h,200px) * .055); font-weight: 900; display: flex; align-items: center;
+                          justify-content: center; border: 2px solid rgba(255,255,255,.9); pointer-events: none; }
+        .rotate-180 .rgw-drawn-mark { left: auto; top: auto; right: 3%; bottom: calc(var(--rgw-h,200px) * .135); }
+        /* 이미 뽑힌 학생 — 배경·테두리를 회색으로 (아직 안 뽑힌 친구가 한눈에 보이게).
+           ⚠️ 캐릭터 카드(.rgw-charcard)는 배경을 !important 로 칠하므로 이겨야 한다 →
+              선택자를 하나 더 붙이고 !important 를 쓴다. 점수 색·무지개도 이 규칙이 덮는다. */
+        .rgw-was-drawn { opacity: .82; }
+        .seat-card-item.rgw-was-drawn,
+        .seat-card-item.rgw-charcard.rgw-was-drawn,
+        .seat-card-item.rgw-charcard.score-rainbow.rgw-was-drawn {
+            background-color: #d8d8d8 !important; background-image: none !important;
+            border-color: #9e9e9e !important; box-shadow: none !important;
+        }
+        /* 캐릭터만 보기 정렬 고르기 */
+        .rgw-sortbar { display: flex; gap: 4px; justify-content: center; margin-bottom: 8px; }
+        .rgw-sortbar button { padding: 5px 12px; border-radius: 999px; border: 2px solid #e2d3bb;
+                              background: #fff; color: #8f6a49; font-weight: 800; font-size: 12px; cursor: pointer; }
+        .rgw-sortbar button.on { background: #9c734f; color: #fff; border-color: #7d5a3c; }
+        .rgw-win-ov { position: fixed; inset: 0; z-index: 9400; background: rgba(30,20,10,.72);
+                      display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .rgw-win-box { background: #FFF8E1; border: 5px solid #FFD54F; border-radius: 28px;
+                       padding: 22px 26px; max-width: 92vw; max-height: 92vh; overflow: auto; text-align: center; }
+        .rgw-win-ttl { font-size: 30px; font-weight: 900; color: #FF6F00; margin-bottom: 14px; }
+        .rgw-win-list { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+        .rgw-win-one { display: flex; flex-direction: column; align-items: center; gap: 4px;
+                       background: #fff; border: 3px solid #FFD54F; border-radius: 20px; padding: 10px 12px; }
+        .rgw-win-one .nm { font-weight: 900; color: #5D4037; }
+        .rgw-win-hint { margin-top: 14px; font-size: 15px; color: #8D6E63; font-weight: 700; }
+
+        /* ⚠️ 캐릭터를 켜면 위쪽 도구 줄이 한 칸 더 늘어난다(뽑기) → 압축 기준을 1000px로 */
+        @media (max-height: 1000px) {
+            .tool-col { gap: 6px !important; }
+            .tool-col > button,
+            .tool-col > div.rounded-2xl,
+            .tool-col > div > button { width: 46px !important; height: 46px !important; }
+            .tool-col > button > i, .tool-col > div > button > i { font-size: 1.15rem !important; }
+            .tool-col > button > img, .tool-col > div > button > img { width: 26px !important; height: 26px !important; }
+            .tool-col > button { font-size: 1.35rem !important; }
+        }
+        /* 더 낮은 화면(768 등) — 캐릭터를 켜면 위 도구가 9칸이라 한 단계 더 줄인다 */
+        @media (max-height: 820px) {
+            .tool-col { gap: 4px !important; }
+            .tool-col > button,
+            .tool-col > div.rounded-2xl,
+            .tool-col > div > button { width: 40px !important; height: 40px !important; }
+            .tool-col > button > i, .tool-col > div > button > i { font-size: 1rem !important; }
+            .tool-col > button > img, .tool-col > div > button > img { width: 22px !important; height: 22px !important; }
+            .tool-col > button { font-size: 1.15rem !important; }
+        }
+        /* 칸 크기는 화면에 맞춰 Vue가 --rgw-w/--rgw-h 로 넣어 준다(가로를 남기지 않는다).
+           ⚠️ 칸 안의 게이지·이름표·글씨는 반드시 칸 높이에 비례해야 한다. px로 못 박으면
+              칸이 커질수록 글씨만 상대적으로 작아져 촌스러워진다. */
+        /* 오른쪽 도구 버튼 — 평소엔 숨기고 마우스를 가져가면 나타난다(화면을 캐릭터에 양보).
+           ::before 는 눈에 보이지 않는 '마우스 감지 구역'이라 버튼 근처만 가도 떠오른다. */
+        /* 왼쪽 메뉴 접기 손잡이 — 마우스를 가져갈 때만 보인다.
+           ⚠️ 터치 화면에는 hover 가 없어 숨기면 못 누르므로 마우스 기기에만 적용한다.
+           ⚠️ pointer-events 는 건드리지 않는다(끄면 hover 자체가 안 잡혀 못 누르게 된다). */
+        @media (hover: hover) and (pointer: fine) {
+            .side-handle { opacity: 0; }
+            .side-handle::before { content: ''; position: absolute; inset: -50px -26px; }
+            .side-handle:hover, .side-handle:focus-visible { opacity: 1; }
+        }
+
+        /* 세로 도구 버튼 — 위에서부터 빨·주·노·초·파·남·보 순서로 반복(원색 통일).
+           ⚠️ 위쪽 줄에만 적용한다. 아래쪽(ALL·체크·＋·－·메모)은 켜짐/꺼짐을 색으로 알려 주는
+              버튼이라 색을 덮으면 지금 어떤 도구가 켜졌는지 알 수 없게 된다. */
+        .tool-col.top-8 > button { color: #fff !important; border-color: #fff !important;
+                                   border-width: 2px !important; background-image: none !important; }
+        .tool-col.top-8 > button > i, .tool-col.top-8 > button > span { color: #fff !important; }
+        .tool-col.top-8 > button:nth-of-type(7n+1) { background-color: #ef4444 !important; }  /* 빨 */
+        .tool-col.top-8 > button:nth-of-type(7n+2) { background-color: #f97316 !important; }  /* 주 */
+        .tool-col.top-8 > button:nth-of-type(7n+3) { background-color: #eab308 !important; }  /* 노 */
+        .tool-col.top-8 > button:nth-of-type(7n+4) { background-color: #22c55e !important; }  /* 초 */
+        .tool-col.top-8 > button:nth-of-type(7n+5) { background-color: #3b82f6 !important; }  /* 파 */
+        .tool-col.top-8 > button:nth-of-type(7n+6) { background-color: #4338ca !important; }  /* 남 */
+        .tool-col.top-8 > button:nth-of-type(7n+7) { background-color: #a855f7 !important; }  /* 보 */
+        .tool-col.top-8 > button:hover { filter: brightness(1.12); }
+
+        /* 오른쪽 도구 버튼은 항상 보인다(교실 화면에서 숨기면 못 찾는다) */
+        .tool-col > button, .tool-col > div { position: relative; }
+        .rgw-seat { width: var(--rgw-w, 140px) !important; height: var(--rgw-h, 200px) !important; }
+        /* 학생이 앉은 칸은 빈자리 점선을 감춘다 — 카드 테두리와 겹쳐 어긋나 보인다 */
+        .empty-slot.rgw-filled { border-color: transparent !important; }
+        .rgw-card { font-family: 'Jua', 'Malgun Gothic', sans-serif; display: flex; flex-direction: column; justify-content: flex-start;
+                    width: 100%; height: 100%; padding: 1.5% 3% 2.5%; box-sizing: border-box; }
+        .rgw-card .lvbar { flex-shrink: 0; margin: 0; height: calc(var(--rgw-h,200px) * .105); border-radius: 999px; background: #FFE0B2;
+                           border: 2px solid #FFB74D; overflow: hidden; position: relative;
+                           box-shadow: inset 0 2px 4px rgba(140,80,0,.15); }
+        .rgw-card .lvbar .fill { height: 100%; border-radius: 999px; transition: width .4s ease;
+                                 background: linear-gradient(90deg,#FFB300,#FF7043); }
+        .rgw-card .lvbar .txt { position: absolute; inset: 0; display: flex; align-items: center;
+                                justify-content: space-between; padding: 0 5%; font-size: calc(var(--rgw-h,200px) * .07); font-weight: 900;
+                                color: #4E342E; letter-spacing: .3px; text-shadow: 0 1px 0 rgba(255,255,255,.75); }
+        .rgw-card .lvbar .ck { color: #7A3B00; }
+        /* v-html로 넣은 조각이 .rgw-card의 세로 배치에 그대로 참여하게 한다(껍데기 div가 끼어들지 않도록) */
+        .rgw-card .rgw-body { display: contents; }
+        /* 종합 보기 — 게이지 자리에 체크된 활동 이름을 늘어놓는다(저학년 상점의 .lvbar.sum과 같은 방식).
+           우리반 매니저에서는 이름표를 눌러 그 활동의 체크를 풀 수 있어야 해서 Vue가 직접 그린다. */
+        .rgw-card .lvbar.sum { background: #EFE3CF; border-color: #D9C3A0; box-shadow: none;
+                               height: calc(var(--rgw-h,200px) * .12);
+                               display: flex; align-items: center; justify-content: center;
+                               gap: 3px; padding: 0 3px; overflow: hidden; }
+        .rgw-card .lvbar.sum .aid-sum-none { color: #A1887F; font-size: 11px; font-weight: 900; }
+        .rgw-card .lvbar.sum button {
+            min-width: 0; flex: 0 0 auto; max-width: 46%; padding: 0 4px; border: none; border-radius: 5px;
+            background: #FFF8EC; color: #5c3d1e; font-size: 10px; font-weight: 800; line-height: 1.5;
+            cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .rgw-card .lvbar.sum button:hover { background: #FFE7C4; }
+        /* 종합 보기 — 활동 이름표 뒤에 메모를 같은 줄로 이어 쓴다 */
+        .rgw-card .lvbar.sum .sum-memo {
+            flex: 0 1 auto; width: 48%; min-width: 20px; border: 0; outline: none; background: transparent;
+            font-family: 'Jua', 'Malgun Gothic', sans-serif; font-weight: 800; color: #4E342E;
+            line-height: 1; font-size: calc(var(--rgw-h,200px) * .062); padding: 0 3px; text-align: center;
+        }
+        .rgw-card .lvbar.sum .sum-memo.starred { background: #ef4444; color: #fff; border-radius: 5px; }
+        .rgw-card .lvbar.sum .sum-memo::placeholder { color: #C8B49A; }
+        /* ⚠️ 체크된 카드에 붙는 .score-outline 은 모든 자식 글씨에 검은 외곽선 4겹을 넣는다.
+              카드 글씨는 작아서 그대로 두면 뭉개져 '깨진 글씨'처럼 보인다 → 카드 안에서는 끈다. */
+        .seat-card-item.score-outline .rgw-card *,
+        .seat-card-item.score-outline .rgw-drawn-mark { text-shadow: none !important; }
+        .seat-card-item.score-outline .rgw-card .cnb-name,
+        .seat-card-item.score-outline .rgw-card .cnb-tit { text-shadow: 0 1px 0 rgba(255,255,255,.55) !important; }
+        /* 메모 — 게이지 칸을 비우고 그 자리에 바로 적는다(카드가 길어지지 않게) */
+        /* ⚠️ 바 높이(14px)보다 줄높이(15px)가 크면 한글 위아래가 잘린다 →
+              바를 점수 배지와 같은 높이로 키우고 줄높이를 글자 크기에 맞춘다 */
+        /* ⚠️ input 은 줄높이를 상자보다 작게 주면 글자가 위로 붙는다(가운데로 안 옴).
+              종합 바(.lvbar.sum)처럼 flex 로 감싸서 세로 가운데에 놓는다. */
+        .rgw-card .lvbar.memo { background: #fff; border-color: #c8b49a; box-shadow: none; padding: 0;
+                                height: calc(var(--rgw-h,200px) * .12);
+                                display: flex; align-items: center; }
+        .rgw-card .lvbar.memo input {
+            width: 100%; height: auto; border: 0; outline: none; background: transparent;
+            text-align: center; font-weight: 800; color: #4E342E; line-height: 1;
+            font-family: 'Jua', 'Malgun Gothic', sans-serif;
+            font-size: calc(var(--rgw-h,200px) * .062); padding: 0 4%;
+        }
+        .rgw-card .lvbar.memo.starred { background: #ef4444; border-color: #b91c1c; }
+        .rgw-card .lvbar.memo.starred input { color: #fff; }
+        .rgw-card .lvbar.memo.starred input::placeholder { color: rgba(255,255,255,.7); }
+        /* 종합·메모에서 적을 게 하나도 없는 학생 — 칸만 비워 둔다.
+           안 그리면 그 카드만 캐릭터가 위로 올라와 줄이 들쭉날쭉해진다. */
+        .rgw-card .lvbar.blank { background: transparent; border-color: transparent; box-shadow: none;
+                                 height: calc(var(--rgw-h,200px) * .12); }
+        /* +7점 이상 무지개 테두리 — .rgw-charcard 가 배경을 덮어써서 다시 살려 준다 */
+        /* +7점 무지개 — 테두리만 색이 흐르게 한다.
+           ⚠️ 원래 쓰던 rainbow-flow 는 filter: hue-rotate 라서 카드 '안쪽'(캐릭터·이름표·게이지·점수 배지)
+              색까지 전부 돌아간다. 캐릭터 카드에서는 filter 대신 테두리 그라데이션만 흘려보낸다.
+           ⚠️ 아래 .rgw-charcard.seat-card-item 의 background-image:none 보다 이겨야 해서 선택자를 하나 더 붙였다. */
+        .seat-card-item.rgw-charcard.score-rainbow {
+            border: 5px solid transparent !important;
+            /* 원뿔 그라데이션(conic)을 각도만 돌려서 테두리를 '반시계 방향'으로 흐르게 한다.
+               가로 그라데이션을 밀면 좌우 테두리에서는 세로로 흐르는 것처럼 보인다. */
+            background-image: linear-gradient(#ffffff, #ffffff),
+                              conic-gradient(from var(--rgw-ang, 0deg),
+                                  #ff2400, #dd00f3, #2b1de8, #1ddde8, #1de840, #e8b21d, #ff2400) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+            background-repeat: no-repeat !important;
+            animation: rgw-rainbow-spin 3s linear infinite !important;
+            filter: none !important;
+        }
+        /* 각도를 부드럽게 애니메이션하려면 커스텀 속성의 자료형을 알려 줘야 한다 */
+        @property --rgw-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        /* 각도를 '줄이면' 무늬가 반시계로 돈다 */
+        @keyframes rgw-rainbow-spin {
+            from { --rgw-ang: 0deg; }
+            to   { --rgw-ang: -360deg; }
+        }
+        /* 캐릭터 — 남는 세로 공간을 다 쓰되 발밑 소품·펫이 잘리지 않게 흐름 배치 그대로 */
+        .rgw-card .avtwrap { position: relative; flex: 1 1 auto; min-height: 0;
+                             display: flex; align-items: center; justify-content: center; padding-top: 3px; }
+        .rgw-card .avtwrap .avtbox { position: relative; margin: 0 auto;
+                                     width: auto !important; height: 100% !important; aspect-ratio: 1 / 1;
+                                     transform: translateY(6%); }
+        .avtbox { position: relative; margin: 0 auto; }
+        .rgw-card .avtbox .avt-base { width: 100% !important; height: 100% !important; display: block; vertical-align: top; }
+        .avt-layer, .avt-base { pointer-events: none; -webkit-user-drag: none; user-select: none; }
+        .rgw-card img { -webkit-user-drag: none; user-drag: none; }
+        /* 이름표 — 이벤트 상점 char-name-banner 그대로 */
+        .rgw-card .char-name-banner {
+            position: relative; flex-shrink: 0; width: 100%; box-sizing: border-box; margin-top: 2px;
+            background: linear-gradient(90deg,#FFE566 0%,#FFCA00 25%,#FFD700 50%,#FFCA00 75%,#FFE566 100%);
+            border-radius: 6px; padding: 1% 2%; min-height: calc(var(--rgw-h,200px) * .115);
+            display: flex; align-items: center; justify-content: center; gap: 1px;
+            border: 2px solid #B8860B; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); overflow: hidden;
+        }
+        /* ⚠️ 이름 칸은 flex 로 줄이지 않는다(0 0 auto). 줄이면 글자가 그대로 잘린다 —
+              자리가 모자랄 때 양보하는 쪽은 칭호(.cnb-tit)다. */
+        .rgw-card .char-name-banner .cnb-name { flex: 0 0 auto; min-width: 0; font-weight: 900; color: #3E2723;
+            /* ⚠️ 이름은 칭호가 있어도 크기를 그대로 둔다(--np 를 걸지 않는다).
+                  줄이는 몫은 칭호(.cnb-tit)가 --np 로 혼자 감당한다. */
+            font-size: calc(var(--rgw-h,200px) * .088 * var(--nn, 1)); text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+            letter-spacing: .3px; white-space: nowrap; overflow: visible; text-overflow: clip; }
+        /* ⚠️ 칭호를 키우려면(.060→.066) 이름표의 여백·별·간격을 같이 줄여야 한다.
+              안 그러면 긴 칭호가 말줄임(…)으로 잘린다 — 실데이터로 잘린 개수 0 확인. */
+        .rgw-card .char-name-banner .cnb-tit { margin-left: 4px; margin-right: -3px; flex: 1 1 auto; min-width: 0; max-width: 68%; font-weight: 800; color: #6B4A2A;
+            font-size: calc(var(--rgw-h,200px) * .092 * var(--np, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-shadow: 0 1px 0 rgba(255,255,255,.55); }
+        .rgw-card .char-name-banner .cnb-no { flex-shrink: 0; line-height: 1.45; font-size: calc(var(--rgw-h,200px) * .075); font-weight: 900; color: #8C4A00;
+            background: rgba(255,255,255,.55); border-radius: 6px; padding: 0 5px; margin-right: 3px; }
+        .rgw-card .char-name-banner .cnb-star { font-size: calc(var(--rgw-h,200px) * .04); color: rgba(255,255,255,0.95);
+            text-shadow: 0 0 6px #fff, 0 0 12px #FFD700; }
+        /* 점수·체크·대기번호 배지 — 캐릭터를 가리지 않게 오른쪽 위로 */
+        /* 레벨 게이지(맨 위 20px)를 가리지 않도록 그 아래에서 시작한다.
+           ⚠️ 교실을 180° 돌리면 절대배치는 반대 구석으로 간다(카드 내용은 content-reverse가 되돌려 준다).
+              기존 .check-icon-wrapper와 같은 방식으로 회전 시 반대 구석으로 옮겨 준다. */
+        .rgw-badge { position: absolute; top: calc(var(--rgw-h,200px) * .135); right: 3%; z-index: 30;
+                     display: flex; flex-direction: column; align-items: flex-end; gap: 3px; pointer-events: none; }
+        .rgw-badge > div { min-width: calc(var(--rgw-h,200px) * .16); height: calc(var(--rgw-h,200px) * .16); padding: 0 4%; border-radius: 999px;
+                           display: flex; align-items: center; justify-content: center;
+                           font-size: calc(var(--rgw-h,200px) * .09); font-weight: 900; color: #fff; border: 2px solid #fff;
+                           box-shadow: 0 2px 4px rgba(0,0,0,.3); line-height: 1; }
+        .rgw-badge .b-pt { background: #EF4444; }
+        .rgw-badge .b-pt.minus { background: #2563EB; }
+        .rgw-badge .b-chk { background: #8f6a49; }
+        .rgw-badge .b-ord { background: #f97316; }
+        /* 캐릭터 카드만 보기 모드는 배지 크기를 예전 그대로 둔다(칸이 작아 커지면 답답해 보인다) */
+        .rgw-only .rgw-badge > div { min-width: calc(var(--rgw-h,200px) * .12); height: calc(var(--rgw-h,200px) * .12);
+                                      font-size: calc(var(--rgw-h,200px) * .07); }
+        .rgw-badge .b-ord.first { background: #E53935; }
+        .rotate-180 .rgw-badge { top: auto; bottom: 27px; right: auto; left: 5px; align-items: flex-start; }
+        /* 아바타를 켜면 카드 배경색(점수 색)은 테두리로만 — 캐릭터가 묻히지 않게.
+           ⚠️ 크기(.rgw-seat)와 겉모습(.rgw-charcard)은 반드시 나눠 둘 것 —
+              캐릭터만 보기는 칸 크기를 화면에 맞춰 따로 계산하므로 140×200 고정이 걸리면 안 된다. */
+        /* ⚠️ background 단축 속성을 쓰면 background-position 까지 !important 로 못 박혀
+              무지개 테두리 애니메이션(배경 위치 이동)이 막힌다 → 색과 그림만 따로 지정한다 */
+        .rgw-charcard.seat-card-item { background-color: #fffdf8 !important; background-image: none !important; }
+        /* 캐릭터 카드 자체(배경·테두리·이름표 전부)를 칸 안에서 살짝 아래로 내린다 */
+        .rgw-charcard.seat-card-item { top: 6px !important; bottom: auto !important; height: calc(100% - 6px) !important; }
+        /* 점수에 따라 카드 배경을 옅게 물들인다(캐릭터가 묻히지 않을 만큼만).
+           앱이 붙이는 점수 색 클래스(getScoreBg)를 그대로 받아 연한 색으로 바꿔 준다. */
+        .rgw-charcard.bg-red-500    { background-color: #FBD9D9 !important; }  /* +1 연빨강 */
+        .rgw-charcard.bg-orange-500 { background-color: #FFE3C4 !important; }  /* +2 연주황 */
+        .rgw-charcard.bg-yellow-400 { background-color: #FFF0B5 !important; }  /* +3 연노랑 */
+        .rgw-charcard.bg-green-500  { background-color: #D5F1E0 !important; }  /* +4 연초록 */
+        .rgw-charcard.bg-blue-500   { background-color: #D7E6FD !important; }  /* +5 연파랑 */
+        .rgw-charcard.bg-purple-500 { background-color: #E8DAFB !important; }  /* +6 연보라 */
+        .rgw-charcard.bg-slate-400  { background-color: #E2E7EC !important; }  /* -1 연회색 */
+        .rgw-charcard.bg-slate-500  { background-color: #D6DCE4 !important; }
+        .rgw-charcard.bg-slate-600  { background-color: #CAD2DB !important; }
+        .rgw-charcard.bg-slate-700  { background-color: #BEC7D3 !important; }
+        .rgw-charcard.bg-slate-800  { background-color: #B2BDCB !important; }
+        .rgw-charcard.bg-slate-900  { background-color: #A6B3C3 !important; }
+        .rgw-charcard.rgw-hasname { border-width: 5px !important; }
+        /* 종합 보기 — 체크나 메모가 있는 학생만 갈색 테두리 + 베이지 배경(일반 탭 체크와 같은 모양) */
+        .rgw-charcard.rgw-sum-mark { border-color: #8f6a49 !important; background-color: #eaddca !important; }
+        .rgw-charcard.rgw-sum-plain { border-color: #e6dccb !important; background-color: #fffdf8 !important; }
+        /* 대기 번호 — 캐릭터 모드에서는 색을 테두리로 준다(캐릭터가 묻히지 않게).
+           1등만 배경까지 연빨강, 나머지 순번은 노랑 테두리. */
+        .rgw-charcard.rgw-ord1 { border-color: #dc2626 !important; background-color: #FBD9D9 !important; }
+        .rgw-charcard.rgw-ordn { border-color: #f97316 !important; background-color: #FFE8D1 !important; }
+        /* 일반 탭에서 체크된 카드 — 베이지(점수 색보다 뒤에 둬야 이긴다) */
+        .rgw-charcard[class*="bg-[#8f6a49]"] { background-color: #eaddca !important; }
+        /* 체크된 카드 — 테두리를 두 겹(ring+border)으로 두르지 않고 한 겹만, 배경은 베이지 */
+        .rgw-charcard[class*="ring-4"] { box-shadow: none !important; }
+
+        /* 캐릭터만 보기 — 자리 배치를 무시하고 학생 카드만 빽빽하게 늘어놓는다(교탁·빈자리 없음).
+           칸 크기는 화면에 맞춰 Vue가 계산해 --rgw-w/--rgw-h 로 넣어 준다. */
+        /* 줄 간격은 칸 사이 간격보다 좁게 — 세로 공간을 카드에 더 준다 */
+        .rgw-only { display: grid; grid-template-columns: repeat(var(--rgw-cols, 6), var(--rgw-w, 140px));
+                    row-gap: var(--rgw-rowgap, 16px); column-gap: var(--rgw-gap, 10px);
+                    justify-content: center; align-content: center; }
+        /* 대기 번호 모드 — 아래쪽 순서 칸이 캐릭터를 가리지 않게 카드를 위로 붙인다 */
+        .rgw-only.rgw-ordtop { align-content: start; padding-top: 26px; }
+        main.rgw-only-view.rgw-ordtop-view { justify-content: flex-start !important; }
+        .rgw-only > .rgw-slot { width: var(--rgw-w, 140px); height: var(--rgw-h, 200px); position: relative; }
+        /* 캐릭터만 보기에서는 교실 바닥(격자 무늬·나무 테두리·안쪽 여백)을 없애 화면을 통째로 캐릭터에 쓴다 */
+        .classroom-floor.rgw-bare {
+            background: transparent !important; background-image: none !important;
+            border: 0 !important; border-radius: 0 !important; padding: 0 !important; box-shadow: none !important;
+        }
+        /* 자리표에 캐릭터를 켜면 바닥 여백을 줄인다 — 여백이 클수록 줌이 내려가 캐릭터가 작아진다.
+           ⚠️ 이 값을 바꾸면 avatarZoom()의 need(164)도 같이 고칠 것 */
+        .classroom-floor.rgw-tight { padding: 1.5rem !important; background-image: none !important; }
+        /* 왼쪽 메뉴 접기 — 자리를 통째로 비워 준다(폭 0). 손잡이는 화면 왼쪽 끝에 남는다. */
+        /* ⚠️ 사이드바는 flex 항목이라 본문이 넓어지면 320px 아래로 찌그러진다(제목이 두 줄로 잘림).
+           캐릭터 카드가 가로를 꽉 채우면서 실제로 그렇게 됐다 → 폭을 고정한다. */
+        .sidebar { flex-shrink: 0 !important; }
+        .sidebar.rgw-side-hidden {
+            width: 0 !important; min-width: 0 !important;
+            padding-left: 0 !important; padding-right: 0 !important;
+            overflow: hidden !important; opacity: 0;
+        }
+        /* 활동 탭은 오른쪽 세로 붙임 → 위쪽 가로 줄로. 가로 폭을 캐릭터에 다 내준다. */
+        /* 교실 바닥 위에 '얹혀' 보이지 않도록 바닥 테두리 아래로 살짝 밀어 넣는다(서류철 탭처럼) */
+        .rgw-tabs-top { flex-direction: row !important; flex-wrap: wrap; justify-content: flex-end; align-items: flex-end;
+                        margin: 0 auto -14px auto !important; width: 100%; gap: 4px !important; position: relative; z-index: 0;
+                        /* 카드 격자와 오른쪽 끝을 맞춘다(격자보다 좁은 화면에서는 100%) */
+                        max-width: var(--rgw-gridw, 100%); padding-right: 1.5%; }
+        .rgw-tabs-top + #classroom-floor, .rgw-tabs-top ~ #classroom-floor { position: relative; z-index: 1; }
+        .rgw-tabs-top .relative.group { display: flex; }
+        /* 캐릭터만 보기 탭 — 카드(노랑·주황)와 어울리는 색으로 */
+        .rgw-tabs-top button {
+            background: linear-gradient(180deg, #FFF6DA, #FFE9A8) !important;
+            color: #8C5A00 !important; border-color: #F0C36D !important;
+        }
+        .rgw-tabs-top button:hover { background: linear-gradient(180deg, #FFF0C2, #FFDF8C) !important; }
+        /* 지금 보고 있는 탭 */
+        .rgw-tabs-top button.rgw-tab-on {
+            background: linear-gradient(180deg, #FFCA45, #FFA726) !important;
+            color: #5C3D1E !important; border-color: #E8891B !important;
+            box-shadow: 0 3px 8px rgba(255,167,38,.45) !important;
+        }
+        .rgw-tabs-top button, .rgw-tabs-top input {
+            writing-mode: horizontal-tb !important; text-orientation: mixed !important; letter-spacing: .05em !important;
+            min-height: 0 !important; height: auto !important; width: auto !important;
+            padding: 6px 14px 20px !important; border-radius: 14px 14px 0 0 !important;
+            border-left-width: 2px !important; border-bottom-width: 0 !important;
+        }
+        .rgw-tabs-top .relative.group button + button { padding: 0 !important; border: 0 !important; }
+        /* 캐릭터만 보기에는 파고들 바닥 테두리가 없다 → 카드를 덮지 않게 여백을 되돌린다 */
+        .rgw-tabs-free { margin-bottom: 24px !important; margin-top: 0 !important; }
+        /* 가로 탭 줄의 '+' 버튼 — 다른 탭보다 커 보이지 않게 줄 높이에 맞춘 정사각형으로 */
+        .rgw-tabs-top .rgw-addtab {
+            /* 줄 높이(41px = 위 6 + 글자 + 아래 7 + 테두리 4)에 맞춘 정사각형.
+               flex 항목이라 aspect-ratio 만으로는 가로가 안 잡혀 두 값을 함께 준다. */
+            align-self: flex-end; flex: 0 0 auto;
+            width: 41px !important; height: 41px !important; min-width: 0 !important;
+            padding: 0 !important; border-radius: 12px !important;
+            border-left-width: 2px !important; border-bottom-width: 2px !important;
+            line-height: 1 !important;
+        }
+        /* 캐릭터만 보기 — main 의 위아래 여백을 없애고 내용을 위로 붙인다(카드에 세로를 다 준다) */
+        main.rgw-only-view { padding-top: 4px !important; padding-bottom: 4px !important; }
+        /* 대기 번호 모드(캐릭터만 보기)일 때만 위쪽 여백을 더 준다 — 기본 캐릭터 카드 모드는 그대로 중앙 배치 */
+        main.rgw-only-view.rgw-ordtop-view { padding-top: 40px !important; }
+        .rgw-tabs-free button { padding-bottom: 7px !important; border-bottom-width: 2px !important;
+                                border-radius: 14px !important; }
         
         /* [돌 레이스 스타일] */
         .font-game { font-family: 'Jua', sans-serif; }
@@ -1482,10 +1830,38 @@ span[contenteditable="true"] {
 }
 /* [시계 & 저금통 공통 스타일] */
 /* [시계 & 저금통 공통 스타일] */
+/* 사이드바 아래쪽 빈 공간 없애기 — 카드들이 남는 높이를 나눠 갖는다.
+   ⚠️ 최소 높이(123px)는 남겨 둘 것: 화면이 낮으면 카드가 찌그러지는 대신 nav 가 스크롤된다. */
+/* basis 0 — 남는 공간을 정확히 나눠 갖게 한다(auto 로 두면 몇 px 넘쳐 스크롤바가 생긴다)
+   ⚠️ 최소 높이는 px 고정 금지. 고정하면 화면이 조금만 낮아도 합계가 넘쳐 스크롤바가 생기고,
+      "간격은 안 늘고 스크롤바만 생기는" 상태가 된다. 화면 높이에 비례(clamp)시켜 항상 다 들어오게 한다. */
+/* ⚠️ overflow:hidden 필수 — 안 걸면 시계 등 큰 폰트(min-content)가 flex 균등분배를 무시하고
+   자기 몫보다 더 차지해 나머지 칸(명예의 전당 등)이 눌려 작아진다. */
+/* ⚠️ flex-grow(1 1 0)면 min-height는 바닥값일 뿐 — nav에 남는 공간이 있으면
+   grow가 그 공간을 다 채워버려서 min-height를 아무리 줄여도 실제 크기가 그대로다.
+   실제로 줄이려면 grow를 끄고 고정 높이로 못박아야 한다. */
+.side-grow { flex: 0 0 auto; height: 130px; overflow: hidden; }
+.sidebar-widget.side-grow { height: 130px; min-height: 0; overflow: hidden; }
+/* 명예의 전당만 다른 셋(간식창고·시간저금통·시계)보다 1.2배 크게 */
+.side-grow.hof-grow { height: 140px; }
+.side-grow button { min-height: 0 !important; }
+/* 카드 사이 간격도 화면 높이에 비례 — 낮은 화면에선 자동으로 좁아진다 */
+aside nav > * + * { margin-top: clamp(10px, 2vh, 20px) !important; }
+/* ⚠️ hidden이면 화면이 낮을 때 마지막 위젯(시계)이 소리 없이 잘려 사라진다 —
+   넘치면 잘리는 대신 스크롤되게 한다(잘림보다 스크롤이 낫다). */
+aside nav { overflow-y: auto; }
+aside .side-head { margin-bottom: 0; }
+/* 메뉴 버튼(학생 활동·모둠 활동) — 모양은 그대로, 위아래 간격만 넉넉히.
+   ring-4 이 바깥으로 그려지므로 간격이 좁으면 서로 붙어 보인다. */
+.side-menu-btn { flex: 0 0 auto; }
+.side-menu-btn + .side-menu-btn,
+.side-menu-btn + * { margin-top: clamp(10px, 2vh, 20px) !important; }
+aside nav { padding-top: clamp(14px, 3vh, 32px) !important; }
+@media (max-height: 620px) { aside nav { overflow-y: auto; } }
 .sidebar-widget {
     width: 100%;
     height: 123px;
-    min-height: 123px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1514,7 +1890,9 @@ span[contenteditable="true"] {
 .mission-dday { color: #0891b2; font-size: 0.7rem; font-weight: 800; }
 .mission-dday-done { color: #16a34a; font-size: 0.7rem; font-weight: 800; }
 .sidebar-timer-display {
-    font-size: 3rem !important;
+    /* ⚠️ 고정 3rem이면 min-content가 커져 flex 균등분배를 깨고 다른 칸(명예의 전당 등)을 누른다 —
+       칸 높이(vh)에 비례해서 줄어들게 한다. */
+    font-size: clamp(1.7rem, 4.2vh, 3rem) !important;
     letter-spacing: -0.05em !important;
     line-height: 1;
     font-family: 'Quantico', sans-serif !important;
@@ -2594,6 +2972,141 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 </head>
 <body>
 <div id="app" class="flex h-screen w-screen" @contextmenu.prevent v-cloak>
+    <!-- ★ 캐릭터 뽑기 당첨 화면 · 뽑기 설정 —
+         ⚠️ 이 파일은 <div> 짝이 완전히 맞지 않아서, 문서 끝에 붙여도 실제로는 다른 v-if 안에
+            들어가 버린다(실제로 showNoiseMeter 안에 갇혀 안 보였다). 화면 전체를 덮는 창은
+            반드시 #app 바로 아래 첫 자식으로 둘 것. position:fixed 라 위치는 상관없다. -->
+    <div v-if="drawWinners.length" class="rgw-win-ov" @click="closeDrawWin">
+        <div class="rgw-win-box">
+            <div class="rgw-win-ttl">🎉 뽑혔어요!</div>
+            <div class="rgw-win-list">
+                <div v-for="w in drawWinners" :key="w.name" class="rgw-win-one">
+                    <!-- 캐릭터가 없으면(캐릭터 끔·상점에 없는 학생) 번호만 크게 보여 준다 -->
+                    <div v-if="drawWinAvatar(w)" v-html="drawWinAvatar(w)"></div>
+                    <div v-else class="flex items-center justify-center rounded-full bg-[#9c734f] text-white font-black"
+                         :style="{ width: (drawWinners.length === 1 ? 220 : 150) + 'px', height: (drawWinners.length === 1 ? 220 : 150) + 'px', fontSize: (drawWinners.length === 1 ? 90 : 60) + 'px' }">
+                        {{ w.number || '★' }}
+                    </div>
+                    <div class="nm" :style="{ fontSize: (drawWinners.length === 1 ? 38 : 26) + 'px' }">{{ w.name }}</div>
+                </div>
+            </div>
+            <div class="rgw-win-hint">화면을 누르면 닫혀요</div>
+        </div>
+    </div>
+    <!-- ★ 카드 설정 (자리 바꾸기 버튼 우클릭) -->
+    <div v-if="cardOptOpen" class="fixed top-8 right-28 z-[8910] bg-white rounded-2xl shadow-2xl border-2 border-blue-200 p-4 w-[250px]" @click.stop>
+        <div class="font-black text-slate-700 mb-3 text-sm">🪪 카드 설정</div>
+        <button @click="toggleAvatarTitle"
+                class="w-full py-2 rounded-lg font-bold text-xs border-2 mb-2 transition-all"
+                :class="showAvatarTitle ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'">
+            {{ showAvatarTitle ? '✓ 칭호 보이기' : '칭호 숨기기' }}
+        </button>
+        <button @click="toggleSkipPlainSeat"
+                class="w-full py-2 rounded-lg font-bold text-xs border-2 mb-2 transition-all"
+                :class="skipPlainSeat ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'">
+            {{ skipPlainSeat ? '✓ 기본 자리표 숨기기' : '기본 자리표 쓰기' }}
+        </button>
+        <div class="text-[11px] text-slate-500 font-bold mb-2 leading-relaxed">
+            숨기면 캐릭터 버튼이<br>캐릭터 좌석배치 ↔ 캐릭터카드만 두 가지만 오갑니다.
+        </div>
+        <button @click="cardOptOpen = false" class="w-full py-2 rounded-lg bg-slate-700 text-white font-bold text-xs">닫기</button>
+    </div>
+
+    <!-- 🗑 초기화 창 — 무엇을(점수·체크·메모) / 어느 탭을 지울지 골라서 한 번에 -->
+    <div v-if="resetOptOpen" class="fixed top-8 right-28 z-[8910] bg-white rounded-2xl shadow-2xl border-2 border-emerald-200 p-4 w-[250px]" @click.stop>
+        <div class="font-black text-slate-700 mb-2 text-sm">🗑 무엇을 지울까요?</div>
+        <div class="flex gap-1 mb-3">
+            <button v-for="o in [{k:'score',l:'점수'},{k:'check',l:'체크'},{k:'memo',l:'메모'}]" :key="o.k"
+                    @click="resetPick[o.k] = !resetPick[o.k]"
+                    class="flex-1 py-2 rounded-lg font-black text-xs border-2 transition-all"
+                    :class="resetPick[o.k] ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'">
+                {{ resetPick[o.k] ? '✓ ' : '' }}{{ o.l }}
+            </button>
+        </div>
+        <template v-if="view !== 'group' && (resetPick.score || resetPick.check)">
+            <div class="font-black text-slate-700 mb-1 text-sm">어느 활동에서?</div>
+            <div class="flex flex-col gap-1 mb-2 max-h-[190px] overflow-y-auto custom-scrollbar">
+                <button @click="resetTabSel = 'all'"
+                        class="w-full py-2 rounded-lg font-black text-xs border-2 transition-all"
+                        :class="resetTabSel === 'all' ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50'">모든 활동</button>
+                <button v-for="tab in activityTabs" :key="tab.id" @click="resetTabSel = tab.id"
+                        class="w-full py-2 rounded-lg font-black text-xs border-2 transition-all truncate"
+                        :class="resetTabSel === tab.id ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50'">
+                    {{ tab.name }}<span v-if="tab.id === currentTabId" class="opacity-70 font-bold"> (지금)</span>
+                </button>
+            </div>
+            <div class="text-[11px] text-slate-400 font-bold mb-2">메모는 활동과 상관없이 모두 지워집니다.</div>
+        </template>
+        <button @click="doReset" :disabled="!resetPick.score && !resetPick.check && !resetPick.memo"
+                class="w-full py-2 rounded-lg font-black text-xs mb-2 transition-all"
+                :class="(resetPick.score || resetPick.check || resetPick.memo) ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'">
+            {{ resetSummary }}
+        </button>
+        <button @click="resetOptOpen = false" class="w-full py-2 rounded-lg bg-slate-700 text-white font-bold text-xs">닫기</button>
+    </div>
+
+    <div v-if="drawOptOpen" class="fixed top-8 right-28 z-[8910] bg-white rounded-2xl shadow-2xl border-2 border-orange-200 p-4 w-[250px]" @click.stop>
+        <!-- 무엇을 뽑을지 — 여기서 고른 것이 곧 뽑기 버튼(좌클릭)의 동작이 된다.
+             예전처럼 '모둠 뽑기'를 따로 눌러 들어가지 않는다. -->
+        <div class="flex gap-1 mb-3">
+            <button v-for="o in [{v:'solo',l:'🎲 학생'},{v:'group',l:'👥 모둠'}]" :key="o.v" @click="setDrawMode(o.v)"
+                    class="flex-1 py-2 rounded-lg font-black text-xs border-2 transition-all"
+                    :class="drawMode === o.v ? 'bg-orange-500 text-white border-orange-600' : 'bg-white text-orange-500 border-orange-200 hover:bg-orange-50'">{{ o.l }}</button>
+        </div>
+
+        <template v-if="drawMode === 'solo'">
+        <div class="font-black text-slate-700 mb-2 text-sm">🎲 몇 명 뽑을까요?</div>
+        <div class="flex gap-1 mb-3">
+            <button v-for="n in [1,2,3,4,5]" :key="n" @click="setDrawN(n)"
+                    class="flex-1 py-2 rounded-lg font-black text-sm border-2 transition-all"
+                    :class="drawN === n ? 'bg-orange-500 text-white border-orange-600' : 'bg-white text-orange-500 border-orange-200 hover:bg-orange-50'">{{ n }}</button>
+        </div>
+        <div class="font-black text-slate-700 mb-1 text-sm">누구 중에서?</div>
+        <div class="flex gap-1 mb-3">
+            <button v-for="o in [{v:'all',l:'전체'},{v:'M',l:'남'},{v:'F',l:'여'}]" :key="o.v" @click="setDrawWho(o.v)"
+                    class="flex-1 py-2 rounded-lg font-black text-xs border-2 transition-all"
+                    :class="drawWho === o.v ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50'">
+                {{ o.l }}<span class="opacity-70 font-bold"> {{ drawPoolCount(o.v) }}</span>
+            </button>
+        </div>
+        <div class="flex gap-1 mb-3">
+            <button v-for="o in [{v:'any',l:'체크 상관없이'},{v:'on',l:'체크된'},{v:'off',l:'체크 안 된'}]" :key="o.v" @click="setDrawChk(o.v)"
+                    class="flex-1 py-2 rounded-lg font-bold text-[11px] border-2 transition-all"
+                    :class="drawChk === o.v ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'">{{ o.l }}</button>
+        </div>
+        <button @click="toggleDrawSkip"
+                class="w-full py-2 rounded-lg font-bold text-xs border-2 mb-2 transition-all"
+                :class="drawSkip ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'">
+            {{ drawSkip ? '✓ 중복 금지 (뽑힌 친구 건너뛰기)' : '중복 허용 (뽑힌 친구도 다시)' }}
+        </button>
+        <div class="text-[11px] text-slate-500 font-bold mb-1">뽑은 기록: {{ drawnNames.length }}명</div>
+        <div class="flex gap-1">
+            <button @click="clearDrawn" class="flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200">기록 지우기</button>
+            <button @click="drawOptOpen = false" class="flex-1 py-2 rounded-lg bg-slate-700 text-white font-bold text-xs">닫기</button>
+        </div>
+        </template>
+
+        <template v-else>
+        <div class="font-black text-slate-700 mb-2 text-sm">👥 모둠마다 몇 명씩?</div>
+        <div class="flex gap-1 mb-2">
+            <button v-for="n in [1,2,3,4]" :key="n" @click="setGroupPerGroup(n)"
+                    class="flex-1 py-2 rounded-lg font-black text-sm border-2 transition-all"
+                    :class="groupDrawPerGroup === n ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50'">{{ n }}</button>
+        </div>
+        <div class="text-[11px] text-slate-500 font-bold mb-3 leading-snug">
+            모둠을 한 바퀴씩 돌면서 각 모둠에서 {{ groupDrawPerGroup }}명씩 뽑습니다. 뽑기 버튼을 누를 때마다 다음 차례가 나옵니다.
+        </div>
+        <button @click="drawOptOpen = false; openGroupDraw(); showGroupDrawSettings = true"
+                class="w-full py-2 rounded-lg font-black text-xs border-2 mb-2 transition-all bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50">
+            🎨 모둠 좌석 설정
+        </button>
+        <div class="flex gap-1">
+            <button v-if="groupDrawActive" @click="endGroupDraw(); drawOptOpen = false"
+                    class="flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200">뽑기 그만</button>
+            <button @click="drawOptOpen = false" class="flex-1 py-2 rounded-lg bg-slate-700 text-white font-bold text-xs">닫기</button>
+        </div>
+        </template>
+    </div>
 
 
 <!-- 다중 탭 경고 배너 (동적 생성) -->
@@ -2856,44 +3369,53 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
     </div></div>
 
-       <aside class="sidebar flex flex-col px-5 py-6 w-[320px] bg-white shadow-2xl z-40">
-            <div class="relative w-full mb-8 px-2">
-                <div class="flex items-center justify-center gap-2 cursor-pointer group" @click="openMainDashboard()">
+       <!-- ★ 왼쪽 메뉴 접기 손잡이 — 접으면 좌석/캐릭터가 그만큼 넓게 쓴다 -->
+       <button @click="toggleSidebar" :title="sidebarHidden ? '메뉴 펼치기' : '메뉴 접기'"
+               class="side-handle fixed top-1/2 -translate-y-1/2 z-[8905] w-6 h-24 bg-white/95 border-2 border-slate-200 border-l-0 rounded-r-xl shadow-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:w-7 transition-all"
+               :style="{ left: sideW + 'px' }">
+           <i class="fa-solid text-sm" :class="sidebarHidden ? 'fa-angle-right' : 'fa-angle-left'"></i>
+       </button>
+       <aside class="sidebar flex flex-col px-5 pt-6 pb-4 w-[320px] bg-white shadow-2xl z-40 transition-all duration-300"
+              :class="sidebarHidden ? 'rgw-side-hidden' : ''">
+            <!-- ⚠️ 이 상자가 nav 를 품고 있다(파일의 div 짝이 안 맞아 헤더가 안 닫힌다).
+                 flex-1/flex-col 을 주지 않으면 nav 의 flex-1 이 늘어나지 못해 카드 아래가 빈다. -->
+            <div class="side-head relative w-full mb-8 px-2 flex-1 flex flex-col min-h-0">
+                <div class="flex items-center justify-center gap-2 cursor-pointer group shrink-0" @click="openMainDashboard()">
                     <span class="relative text-3xl leading-none cursor-pointer hover:scale-125 transition-transform" title="클릭: 서버에 현재 정보 저장" @click.stop="manualCloudSave">🏫</span>
                     <h1 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition-colors" title="클릭: 메인화면" @contextmenu.prevent.stop>우리반 매니저</h1>
                 </div>
 
             
-            <nav class="flex-1 overflow-y-auto custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
-                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item bg-red-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">좌석 배치도</div>
-                <div @click="view = 'order'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'order' && !showMainDashboard ? 'ring-4 ring-orange-200' : ''" class="menu-item bg-orange-500 cursor-pointer py-4 rounded-2xl font-black text-white text-center shadow-sm">대기 번호</div>
-                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item bg-yellow-400 cursor-pointer py-4 rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
+            <nav class="flex-1 custom-scrollbar px-2 pt-6 space-y-4 flex flex-col">
+                <div @click="view = 'main'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'main' && !showMainDashboard ? 'ring-4 ring-red-200' : ''" class="menu-item side-menu-btn bg-red-500 cursor-pointer py-[21px] rounded-2xl font-black text-white text-center shadow-sm">학생 활동</div>
+                <!-- 대기 번호는 왼쪽 메뉴에서 빼고 학생 활동 오른쪽 도구 줄의 버튼(toggleOrderView)으로 옮겼다 -->
+                <div @click="view = 'group'; showMainDashboard = false; showPickerMaster = false; closeBlackboard(); showNoiseMeter = false; playSound('click'); refreshIfChanged()" :class="view === 'group' && !showMainDashboard ? 'ring-4 ring-yellow-200' : ''" class="menu-item side-menu-btn bg-yellow-400 cursor-pointer py-[21px] rounded-2xl font-black text-black text-center shadow-sm">모둠 활동</div>
 
-                <!-- 명예의 전당 (설정에서 표시 여부 조정) — 미션 상단 -->
-                <div v-if="showHallOfFame" class="shrink-0">
-                    <button @click="openRankModal" class="w-full h-[123px] text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-3 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col">
-                        <h3 class="font-black text-emerald-600 mb-1.5 text-center text-sm shrink-0">🏆 명예의 전당</h3>
+                <!-- 명예의 전당 (설정에서 표시 여부 조정) — 미션 상단
+                     ⚠️ 감싸는 div 없이 button 자체를 side-grow로 둔다 — 중첩 flex 컨테이너를 거치면
+                        간식 창고 등 다른 칸과 실측 높이가 미묘하게 달라진다(중첩 없는 쪽이 확실히 같다). -->
+                <button v-if="showHallOfFame" @click="openRankModal" class="side-grow hof-grow w-full text-left bg-emerald-50 border-4 border-emerald-200 rounded-[2rem] p-3 cursor-pointer hover:bg-emerald-100 transition-all flex flex-col">
+                        <h3 class="font-black text-emerald-600 mb-1.5 text-center text-base shrink-0">🏆 명예의 전당</h3>
                         <div class="flex flex-row justify-between gap-2 flex-1 w-full relative px-1">
-                            <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 flex flex-col items-center justify-center rank-item-transparent h-full">
-                                <div v-if="s.name !== '?'" class="flex flex-col items-center justify-center gap-1 w-full bg-gradient-to-b from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-2xl shadow-sm py-1.5 px-1 text-slate-800 transition-all">
-                                    <span class="text-2xl drop-shadow-sm leading-none">
+                            <div v-for="(s, idx) in topStudents" :key="idx" class="flex-1 min-w-0 flex flex-col rank-item-transparent h-full">
+                                <div v-if="s.name !== '?'" class="flex flex-col items-center justify-center gap-1.5 w-full h-full bg-gradient-to-b from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-2xl shadow-sm py-2 px-1 text-slate-800 transition-all">
+                                    <span class="text-3xl drop-shadow-sm leading-none">
                                         <span v-if="s.displayRank === 1">🥇</span>
                                         <span v-else-if="s.displayRank === 2">🥈</span>
                                         <span v-else-if="s.displayRank === 3">🥉</span>
                                     </span>
                                     <span class="font-black text-xs truncate w-full text-center">{{ s.name }}</span>
                                 </div>
-                                <div v-else class="flex flex-col items-center justify-center gap-1 w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-1.5 px-1 text-slate-400 opacity-60">
-                                    <span class="text-2xl opacity-50 leading-none">🏅</span>
-                                    <span class="font-black text-xs truncate w-full text-center">?</span>
+                                <div v-else class="flex flex-col items-center justify-center gap-1.5 w-full h-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-2 px-1 text-slate-400 opacity-60">
+                                    <span class="text-3xl opacity-50 leading-none">🏅</span>
+                                    <span class="font-black text-sm truncate w-full text-center">?</span>
                                 </div>
                             </div>
                         </div>
-                    </button>
-                </div>
+                </button>
 
                 <!-- 우리반 간식 창고 -->
-                <div class="sidebar-widget mt-0 relative overflow-hidden transition-all duration-700 cursor-pointer"
+                <div class="sidebar-widget side-grow mt-0 relative overflow-hidden transition-all duration-700 cursor-pointer"
                      :style="snackBankFullSidebar ? 'background:linear-gradient(160deg,#fff1f2,#fecdd3);' : 'background:linear-gradient(160deg,#f0f9ff,#e0f2fe);'"
                      :class="snackBankFullSidebar ? 'border-red-300 hover:border-red-400 shadow-[0_0_16px_4px_rgba(239,68,68,0.25)]' : 'border-sky-200 hover:border-sky-300'"
                      @click="ensureSnackSubscribed && ensureSnackSubscribed(); showSnackBankListModal = true">
@@ -2951,7 +3473,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                 <!-- 시간 저금통 -->
                 <div @click="openTimeBankHistoryModal()"
-                     class="sidebar-widget bg-white mt-4 relative overflow-hidden transition-all duration-700"
+                     class="sidebar-widget side-grow bg-white mt-4 relative overflow-hidden transition-all duration-700"
                      :class="[{'animate-bank-shake': timeBankEffect === 'shake'}, timeBankSeconds >= 2400 ? 'border-yellow-400 hover:border-yellow-500 shadow-[0_0_16px_4px_rgba(251,191,36,0.35)]' : 'border-pink-200 hover:border-pink-300']">
 
                     <!-- 채우기 배경 (물결 효과) -->
@@ -2994,7 +3516,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
 
                 <!-- 시계 (보라색) -->
                 <div @click="handleMiniClockClick"
-                     class="sidebar-widget bg-violet-50 border-violet-200 hover:border-violet-300 mt-4">
+                     class="sidebar-widget side-grow bg-violet-50 border-violet-200 hover:border-violet-300 mt-4">
                     <div class="text-violet-500 font-black text-base flex items-center gap-2 mb-1">
                         <i class="fa-regular fa-calendar-check"></i> {{ currentDate }}
                     </div>
@@ -3006,13 +3528,13 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
             </nav>
 
-            <div class="mt-auto pt-8 border-t border-slate-100 flex justify-between gap-2 shrink-0 pb-1">
-                <button @click="openTimer" title="폭탄 타이머" class="flex-1 h-14 bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-bomb"></i></button>
-                <button @click="openPickerMaster" title="뽑기 도구" class="flex-1 h-14 bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-gift"></i></button>
-                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./school bell.mp3')" title="좌클릭: 소음측정 / 우클릭: 학교종 소리" class="flex-1 h-14 bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center no-default-sound">
+            <div class="mt-auto pt-0 flex justify-between items-center gap-[2px] shrink-0 pb-0">
+                <button @click="openTimer" title="폭탄 타이머" class="w-[60px] h-[60px] bg-red-100 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-bomb"></i></button>
+                <button @click="openPickerMaster" title="뽑기 도구" class="w-[60px] h-[60px] bg-orange-100 text-orange-600 rounded-2xl hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-gift"></i></button>
+                <button @click.stop="openNoiseMeter" @contextmenu.prevent.stop="playCustomSound('./school bell.mp3')" title="좌클릭: 소음측정 / 우클릭: 학교종 소리" class="w-[60px] h-[60px] bg-yellow-100 text-yellow-600 rounded-2xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm flex items-center justify-center no-default-sound">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
                 </button>
-                <button @click="openBlackboard" title="판서" class="flex-1 h-14 bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-chalkboard-user"></i></button>
+                <button @click="openBlackboard" title="판서" class="w-[60px] h-[60px] bg-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center justify-center text-2xl"><i class="fa-solid fa-chalkboard-user"></i></button>
             </div>
         </aside>
 
@@ -3520,31 +4042,53 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
         </div>
 
       <main class="flex-1 flex flex-col items-center justify-center p-8 relative transition-all duration-300" 
-              :class="view === 'order' ? 'pr-[280px]' : 'pr-32'">
+              :class="[(view === 'order' && !avatarOnlyOn) ? 'pr-[300px]' : 'pr-32', avatarOnlyOn ? 'rgw-only-view' : '',
+                       (view === 'order' && avatarOnlyOn) ? 'rgw-ordtop-view' : '']">
             
-            <div class="absolute top-8 right-8 z-50 flex flex-col items-end" style="gap:11px;">
-                <button v-if="view !== 'order'" title="회전" @click="toggleRotateForView();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
-                <button v-if="view !== 'order'" title="점수 초기화" @click="resetCurrentScores" class="w-14 h-14 bg-orange-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-eraser text-2xl"></i></button>
-           
-
-<button v-if="view !== 'order'" title="선택 초기화" @click="resetCurrentSelection" class="w-14 h-14 bg-yellow-400 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-check-double text-2xl"></i></button>
-
-
-                <button v-if="view !== 'order'" @click="clearMemos" @contextmenu.prevent="view==='group' && resetAllGroupNames()" :title="view==='group' ? '클릭: 메모 삭제 / 우클릭: 모둠 이름 모두 초기화' : '메모 삭제'" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
+            <div class="absolute top-8 right-8 z-50 flex flex-col items-end tool-col" style="gap:11px;">
+                <button title="회전" @click="toggleRotateForView();" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-arrows-rotate text-2xl"></i></button>
+                <button @click="openResetPanel" @contextmenu.prevent="view==='group' && resetAllGroupNames()" :title="view==='group' ? '초기화 (우클릭: 모둠 이름 모두 초기화)' : '초기화 — 점수·체크·메모를 골라서'" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"><i class="fa-solid fa-trash-can text-2xl"></i></button>
                 
-                <template v-if="view === 'main'">
-                    <button @click="showStudentNumber = !showStudentNumber; saveToLocal();" 
-                            @contextmenu.prevent="toggleSortByNumber"
-                            title="좌클릭: 번호 보이기 / 우클릭: 번호순 정렬" 
-                            class="w-14 h-14 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all"
-                            :class="isSortedByNumber ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_15px_rgba(79,70,229,0.6)]' : 'bg-blue-500'">
-                        <i class="fa-solid text-2xl" :class="isSortedByNumber ? 'fa-arrow-down-1-9' : (showStudentNumber ? 'fa-eye' : 'fa-eye-slash')"></i>
+                <template v-if="view === 'main' || view === 'order'">
+                    <!-- ★ 캐릭터 카드 켜기/끄기 (우클릭: 칭호 보이기/숨기기)
+                         켰는데도 안 나오는 경우(종합 탭·상점 연결 전)는 버튼을 흐리게 해서 고장으로 오해하지 않게 한다 -->
+                    <button @click="toggleAvatar" @contextmenu.prevent="avatarRightClick"
+                            :title="!showAvatar ? '기본 자리표 — 좌클릭: 캐릭터 좌석배치 / 우클릭: ' + (isSortedByNumber ? '좌석순' : '번호순') + '으로 자리 바꾸기'
+                                    : (!avatarOn ? '캐릭터 켜짐 — 이벤트 상점에서 불러오는 중…'
+                                    : (avatarOnlyOn ? '캐릭터카드만 — 좌클릭: 기본 자리표 / 우클릭: ' + (seatSort === 'no' ? '점수순(쿠키)' : '번호순') + '으로 보기'
+                                                    : '캐릭터 좌석배치 — 좌클릭: 캐릭터카드만 / 우클릭: ' + (isSortedByNumber ? '좌석순' : '번호순') + '으로 자리 바꾸기'))"
+                            class="w-14 h-14 rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all text-2xl"
+                            :class="(showAvatar && !avatarOn) ? 'opacity-40' : ''">
+                        <i class="fa-solid text-white" :class="avatarOnlyOn ? 'fa-users' : 'fa-child-reaching'"></i>
+                        <!-- 번호순 정렬 중임을 알려 준다(예전엔 삭제된 '번호' 버튼이 이 표시를 맡았다) -->
+                        <span v-if="isSortedByNumber" title="번호순 정렬 중 — 우클릭으로 원래 자리"
+                              class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center border-2 border-white">
+                            <i class="fa-solid fa-arrow-down-1-9"></i>
+                        </span>
                     </button>
-                    <button title="자리 바꾸기 (우클릭: 모둠 뽑기)" @click="openShuffleModal" @contextmenu.prevent="openGroupDraw" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
+                    <!-- 대기 번호 — 화면은 그대로 두고 카드의 숫자만 대기 순서로 바꾼다.
+                         우클릭: 학생 번호 보이기/숨기기(예전 '번호' 버튼을 여기로 합쳤다) -->
+                    <button @click="toggleOrderView"
+                            @contextmenu.prevent="showStudentNumber = !showStudentNumber; saveToLocal();"
+                            :title="(view === 'order' ? '대기 번호 끄기' : '대기 번호') + ' (우클릭: 번호 ' + (showStudentNumber ? '숨기기' : '보이기') + ')'"
+                            class="w-14 h-14 rounded-2xl shadow-lg border-2 bg-orange-500 text-white border-white flex items-center justify-center hover:scale-110 transition-all">
+                        <i class="fa-solid fa-list-ol text-2xl"></i>
+                    </button>
+                    <button title="자리 바꾸기 (우클릭: 카드 설정 — 칭호·기본 자리표)" @click="openShuffleModal" @contextmenu.prevent="cardOptOpen = !cardOptOpen; drawOptOpen = false; resetOptOpen = false" class="w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
                         <i class="fa-solid fa-chair text-2xl"></i>
                     </button>
                     <button @click="openRockRace" title="돌 굴러가유~" class="w-14 h-14 bg-purple-500 text-white rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all">
                         <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rock.png" width="32" height="32" alt="Rock">
+                    </button>
+                    <!-- ★ 학생 뽑기 — 캐릭터를 켜면 캐릭터로, 꺼도 자리표에서 그대로 쓴다.
+                         좌클릭: 바로 뽑기 / 우클릭: 인원·대상·중복 설정 -->
+                    <button @click="drawClick()" @contextmenu.prevent="groupDrawActive ? endGroupDraw() : (drawOptOpen = !drawOptOpen, cardOptOpen = false, resetOptOpen = false)"
+                            :title="drawMode === 'group'
+                                    ? (groupDrawActive ? '모둠 뽑기 — 다음 차례 (우클릭: 끝내기)' : '모둠 뽑기 (모둠마다 ' + groupDrawPerGroup + '명씩, 우클릭: 설정)')
+                                    : '학생 뽑기 ' + drawN + '명 (우클릭: 인원·대상·중복 설정)'"
+                            class="w-14 h-14 rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all text-2xl bg-gradient-to-br from-amber-500 to-orange-600 relative">
+                        <i class="fa-solid text-white" :class="drawMode === 'group' ? 'fa-users-rays' : 'fa-dice'"></i>
+                        <!-- (제거) 모둠 뽑기 진행 배지 — 종료는 ESC(또는 뽑기를 끝까지 진행). -->
                     </button>
                 </template>
 
@@ -3558,7 +4102,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </template>
             </div>
 
-            <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end" style="gap:11px;">
+            <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end tool-col" style="gap:11px;">
                 
                 <div v-if="view === 'main' && currentTabId !== 'summary' && checkedStudentCount > 0"
                      class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black flex items-center justify-center bg-[#5c3d1e] text-[#eaddca] border-[#3e2a12] pointer-events-none select-none">
@@ -3577,31 +4121,25 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     <button @click="handleToolClick('check')" @contextmenu.prevent="invertCurrentSelection" title="우클릭: 선택 반전" :class="activeTool === 'check' ? 'bg-emerald-500 text-white border-white' : 'bg-white text-emerald-500 border-emerald-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-check"></i></button>
                     <button @click="handleToolClick('plus')" :class="activeTool === 'plus' ? 'bg-red-500 text-white border-white' : 'bg-white text-red-500 border-red-500'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-3xl transition-all">+</button>
                     <button @click="handleToolClick('minus')" :class="activeTool === 'minus' ? 'bg-blue-600 text-white border-white' : 'bg-white text-blue-600 border-blue-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 font-black text-4xl transition-all leading-none pb-1">-</button>
-                    <button @click="isMemoVisible = !isMemoVisible" :class="isMemoVisible ? 'bg-indigo-600 text-white border-white' : 'bg-white text-indigo-600 border-indigo-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-clipboard-list"></i></button>
+                    <button @click="isMemoVisible = !isMemoVisible" :class="isMemoVisible ? 'bg-purple-600 text-white border-white' : 'bg-white text-purple-600 border-purple-600'" class="w-14 h-14 rounded-2xl shadow-xl border-2 flex items-center justify-center text-2xl transition-all"><i class="fa-solid fa-clipboard-list"></i></button>
                 </template>
     
-                <div v-if="view === 'order'" class="flex flex-row gap-3">
-                    <button @click="resetOrder" title="대기순서 초기화" class="w-14 h-14 bg-white text-purple-500 rounded-2xl shadow-2xl border-2 border-purple-500 flex items-center justify-center hover:scale-110 transition-all">
-                        <div class="relative mt-1">
-                            <i class="fa-solid fa-list-ol text-xl"></i>
-                            <i class="fa-solid fa-rotate-left text-[11px] absolute -bottom-2 -right-2 text-white bg-purple-500 rounded-full p-0.5 border border-white"></i>
-                        </div>
-                    </button>
-                    <button title="회전" @click="toggleRotateForView();" class="w-14 h-14 bg-white text-red-500 rounded-2xl shadow-2xl border-2 border-red-500 flex items-center justify-center hover:scale-110 transition-all">
-                        <i class="fa-solid fa-arrows-rotate text-2xl"></i>
-                    </button>
-                </div>
+                <!-- (옮김) 대기 번호 화면 전용 버튼 묶음은 없앴다 — 캐릭터·회전은 위쪽 도구 줄에서,
+                     대기순서 초기화는 대기 명단 헤더의 ↺ 버튼에서 쓴다. -->
             </div>
 
-            <div class="flex flex-row items-start">
+            <div class="flex" :class="avatarTabsTop ? 'flex-col w-full items-center' : 'flex-row items-start'"
+                 :style="avatarTabsTop ? { '--rgw-gridw': avatarGridWidth + 'px' } : {}">
             <div id="classroom-floor"
                  class="classroom-floor shadow-2xl flex flex-col items-center justify-center"
                  :class="[
-                    {'rotate-180': (view === 'order' ? isRotatedOrder : (view === 'group' ? isRotatedGroup : isRotated))},
-                    'no-transition !duration-0'
-                 ]">
+                    {'rotate-180': curRot},
+                    'no-transition !duration-0',
+                    avatarOnlyOn ? 'rgw-bare' : (avatarOn ? 'rgw-tight' : '')
+                 ]"
+                 :style="(avatarOn && !avatarOnlyOn) ? { '--rgw-w': avatarSeatCard.w + 'px', '--rgw-h': avatarSeatCard.h + 'px' } : {}">
                  
-                <div class="flex justify-center mb-12">
+                <div v-if="!avatarOnlyOn" class="flex justify-center" :class="avatarOn ? 'mb-3' : 'mb-12'">
                     <div class="content-reverse"><span class="bg-[#9c734f] text-white px-28 py-4 rounded-full text-2xl font-black inline-block shadow-xl">교 탁</span></div>
                 </div>
 
@@ -3645,62 +4183,188 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 </div>
 </div>
 
-<div v-if="view !== 'group'" class="flex gap-12">                    <div v-for="bIdx in 3" :key="bIdx" class="grid grid-rows-5 gap-4">
-                        <div v-for="rIdx in 5" :key="rIdx" class="flex gap-4">
-                            <div v-for="pIdx in 2" :key="pIdx" class="w-[140px] h-[100px] rounded-2xl relative empty-slot" @dragover.prevent @drop="onDropSeat($event, getIndex(bIdx, rIdx, pIdx))">
-                                <div v-if="seats[getIndex(bIdx, rIdx, pIdx)]" 
+<!-- ⚠️ 이 상자는 분단을 가로로 늘어놓는 flex-row 다. 캐릭터만 보기는 정렬바 + 그리드를
+     위아래로 쌓아야 하므로 flex-col 로 바꾼다(안 그러면 정렬바가 그리드 왼쪽에 세로로 늘어난다). -->
+<div v-if="view !== 'group'" class="flex gap-12" :class="avatarOnlyOn ? '!gap-0 w-full flex-col items-center' : ''">                    <div v-for="bIdx in (avatarOnlyOn ? 0 : 3)" :key="bIdx" class="grid gap-4">
+                        <div v-for="rIdx in (avatarOn ? avatarRows : [1,2,3,4,5])" :key="rIdx" class="flex gap-4">
+                            <div v-for="pIdx in 2" :key="pIdx" class="w-[140px] h-[100px] rounded-2xl relative empty-slot"
+                                 :class="[avatarOn ? 'rgw-seat' : '', (avatarOn && seats[sIdx(bIdx, rIdx, pIdx)]) ? 'rgw-filled' : '']"
+                                 :style="avatarOn ? { '--rgw-w': avatarSeatCard.w + 'px', '--rgw-h': avatarSeatCard.h + 'px' } : {}" @dragover.prevent @drop="onDropSeat($event, sIdx(bIdx, rIdx, pIdx))">
+                                <div v-if="seats[sIdx(bIdx, rIdx, pIdx)]" 
                                      class="seat-card-item w-full h-full absolute inset-0 rounded-2xl flex flex-col items-center justify-center shadow-md border-2 cursor-pointer overflow-hidden px-2"
-                                     :draggable="view === 'main'" @dragstart="onDragStart($event, getIndex(bIdx, rIdx, pIdx), 'seat')" 
+                                     :draggable="view === 'main' && !seatSorted" @dragstart="onDragStart($event, sIdx(bIdx, rIdx, pIdx), 'seat')" 
                                      @dragend="onDragEnd"
-                                     @click="handleCardClick(getIndex(bIdx, rIdx, pIdx))" 
+                                     @click="handleCardClick(sIdx(bIdx, rIdx, pIdx))" 
                                      :class="[
-                                         (view === 'order') ? (isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)]) ? 'bg-red-600 scale-110 shadow-2xl z-50 text-white' : (seats[getIndex(bIdx, rIdx, pIdx)].order ? 'bg-yellow-400 text-black' : 'bg-white text-black')) : '',
-                                         (view !== 'order' && currentTabId !== 'summary') ? (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked ? 'bg-[#8f6a49] border-[#5c3d1e]' : ((((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) >= 7 ? 'score-rainbow' : getScoreBg((((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0)))) : (view !== 'order' && currentTabId === 'summary' ? getTotalGrayBg(seats[getIndex(bIdx, rIdx, pIdx)]) : ''),
+                                         (view === 'order') ? (isFirstOrder(seats[sIdx(bIdx, rIdx, pIdx)]) ? 'bg-red-600 scale-110 shadow-2xl z-50 text-white' : (seats[sIdx(bIdx, rIdx, pIdx)].order ? 'bg-yellow-400 text-black' : 'bg-white text-black')) : '',
+                                         (view !== 'order' && currentTabId !== 'summary') ? (((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{}).checked ? 'bg-[#8f6a49] border-[#5c3d1e]' : ((((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) >= 7 ? 'score-rainbow' : getScoreBg((((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{score:0}).score||0)))) : (view !== 'order' && currentTabId === 'summary' ? getTotalGrayBg(seats[sIdx(bIdx, rIdx, pIdx)]) : ''),
 
-(view !== 'order' && ((currentTabId !== 'summary' && ((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked) || (currentTabId === 'summary' && getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0))) ? 'ring-4 ring-[#5c3d1e] ring-offset-2 !border-[#5c3d1e] shadow-[0_0_15px_rgba(92,61,30,0.8)]' : '',
+(view !== 'order' && ((currentTabId !== 'summary' && ((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{}).checked) || (currentTabId === 'summary' && getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) !== 0))) ? 'ring-4 ring-[#5c3d1e] ring-offset-2 !border-[#5c3d1e] shadow-[0_0_15px_rgba(92,61,30,0.8)]' : '',
 
                                          { 'aura-gold': allMode && view !== 'order' },
-                                         groupDrawStateOf(seats[getIndex(bIdx, rIdx, pIdx)].name) === 'current' ? 'seat-draw-current' : (groupDrawStateOf(seats[getIndex(bIdx, rIdx, pIdx)].name) === 'past' ? 'seat-draw-past' : '')
+                                         view === 'order' ? '' : (groupDrawStateOf(seats[sIdx(bIdx, rIdx, pIdx)].name) === 'current' ? 'seat-draw-current' : (groupDrawStateOf(seats[sIdx(bIdx, rIdx, pIdx)].name) === 'past' ? 'seat-draw-past' : '')),
+                                         (avatarOn && avatarCardHtml(seats[sIdx(bIdx, rIdx, pIdx)])) ? 'rgw-charcard rgw-hasname !px-0' : '',
+                                         (avatarOn && view === 'main' && currentTabId === 'summary') ? (sumMarked(seats[sIdx(bIdx, rIdx, pIdx)]) ? 'rgw-sum-mark' : 'rgw-sum-plain') : '',
+                                         (avatarOn && view === 'order') ? (isFirstOrder(seats[sIdx(bIdx, rIdx, pIdx)]) ? 'rgw-ord1' : (seats[sIdx(bIdx, rIdx, pIdx)].order ? 'rgw-ordn' : '')) : '',
+                                         drawRolling.includes(sIdx(bIdx, rIdx, pIdx)) ? 'rgw-roll' : '',
+                                         (view !== 'order' && drawnNames.length && isDrawn(seats[sIdx(bIdx, rIdx, pIdx)].name)) ? 'rgw-was-drawn' : ''
                                      ]">
-                                    <div class="content-reverse card-container">
+                                    <!-- 이미 뽑힌 학생 표시 -->
+                                    
+
+                                    <!-- ★ 캐릭터 카드 — 켜져 있고 상점에 그 학생이 있을 때만.
+                                         못 찾으면(전학생·이름 다름) 아래 기본 카드가 그대로 나온다. -->
+                                    <template v-if="avatarOn && avatarCardHtml(seats[sIdx(bIdx, rIdx, pIdx)])">
+                                        <div class="content-reverse w-full h-full flex flex-col">
+                                            <div class="flex-1 min-h-0 rgw-card">
+                                                <!-- 종합 보기: 활동 이름표(눌러서 체크 풀기) — 메모를 켜도 함께 보여 준다 -->
+                                                <!-- ⚠️ view 조건이 빠지면 대기 번호 화면에도 종합 바가 새어 나온다 -->
+                                                <div v-if="view === 'main' && currentTabId === 'summary' && (avatarSumTabs(seats[sIdx(bIdx, rIdx, pIdx)].name).length || isMemoVisible || (seats[sIdx(bIdx, rIdx, pIdx)].memo || '').trim())"
+                                                     class="lvbar sum">
+                                                    <button v-for="tab in avatarSumTabs(seats[sIdx(bIdx, rIdx, pIdx)].name)" :key="tab.id"
+                                                            @click.stop="toggleSummaryCheck(seats[sIdx(bIdx, rIdx, pIdx)].name, tab.id)">{{ tab.name }}</button>
+                                                    <span v-if="!avatarSumTabs(seats[sIdx(bIdx, rIdx, pIdx)].name).length && !isMemoVisible" class="aid-sum-none"></span>
+                                                    <input v-if="isMemoVisible || (seats[sIdx(bIdx, rIdx, pIdx)].memo || '').trim()" class="sum-memo" @click.stop
+                                                           :class="seats[sIdx(bIdx, rIdx, pIdx)].starred ? 'starred' : ''"
+                                                           v-model="seats[sIdx(bIdx, rIdx, pIdx)].memo" @change="saveToLocal"
+                                                           @contextmenu.prevent.stop="toggleMemoStar(seats[sIdx(bIdx, rIdx, pIdx)])"
+                                                           placeholder="메모" title="우클릭: 빨간색 강조 켜기/끄기">
+                                                </div>
+                                                <div v-if="(isMemoVisible || (seats[sIdx(bIdx, rIdx, pIdx)].memo || '').trim()) && view !== 'order' && currentTabId !== 'summary'"
+                                                     class="lvbar memo" :class="seats[sIdx(bIdx, rIdx, pIdx)].starred ? 'starred' : ''" @click.stop>
+                                                    <input v-model="seats[sIdx(bIdx, rIdx, pIdx)].memo" @change="saveToLocal"
+                                                           @contextmenu.prevent.stop="toggleMemoStar(seats[sIdx(bIdx, rIdx, pIdx)])"
+                                                           placeholder="메모" title="우클릭: 빨간색 강조 켜기/끄기">
+                                                </div>
+                                                <div v-if="avatarBlankBar(seats[sIdx(bIdx, rIdx, pIdx)])" class="lvbar blank"></div>
+                                                <span class="rgw-body" v-html="avatarCardHtml(seats[sIdx(bIdx, rIdx, pIdx)])"></span>
+                                            </div>
+
+                                        </div>
+                                        <!-- 점수·체크·대기번호는 캐릭터를 가리지 않게 오른쪽 위 배지로 -->
+                                        <div class="content-reverse rgw-badge">
+                                            <div v-if="view === 'order' && seats[sIdx(bIdx, rIdx, pIdx)].order"
+                                                 class="b-ord" :class="isFirstOrder(seats[sIdx(bIdx, rIdx, pIdx)]) ? 'first' : ''">{{ seats[sIdx(bIdx, rIdx, pIdx)].order }}</div>
+                                            <template v-if="view !== 'order' && currentTabId !== 'summary'">
+                                                <div v-if="((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{}).checked" class="b-chk">✓</div>
+                                                <div v-if="(((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) !== 0"
+                                                     class="b-pt"
+                                                     :style="{ background: scoreBadgeColor(((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score||0) }">
+                                                    {{ (((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score||0) > 0 ? '+' : '' }}{{ ((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score }}
+                                                </div>
+                                            </template>
+                                            <div v-if="view !== 'order' && currentTabId === 'summary' && getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) !== 0"
+                                                 class="b-pt" :class="getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) < 0 ? 'minus' : ''">
+                                                {{ getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) }}
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <div v-else class="content-reverse card-container">
                                         <div class="font-black text-xl leading-none mb-3 flex items-center justify-center gap-1"
-     :class="[ (view !== 'order' && currentTabId !== 'summary' && (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{}).checked || (((tabData[currentTabId]||{})[seats[getIndex(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[getIndex(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
-    <span v-if="view !== 'order' && showStudentNumber && seats[getIndex(bIdx, rIdx, pIdx)].number"
+     :class="[ (view !== 'order' && currentTabId !== 'summary' && (((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{}).checked || (((tabData[currentTabId]||{})[seats[sIdx(bIdx, rIdx, pIdx)].name]||{score:0}).score||0) !== 0)) ? 'text-inherit' : '', (view === 'order' && isFirstOrder(seats[sIdx(bIdx, rIdx, pIdx)])) ? 'text-white' : (view === 'order' ? 'text-black' : '') ]">
+    <span v-if="view !== 'order' && showStudentNumber && seats[sIdx(bIdx, rIdx, pIdx)].number"
           class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black shrink-0 pointer-events-none leading-none"
-          style="background:#9c734f;color:white;">{{ seats[getIndex(bIdx, rIdx, pIdx)].number }}</span>
-     {{ seats[getIndex(bIdx, rIdx, pIdx)].name }}
+          style="background:#9c734f;color:white;">{{ seats[sIdx(bIdx, rIdx, pIdx)].number }}</span>
+     {{ seats[sIdx(bIdx, rIdx, pIdx)].name }}
 </div>
 
                                         <div v-if="view === 'main'" class="leading-none mb-1">
     <div v-if="currentTabId === 'summary'" style="display:grid;grid-template-columns:1fr 1fr;gap:2px;width:100%;padding:0 4px;">
         <template v-for="tab in activityTabs" :key="tab.id">
-            <button v-if="((tabData[tab.id]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked"
-                    @click.stop="toggleSummaryCheck(seats[getIndex(bIdx,rIdx,pIdx)].name, tab.id)"
+            <button v-if="((tabData[tab.id]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{}).checked"
+                    @click.stop="toggleSummaryCheck(seats[sIdx(bIdx,rIdx,pIdx)].name, tab.id)"
                     style="font-size:10px;font-weight:700;padding:2px 4px;border:none;border-radius:4px;background:#fff;color:#111;cursor:pointer;line-height:1.5;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:normal;text-shadow:none;-webkit-text-stroke:0;">
                 {{ tab.name }}
             </button>
         </template>
-        <div v-if="getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) !== 0"
+        <div v-if="getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) !== 0"
              style="grid-column:1/-1;font-size:16px;font-weight:900;text-align:center;line-height:1.4;color:inherit;">
-            {{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[getIndex(bIdx,rIdx,pIdx)].name) }}
+            {{ getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[sIdx(bIdx,rIdx,pIdx)].name) }}
         </div>
     </div>
     <div v-else class="text-2xl font-black"
-    :class="((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked?'text-[#eaddca]':'text-inherit'">
-    {{ ((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{}).checked?'✓':'' }}{{ (((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)!==0?((((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)>0?'+':'')+((tabData[currentTabId]||{})[seats[getIndex(bIdx,rIdx,pIdx)].name]||{score:0}).score:'' }}
+    :class="((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{}).checked?'text-[#eaddca]':'text-inherit'">
+    {{ ((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{}).checked?'✓':'' }}{{ (((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)!==0?((((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score||0)>0?'+':'')+((tabData[currentTabId]||{})[seats[sIdx(bIdx,rIdx,pIdx)].name]||{score:0}).score:'' }}
 </div>
 </div>
-                                        <div v-if="view === 'order' && seats[getIndex(bIdx, rIdx, pIdx)].order" class="w-8 h-8 bg-black/10 rounded-full flex items-center justify-center font-black text-sm text-black">{{ seats[getIndex(bIdx, rIdx, pIdx)].order }}</div>
+                                        <div v-if="view === 'order' && seats[sIdx(bIdx, rIdx, pIdx)].order" class="w-8 h-8 bg-black/10 rounded-full flex items-center justify-center font-black text-sm text-black">{{ seats[sIdx(bIdx, rIdx, pIdx)].order }}</div>
                                       <div v-if="isMemoVisible && view !== 'order'" class="memo-container" @click.stop>
-                                            <input v-model="seats[getIndex(bIdx, rIdx, pIdx)].memo" 
+                                            <input v-model="seats[sIdx(bIdx, rIdx, pIdx)].memo" 
                                                    @change="saveToLocal" 
-                                                   @contextmenu.prevent="toggleMemoStar(seats[getIndex(bIdx, rIdx, pIdx)])" 
+                                                   @contextmenu.prevent="toggleMemoStar(seats[sIdx(bIdx, rIdx, pIdx)])" 
                                                    placeholder=" " 
                                                    class="memo-input cursor-context-menu transition-colors outline-none border" 
-                                                   :class="seats[getIndex(bIdx, rIdx, pIdx)].starred ? '!bg-red-500 !border-red-700 !text-white placeholder:!text-white/70 shadow-md' : (!seats[getIndex(bIdx, rIdx, pIdx)].memo ? 'empty-memo text-slate-800' : 'bg-white/90 border-slate-300 hover:bg-white focus:bg-white focus:border-[#a68b6d] text-slate-800 shadow-sm')" 
+                                                   :class="seats[sIdx(bIdx, rIdx, pIdx)].starred ? '!bg-red-500 !border-red-700 !text-white placeholder:!text-white/70 shadow-md' : (!seats[sIdx(bIdx, rIdx, pIdx)].memo ? 'empty-memo text-slate-800' : 'bg-white/90 border-slate-300 hover:bg-white focus:bg-white focus:border-[#a68b6d] text-slate-800 shadow-sm')" 
                                                    title="우클릭: 빨간색 강조 켜기/끄기">
                                         </div>
                                     </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ★ 캐릭터만 보기 — 자리 배치를 무시하고 학생 카드만 화면 가득 늘어놓는다.
+                     빈자리·교탁이 없으니 칸을 훨씬 크게 쓸 수 있다. 누르면 기존 도구(점수·체크·메모)가 그대로 동작. -->
+                <div v-if="avatarOnlyOn" class="rgw-only" :class="view === 'order' ? 'rgw-ordtop' : ''"
+                     :style="{ '--rgw-cols': avatarOnlyCard.cols, '--rgw-w': avatarOnlyCard.w + 'px',
+                               '--rgw-h': avatarOnlyCard.h + 'px', '--rgw-gap': avatarOnlyCard.gap + 'px',
+                               '--rgw-rowgap': avatarOnlyCard.rowgap + 'px' }">
+                    <div v-for="idx in avatarOnlyList" :key="idx" class="rgw-slot">
+                        <div class="seat-card-item w-full h-full absolute inset-0 rounded-2xl flex flex-col items-center justify-center shadow-md border-2 cursor-pointer overflow-hidden rgw-charcard rgw-hasname !px-0"
+                             @click="handleCardClick(idx)"
+                             :class="[
+                                 (view === 'order') ? (isFirstOrder(seats[idx]) ? 'rgw-ord1' : (seats[idx].order ? 'rgw-ordn' : '')) : '',
+                                 (view !== 'order' && currentTabId !== 'summary')
+                                   ? (((tabData[currentTabId]||{})[seats[idx].name]||{}).checked ? 'bg-[#8f6a49] border-[#5c3d1e]' : ((((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score||0) >= 7 ? 'score-rainbow' : getScoreBg((((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score||0))))
+                                   : (view !== 'order' ? getTotalGrayBg(seats[idx]) : ''),
+                                 (view !== 'order' && ((currentTabId !== 'summary' && ((tabData[currentTabId]||{})[seats[idx].name]||{}).checked) || (currentTabId === 'summary' && getTotalScore(seats[idx].name) !== 0))) ? 'ring-4 ring-[#5c3d1e] ring-offset-2 !border-[#5c3d1e] shadow-[0_0_15px_rgba(92,61,30,0.8)]' : '',
+                                 { 'aura-gold': allMode && view !== 'order' },
+                                 view === 'order' ? '' : (groupDrawStateOf(seats[idx].name) === 'current' ? 'seat-draw-current' : (groupDrawStateOf(seats[idx].name) === 'past' ? 'seat-draw-past' : '')),
+                                 drawRolling.includes(idx) ? 'rgw-roll' : '',
+                                 (view !== 'order' && drawnNames.length && isDrawn(seats[idx].name)) ? 'rgw-was-drawn' : '',
+                                 (view !== 'order' && currentTabId === 'summary') ? (sumMarked(seats[idx]) ? 'rgw-sum-mark' : 'rgw-sum-plain') : ''
+                             ]">
+                            
+                            <div class="content-reverse w-full h-full flex flex-col">
+                                <div class="flex-1 min-h-0 rgw-card">
+                                    <div v-if="view !== 'order' && currentTabId === 'summary' && (avatarSumTabs(seats[idx].name).length || isMemoVisible || (seats[idx].memo || '').trim())"
+                                         class="lvbar sum">
+                                        <button v-for="tab in avatarSumTabs(seats[idx].name)" :key="tab.id"
+                                                @click.stop="toggleSummaryCheck(seats[idx].name, tab.id)">{{ tab.name }}</button>
+                                        <span v-if="!avatarSumTabs(seats[idx].name).length && !isMemoVisible" class="aid-sum-none"></span>
+                                        <input v-if="isMemoVisible || (seats[idx].memo || '').trim()" class="sum-memo" @click.stop
+                                               :class="seats[idx].starred ? 'starred' : ''"
+                                               v-model="seats[idx].memo" @change="saveToLocal"
+                                               @contextmenu.prevent.stop="toggleMemoStar(seats[idx])"
+                                               placeholder="메모" title="우클릭: 빨간색 강조 켜기/끄기">
+                                    </div>
+                                    <div v-if="view !== 'order' && (isMemoVisible || (seats[idx].memo || '').trim()) && currentTabId !== 'summary'" class="lvbar memo"
+                                         :class="seats[idx].starred ? 'starred' : ''" @click.stop>
+                                        <input v-model="seats[idx].memo" @change="saveToLocal"
+                                               @contextmenu.prevent.stop="toggleMemoStar(seats[idx])"
+                                               placeholder="메모" title="우클릭: 빨간색 강조 켜기/끄기">
+                                    </div>
+                                    <div v-if="avatarBlankBar(seats[idx])" class="lvbar blank"></div>
+                                    <span class="rgw-body" v-html="avatarCardHtml(seats[idx])"></span>
+                                </div>
+
+                            </div>
+                            <div class="content-reverse rgw-badge">
+                                <div v-if="view === 'order' && seats[idx].order"
+                                     class="b-ord" :class="isFirstOrder(seats[idx]) ? 'first' : ''">{{ seats[idx].order }}</div>
+                                <template v-if="view !== 'order' && currentTabId !== 'summary'">
+                                    <div v-if="((tabData[currentTabId]||{})[seats[idx].name]||{}).checked" class="b-chk">✓</div>
+                                    <div v-if="(((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score||0) !== 0"
+                                         class="b-pt"
+                                         :style="{ background: scoreBadgeColor(((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score||0) }">
+                                        {{ (((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score||0) > 0 ? '+' : '' }}{{ ((tabData[currentTabId]||{})[seats[idx].name]||{score:0}).score }}
+                                    </div>
+                                </template>
+                                <div v-else-if="view !== 'order' && getTotalScore(seats[idx].name) !== 0"
+                                     class="b-pt" :class="getTotalScore(seats[idx].name) < 0 ? 'minus' : ''">
+                                    {{ getTotalScore(seats[idx].name) > 0 ? '+' : '' }}{{ getTotalScore(seats[idx].name) }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3711,7 +4375,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
          </div>
 
             <!-- ★ 상단 인덱스 탭 패널 (floor 위에 부착) -->
-            <div v-if="view === 'main'" class="flex flex-col gap-1 items-start z-10" style="margin-left:-12px;margin-top:calc(12px + 4rem);">
+            <div v-if="view === 'main'" class="flex flex-col gap-1 items-start z-10"
+                 :class="avatarTabsTop ? ('rgw-tabs-top order-first' + (avatarOnlyOn ? ' rgw-tabs-free' : '')) : ''"
+                 :style="avatarTabsTop ? {} : { marginLeft: '-12px', marginTop: 'calc(12px + 4rem)' }">
                 <template v-for="tab in activityTabs" :key="tab.id">
                     <div class="relative group"
                          draggable="true"
@@ -3732,6 +4398,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <button v-else
                             @click="currentTabId = tab.id; refreshIfChanged()"
                             @dblclick="startEditTab(tab)"
+                            :class="currentTabId === tab.id ? 'rgw-tab-on' : ''"
                             :style="currentTabId === tab.id
                                 ? 'background:#c8a97a;color:#5c3d1e;border-color:#9c734f;box-shadow:4px 0 10px rgba(0,0,0,0.2);padding-right:8px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'
                                 : 'background:#eaddca;color:#8f6a49;border-color:#9c734f;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0.2em;'"
@@ -3742,34 +4409,43 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                     </div>
                 </template>
                 <button @click="currentTabId = 'summary'; refreshIfChanged()"
+                    :title="'종합 보기 — 여기서 준 점수·체크는 [' + summaryTargetName + '] 활동에 들어갑니다'"
+                    :class="currentTabId === 'summary' ? 'rgw-tab-on' : ''"
                     :style="getSummaryTabStyle()"
                     class="flex items-center justify-center px-2 py-3 rounded-r-2xl border-2 border-l-0 font-black text-base transition-all min-h-[60px]">종합</button>
-                <button @click="addActivityTab"
+                <button @click="addActivityTab" title="활동 추가"
                     style="background:rgba(255,255,255,0.45);color:#9c734f;border-color:rgba(156,115,79,0.5);font-size:20px;"
-                    class="flex items-center justify-center px-3 py-2 rounded-r-2xl border-2 border-l-0 border-dashed font-black transition-all hover:opacity-70 min-w-[44px]">+</button>
+                    class="rgw-addtab flex items-center justify-center px-3 py-2 rounded-r-2xl border-2 border-l-0 border-dashed font-black transition-all hover:opacity-70 min-w-[44px]">+</button>
             </div>
             </div><!-- end floor+tab wrapper -->
 
+         <!-- 대기 명단 — 오른쪽 아래에 작게. 카드를 덮지 않도록 자리표 계산에서 이 폭을 빼 준다.
+              클릭/우클릭으로 빼기, 드래그로 순서 바꾸기(원래 판의 기능 그대로). -->
          <div v-if="view === 'order'"
-                 class="fixed right-10 top-10 w-[220px] h-[80vh] bg-white/90 backdrop-blur rounded-[2.5rem] flex flex-col items-center py-8 px-4 gap-5 shadow-2xl border-4 border-slate-200 z-30"
+                 :class="avatarOnlyOn
+                     ? 'fixed bottom-3 h-[86px] flex-row items-center px-4 py-2 gap-3'
+                     : 'fixed right-28 w-[168px] flex-col items-center py-4 px-3 gap-2'"
+                 class="rgw-ordlist bg-white/90 backdrop-blur rounded-[2rem] flex shadow-2xl border-4 border-slate-200 z-30"
+                 :style="avatarOnlyOn ? { left: (sideW + 32) + 'px', right: '128px' } : { top: orderPanelPos.top + 'px', height: orderPanelPos.height + 'px' }"
                  @dragover.prevent @drop="onDropToBottom">
-                 <div class="shrink-0 w-full text-center border-b-2 border-slate-200 pb-4 mb-1">
-                    <span class="text-slate-700 font-black text-3xl flex items-center justify-center gap-2">
-                        순서
-                    </span>
+                 <div class="shrink-0 flex items-center justify-center gap-2"
+                      :class="avatarOnlyOn ? 'border-r-2 border-slate-200 pr-3 h-full' : 'w-full border-b-2 border-slate-200 pb-2'">
+                    <span class="text-slate-700 font-black text-xl px-1">순서</span>
                 </div>
-                <div class="flex flex-col gap-3 w-full flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                    <div v-if="sortedOrderedStudents.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400 opacity-60 text-center">
-                        <i class="fa-solid fa-list-ol text-4xl mb-3"></i>
-                        <span class="text-sm font-bold break-keep">대기자가<br>없습니다</span>
-                    </div>
-                    <div v-for="(s, idx) in sortedOrderedStudents" :key="s.name" draggable="true" @dragstart="draggedOrderIdx = idx" @dragover.prevent @drop.stop="onDropReorder(idx)" @click="removeOrder(s)" @contextmenu.prevent="removeOrder(s)" class="flex items-center gap-3 border-4 px-3 py-3 rounded-2xl shrink-0 cursor-move transition-all shadow-sm hover:scale-[1.02]" :class="[isFirstOrder(s) ? 'bg-red-600 text-white border-white' : 'bg-yellow-400 text-black border-yellow-500']">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-base shrink-0" :class="isFirstOrder(s) ? 'bg-white/20 text-white' : 'bg-black/10 text-black'">{{ s.order }}</div>
-                        <span class="font-black text-lg flex-1 truncate pt-1 text-[#5e3008]">{{ s.name }}</span>
-                        <i class="fa-solid fa-grip-lines opacity-50 text-sm"></i>
+                <div class="flex gap-2 flex-1 min-w-0 custom-scrollbar"
+                     :class="avatarOnlyOn ? 'flex-row items-center overflow-x-auto h-full' : 'flex-col w-full overflow-y-auto pr-1'">
+                    <div v-for="(s, idx) in sortedOrderedStudents" :key="s.name" draggable="true" @dragstart="draggedOrderIdx = idx" @dragover.prevent @drop.stop="onDropReorder(idx)" @click="removeOrder(s)" @contextmenu.prevent="removeOrder(s)" class="flex items-center gap-2 border-2 px-4 py-1.5 rounded-xl shrink-0 cursor-move transition-all shadow-sm hover:scale-[1.02]" :class="[isFirstOrder(s) ? 'bg-red-600 text-white border-white' : 'bg-orange-500 text-white border-orange-600']">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center font-black text-sm shrink-0 bg-white/20 text-white">{{ s.order }}</div>
+                        <span class="font-black text-xl flex-1 truncate pt-0.5 text-white">{{ s.name }}</span>
                     </div>
                 </div>
+                <!-- 대기순서 초기화 — 순서 칸 오른쪽 끝 -->
+                <button @click.stop="confirmResetOrder" title="대기순서 모두 지우기"
+                        class="shrink-0 w-9 h-9 rounded-full bg-white text-purple-500 border-2 border-purple-300 flex items-center justify-center hover:bg-purple-50 active:scale-90 transition-all">
+                    <i class="fa-solid fa-rotate-left text-sm"></i>
+                </button>
             </div>
+
         </main>
   
         
@@ -3840,7 +4516,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             <button v-if="currentTabId !== 'summary' && activityTabs && activityTabs.length"
                     @click="importTabScoresToRace"
                     class="px-4 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2 border-2 active:scale-95 bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-100"
-                    title="활성화된 좌석배치도 탭 점수를 출전 횟수로 가져옵니다">
+                    title="활성화된 학생 활동 탭 점수를 출전 횟수로 가져옵니다">
                 <span class="text-xl">📥</span>
                 <span class="text-xl font-game tracking-tight pt-0.5">점수 가져오기</span>
             </button>
@@ -4327,9 +5003,9 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                         <div class="text-xs text-slate-400 font-bold">모둠을 랜덤 순서로 돌며 전원이 다 뽑힐 때까지 진행합니다.</div>
                     </div>
                     <div class="flex items-center gap-6">
-                        <button @click="groupDrawPerGroup = Math.max(1, groupDrawPerGroup - 1)" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">−</button>
+                        <button @click="setGroupPerGroup(Math.max(1, groupDrawPerGroup - 1))" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">−</button>
                         <span class="text-6xl font-black text-indigo-600 w-20 text-center">{{ groupDrawPerGroup }}</span>
-                        <button @click="groupDrawPerGroup = Math.min(8, groupDrawPerGroup + 1)" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">＋</button>
+                        <button @click="setGroupPerGroup(Math.min(8, groupDrawPerGroup + 1))" class="w-14 h-14 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 text-3xl font-black shadow-sm hover:bg-slate-100 transition-all">＋</button>
                     </div>
                     <button @click="startGroupDraw" class="relative group mt-2"><div class="absolute inset-0 bg-indigo-400 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"></div><div class="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative z-10 group-hover:scale-105 transition-transform duration-300 border-8 border-white/20"><i class="fa-solid fa-wand-magic-sparkles text-5xl mb-3"></i><span class="text-3xl font-black tracking-tighter">START</span></div></button>
                 </div>
@@ -4379,13 +5055,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
             </div>
         </div>
 
-        <!-- 모둠 뽑기 진행 플로팅 바 -->
-        <div v-if="groupDrawActive" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[5200] bg-white rounded-[2rem] shadow-2xl border-4 border-indigo-100 px-6 py-4 flex items-center gap-4">
-            <span class="font-black text-slate-500 text-sm">{{ groupDrawRevealed }} / {{ groupDrawQueue.length }}</span>
-            <button @click="drawNext" :disabled="groupDrawRevealed >= groupDrawQueue.length" class="px-7 py-3 rounded-2xl font-black text-white shadow-lg transition-all flex items-center gap-2" :class="groupDrawRevealed >= groupDrawQueue.length ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-105'"><i class="fa-solid fa-hand-pointer"></i> 다음 뽑기</button>
-            <button @click="startGroupDraw" title="다시 뽑기" class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 text-xl shadow-sm hover:bg-amber-200 transition-all"><i class="fa-solid fa-rotate-right"></i></button>
-            <button @click="endGroupDraw" title="닫기" class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 text-xl shadow-sm hover:bg-rose-200 transition-all"><i class="fa-solid fa-xmark"></i></button>
-        </div>
+        <!-- (제거) 모둠 뽑기 진행 바 — 다음 차례는 뽑기 버튼, 종료는 그 버튼의 X 배지(또는 ESC). -->
 
         <div v-if="showShuffleHistory" class="fixed inset-0 z-[6000] bg-black/60 flex items-center justify-center p-4" @click.self="showShuffleHistory = false">
     <div class="bg-[#fdfbf7] w-full max-w-md rounded-[3rem] p-6 h-[75vh] flex flex-col shadow-2xl border-8 border-white relative overflow-hidden animate-fade-in">
@@ -4485,7 +5155,8 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                 
 
 <!-- ══════════ 메인 대시보드 ══════════ -->
-<div v-if="showMainDashboard" class="fixed top-0 bottom-0 right-0 z-[8900] flex flex-col" style="left:320px; background:#ffffff; font-family:'Jua',sans-serif; overflow:hidden; font-size:16px;">
+<!-- ⚠️ left는 왼쪽 메뉴 폭에 맞춰야 한다 — 메뉴를 접었을 때 320px로 고정돼 있으면 그 틈으로 뒤 화면(자리표)이 비친다 -->
+<div v-if="showMainDashboard" class="fixed top-0 bottom-0 right-0 z-[8900] flex flex-col" :style="{ left: sideW + 'px', background:'#ffffff', fontFamily:'Jua,sans-serif', overflow:'hidden', fontSize:'16px' }">
 
     <!-- 설정 패널 -->
     <div v-if="dashboardShowSettings" class="flex-shrink-0 bg-[#fffdf0] border-b-4 border-[#e7d5b1] px-4 py-3 overflow-y-auto dash-scroll" style="max-height:55vh;">
@@ -6514,6 +7185,449 @@ tabindex="0">
     <!-- 클라우드 저장 확인 토스트는 _showCloudToast()가 body에 직접 DOM 주입 -->
 
 </div>
+
+<script>
+/* =====================================================================
+   ★ 캐릭터 카드 — 이벤트 상점(저학년판)의 아바타 렌더만 이식 · 읽기 전용
+   ---------------------------------------------------------------------
+   · ClassData/EventShop 을 읽기만 한다. 쓰기는 단 한 줄도 없다.
+     (구매·착용은 이벤트 상점/저학년 화면에서만 — 여기서는 보여 주기만)
+   · 우리반 매니저 명단에는 학생 코드(cd)가 없다 → 이름으로 짝을 짓는다.
+     같은 이름이 둘이면 번호로 가른다.
+   · 상점 원본과 같은 규칙을 그대로 옮겨야 좌우·레이어 순서가 어긋나지 않는다.
+     (AVT_Z 순서, 소품/펫 [0]=오른쪽·[1]=왼쪽, ps_ 펫스킨, 무기 강화 tier)
+   ===================================================================== */
+(function () {
+    const CFGFB = {
+        apiKey: "AIzaSyCzsI9FW3bga1V73lCR7pNgfPLdcqcbsgM",
+        authDomain: "class-manager-bad00.firebaseapp.com",
+        databaseURL: "https://class-manager-bad00-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "class-manager-bad00",
+        storageBucket: "class-manager-bad00.firebasestorage.app",
+        messagingSenderId: "436830301778",
+        appId: "1:436830301778:web:d3da11a5ac0e6c252d798b"
+    };
+
+    const RGW = window.RGW = {
+        ready: false,          // 학생 데이터가 한 번이라도 도착했는가
+        hasData: () => false,  // 카드를 실제로 그릴 수 있는 상태인가(학생 + 카탈로그 + 기본 캐릭터)
+        rev: 0,                // 값이 바뀔 때마다 +1 → Vue가 이걸 보고 다시 그린다
+        onChange: null,        // Vue가 꽂아 두는 콜백
+        stuByName: new Map(),  // '이름' → [학생레코드…]
+        cardHtml: () => '',
+        start: () => {}
+    };
+
+    /* ── 상점 원본 그대로 ── */
+    const AVT_Z = ['back','shoes','outfit','face','hair','face_deco','hat','hair_deco','prop','pet'];
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const arr = v => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v).filter(x => x != null) : []);
+    const getEqId   = v => (v && typeof v === 'object') ? v.id : (v || '');
+    const getEqFlip = v => (v && typeof v === 'object') ? (v.flip || 'right') : 'right';
+    // raw.githubusercontent 폭주(429)로 그림이 빈칸 되는 문제 → jsdelivr 라우팅, 실패 시 원본 폴백
+    function _cdnUrl(u) {
+        try {
+            const m = /^https?:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/.exec(u || '');
+            if (m) return 'https://cdn.jsdelivr.net/gh/' + m[1] + '/' + m[2] + '@' + m[3] + '/' + m[4];
+        } catch (_) {}
+        return u;
+    }
+    // 부분 레코드 방어 — 식별자 없는 조각은 학생으로 채택하지 않는다(상점과 같은 기준)
+    const isFullStu = v => !!(v && typeof v === 'object' && v.cd != null && v.nm != null);
+    const isSimStu = (k, v) => !!((v && v._sim === true) || /^__sim/i.test(String(k)) || /^시뮬테스트/.test(String((v && v.nm) || '')));
+
+    let STU = {}, AVT = [], PSKIN = [], TIT = [], ITM = [], CFG = {};
+    /* 학교 인터넷이 막혀 상점에 못 붙는 경우가 있다. 그때 칸만 커지고 캐릭터는 안 나오면
+       자리표가 이유 없이 헐렁해 보인다 → 실제로 그릴 수 있을 때만 켠 것으로 친다. */
+    RGW.hasData = () => RGW.ready && !!CFG.baseChar && AVT.length > 0;
+
+    /* 아이템 찾기는 인덱스로 ──
+       카드 30장 × 레이어 10겹이면 아이템 목록을 300번 훑는다. 목록이 수백 개면
+       저사양 태블릿에서 눈에 띄게 버벅인다 → 목록이 바뀔 때만 표를 만들어 두고 O(1)로 찾는다. */
+    let _avtIdx = null;
+    const _reindexAvt = () => { _avtIdx = null; };
+    function _findAvt(id) {
+        if (!_avtIdx) {
+            _avtIdx = new Map();
+            // ⚠️ 상점 원본은 AVT.find(첫 항목) → 없으면 펫 스킨 순서다. 표로 바꿔도 그 순서를 지켜야 한다.
+            //    (먼저 넣은 것을 덮지 않는다 = find와 같은 '첫 항목', AVT가 펫 스킨보다 우선)
+            AVT.forEach(a => { if (a && a.id != null && !_avtIdx.has(String(a.id))) _avtIdx.set(String(a.id), a); });
+            PSKIN.forEach(sk => {
+                const k = 'ps_' + String(sk && sk.id);
+                if (sk && sk.img && !_avtIdx.has(k)) _avtIdx.set(k,
+                    { img:sk.img, px:sk.px??0, py:sk.py??0, ps:sk.ps??100, rot:sk.rot??0 });
+            });
+        }
+        return _avtIdx.get(String(id)) || null;
+    }
+
+    const earnedOf = s => Math.max(0, (s.cookie || 0) - (s.usedCookie || 0));
+    const levelOf  = s => Math.floor(earnedOf(s) / 10);
+    const balOf    = s => Math.max(0, (s.cookie || 0) - (s.usedCookie || 0) - (s.shopUsed || 0));
+
+    function renderAvatar(stu, size) {
+        size = size || 110;
+        const eq = stu.eq || {};
+        const baseUrl = (CFG && CFG.baseChar) || '기본 캐릭터.png';
+        const findAvt = _findAvt;
+        const layerHtml = (item, flipSlot, zi) => {
+            if (!item || !item.img) return '';
+            const px=item.px||0, py=item.py||0, ps=item.ps||100, rot=item.rot||0;
+            const flipX = flipSlot !== !!item.flip;
+            const mk = (x, y, s, r) => {
+                const left = flipSlot ? Math.max(0, 100 - x - s) : x;
+                const t = [flipX ? 'scaleX(-1)' : '', r ? `rotate(${r}deg)` : ''].filter(Boolean).join(' ');
+                return `position:absolute;left:${left}%;top:${y}%;width:${s}%;height:${s}%;object-fit:contain;`
+                     + `image-rendering:auto;z-index:${zi};transform-origin:center;${t?`transform:${t};`:''}`;
+            };
+            let h = `<img class="avt-layer" decoding="async" src="${_cdnUrl(item.img)}" `
+                  + `onerror="this.onerror=null;this.src='${item.img}'" style="${mk(px,py,ps,rot)}">`;
+            if (item.img2) {
+                const px2=item.px2??px, py2=item.py2??py, ps2=item.ps2??ps, rot2=item.rot2??rot;
+                h += `<img class="avt-layer" decoding="async" src="${_cdnUrl(item.img2)}" `
+                   + `onerror="this.onerror=null;this.src='${item.img2}'" style="${mk(px2,py2,ps2,rot2)}">`;
+            }
+            return h;
+        };
+        const slotLayer = (cat, zi) => {
+            const v = eq[cat]; const id = getEqId(v);
+            if (!id) return '';
+            return layerHtml(findAvt(id), getEqFlip(v) === 'left', zi);
+        };
+        // 소품·펫 다중 슬롯 — [0]번이 "오른쪽(반전)", [1]번이 왼쪽 (상점과 동일)
+        const multi = (ids, zi) => ids.map((id, i) => id ? layerHtml(findAvt(id), i === 0, zi) : '').join('');
+        let propIds = arr(stu.displayProps).filter(Boolean);
+        if (!propIds.length && getEqId(eq.prop)) propIds = [getEqId(eq.prop)];
+        if (propIds[0] && String(propIds[0]) === String(propIds[1])) propIds = [propIds[0]];
+        let petIds = arr(stu.displayPets).filter(Boolean);
+        if (!petIds.length && getEqId(eq.pet)) petIds = [getEqId(eq.pet)];
+        if (petIds[0] && String(petIds[0]) === String(petIds[1])) petIds = [petIds[0]];
+        // 무기 — eq.weapon = {itm, lv, flip}. lv 이하 중 가장 높은 강화 tier 그림
+        const weaponLayer = zi => {
+            const wv = eq.weapon;
+            if (!wv || typeof wv !== 'object' || !wv.itm) return '';
+            const witem = ITM.find(i => i && i.n === wv.itm && i.wType);
+            if (!witem) return '';
+            const base = witem.wBase || {};
+            let tier = null;
+            arr(witem.wTiers).forEach(t => { if ((t.lv||0) <= (wv.lv||0) && (!tier || (t.lv||0) > (tier.lv||0))) tier = t; });
+            const img = (tier && tier.img) ? tier.img : base.img;
+            if (!img) return '';
+            return layerHtml({ img, px:base.px||0, py:base.py||0, ps:base.ps||100, rot:base.rot||0, flip:base.flip },
+                             wv.flip === 'left', zi);
+        };
+        const back  = slotLayer('back', 0);
+        const base  = `<img class="avt-base" decoding="async" src="${_cdnUrl(baseUrl)}" `
+                    + `onerror="this.onerror=null;this.src='${baseUrl}'" `
+                    + `style="position:relative;z-index:1;width:${size}px;height:${size}px;object-fit:contain;image-rendering:auto;">`;
+        const front = AVT_Z.filter(c => c !== 'back' && c !== 'prop' && c !== 'pet').map(c => slotLayer(c, 2)).join('')
+                    + multi(propIds, 2) + weaponLayer(2) + multi(petIds, 3);
+        return `<div class="avtbox" style="width:${size}px;height:${size}px;">${back}${base}${front}</div>`;
+    }
+
+    /* 칭호 — 교사가 꾸민 HTML이라 태그를 걷어내고 글자만 쓴다 */
+    function titleText(s) {
+        const earned = arr(s.earnedTit).map(id => TIT.find(t => t && String(t.id) === String(id))).filter(Boolean);
+        if (!earned.length || s.equippedTit === 'none') return '';
+        const t = s.equippedTit ? earned.find(x => String(x.id) === String(s.equippedTit)) : earned[earned.length - 1];
+        if (!t) return '';
+        return String(t.name || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    }
+    /* 칭호 글씨 줄임 비율 — 칭호가 길수록 조금씩 작게.
+       ⚠️ 이름 길이는 보지 않는다. 이 값은 칭호(.cnb-tit)에만 쓰이므로
+          이름이 길다는 이유로 짧은 칭호까지 쪼그라들면 안 된다. */
+    function npScale(tit, nm) {
+        const len = (tit ? tit.length : 0) + 3;
+        if (len <= 6)  return 1;
+        if (len <= 8)  return .84;
+        if (len <= 10) return .64;
+        if (len <= 12) return .54;
+        if (len <= 14) return .47;
+        if (len <= 16) return .45;
+        if (len <= 19) return .36;
+        return .31;
+    }
+    /* 이름 글씨 줄임 비율 — '이름 길이'만 본다(칭호와 무관해야 크기가 들쭉날쭉하지 않다).
+       ⚠️ .cnb-name 은 말줄임이 없어 그냥 잘리므로, 긴 이름은 여기서 조금 줄여 다 보이게 한다. */
+    function nnScale(nm) {
+        const n = String(nm || '').length;
+        if (n <= 4) return 1;
+        if (n === 5) return .88;
+        if (n === 6) return .78;
+        return .68;
+    }
+
+    /* ── 이름(+번호)으로 상점 학생 찾기 ──
+       매니저 명단에는 cd가 없다. 이름이 유일하면 그대로, 겹치면 번호로 가른다.
+       못 찾으면 null → 호출한 쪽이 기본(글자) 카드를 그린다. */
+    function findStu(name, number) {
+        const list = RGW.stuByName.get(String(name || '').trim());
+        if (!list || !list.length) return null;
+        if (list.length === 1) return list[0];
+        if (number != null) {
+            const hit = list.find(s => String(s.no) === String(number));
+            if (hit) return hit;
+        }
+        return list[0];
+    }
+
+    /* 카드 안쪽 HTML — 게이지 + 캐릭터 + 이름표. 배지(점수·체크·번호)는 Vue가 얹는다.
+       ⚠️ Vue는 한 칸을 그릴 때 이 함수를 두세 번 부른다(v-if + v-html). 서른 칸 × 레이어 여러 장이면
+          저사양 태블릿에서 눈에 띄게 버벅인다 → 값이 바뀔 때까지(rev) 만들어 둔 HTML을 재사용한다. */
+    const _cache = new Map();
+    RGW.cardHtml = function (name, number, opt) {
+        opt = opt || {};
+        const ck = RGW.rev + '|' + name + '|' + number + '|' + (opt.title ? 1 : 0) + (opt.no ? 1 : 0) + (opt.bar === false ? 'B' : 'b');
+        if (_cache.has(ck)) return _cache.get(ck);
+        const html = buildCard(name, number, opt);
+        if (_cache.size > 400) _cache.clear();      // rev가 오르면 옛 키는 쓸모없다
+        _cache.set(ck, html);
+        return html;
+    };
+    function buildCard(name, number, opt) {
+        const s = findStu(name, number);
+        if (!s) return '';
+        // 카탈로그(cfg·avt)가 아직 안 왔으면 그리지 않는다 — 기본 캐릭터가 깨진 채 한 번 번쩍이는 걸 막는다
+        if (!CFG.baseChar || !AVT.length) return '';
+        const tit = opt.title === false ? '' : titleText(s);
+        /* 번호 배지(.cnb-no)가 켜지면 그만큼 폭을 빼앗겨 칭호 끝 글자가 잘린다(실측 85%만 보임)
+           -> 번호가 있을 때만 칭호를 조금 더 줄인다. 이름 크기는 건드리지 않는다. */
+        const np  = npScale(tit, s.nm) * (opt.no && s.no != null ? .74 : 1);
+        const rest = earnedOf(s) % 10;      // 레벨은 쿠키 10개당 1 → 나머지가 다음 레벨까지의 진행도
+        // 종합 보기에서는 이 자리에 체크된 활동 이름이 들어간다(우리반 매니저가 직접 그린다) → 게이지를 뺀다
+        const bar = opt.bar === false ? ''
+                  : `<div class="lvbar"><div class="fill" style="width:${rest * 10}%;"></div>`
+                  + `<div class="txt"><span>Lv ${levelOf(s)}</span><span class="ck">🍪${balOf(s)}</span></div></div>`;
+        /* 이름표는 한 줄 — 왼쪽 칭호, 오른쪽 이름.
+           ⚠️ 이름 크기는 칭호가 있어도 그대로다(--nn 은 '이름 길이'만 본다).
+              자리가 모자라면 이름이 아니라 칭호가 줄어들고 말줄임(…)이 된다. */
+        const plate = `<div class="char-name-banner" style="--np:${np};--nn:${nnScale(s.nm)};">`
+                  + (opt.no && s.no != null ? `<span class="cnb-no">${esc(String(s.no))}</span>` : '<span class="cnb-star">✦</span>')
+                  + (tit ? `<span class="cnb-tit">${esc(tit)}</span>` : '')
+                  + `<span class="cnb-name">${esc(s.nm)}</span>`
+                  + (opt.no && s.no != null ? '' : '<span class="cnb-star">✦</span>') + '</div>';
+        // ⚠️ 바깥 .rgw-card 상자는 우리반 매니저(Vue)가 만든다 — 종합 보기에서 게이지 자리에
+        //    누를 수 있는 활동 이름표를 끼워 넣어야 하기 때문(v-html 안에는 클릭을 못 붙인다).
+        return `${bar}<div class="avtwrap">${renderAvatar(s, 165)}</div>${plate}`;
+    }
+
+    /* 정렬용 — '총 쿠키'는 다했니에서 받은 누적 쿠키(earnedOf)다. 레벨이 이 값 ÷ 10.
+       카드 오른쪽 위에 보이는 🍪 는 '남은 쿠키'라 쓰면 안 된다. */
+    RGW.cookiesOf = function (name, number) {
+        const s = findStu(name, number);
+        return s ? earnedOf(s) : -1;
+    };
+
+    /* 정렬용 — 레벨(모은 쿠키 10개당 1). 상점에 없는 학생은 -1로 뒤로 보낸다 */
+    RGW.levelOf = function (name, number) {
+        const s = findStu(name, number);
+        return s ? levelOf(s) : -1;
+    };
+
+    /* 뽑기 당첨 화면용 — 이름표·게이지 없이 캐릭터만 크게 */
+    RGW.avatarOnly = function (name, number, size) {
+        const s = findStu(name, number);
+        if (!s || !CFG.baseChar || !AVT.length) return '';
+        return renderAvatar(s, size || 320);
+    };
+
+    /* ── 그림 미리 받아 두기 ──
+       카드 30장 × 레이어 여러 장이면 첫 화면에서 그림이 하나씩 뒤늦게 뜬다.
+       실제로 쓰이는 주소만 6개씩 순차로 받아 브라우저 캐시에 올려 둔다. */
+    const _warmed = new Set();
+    let _warmTimer = null;
+    function warmImages() {
+        clearTimeout(_warmTimer);
+        _warmTimer = setTimeout(() => {
+            if (!AVT.length) return;
+            const urls = [];
+            const push = u => { if (u && !_warmed.has(u)) { _warmed.add(u); urls.push(u); } };
+            if (CFG.baseChar) push(_cdnUrl(CFG.baseChar));
+            const byId = new Map(AVT.map(a => [String(a.id), a]));
+            Object.values(STU).forEach(s => {
+                const ids = [];
+                Object.values(s.eq || {}).forEach(v => { const id = getEqId(v); if (id) ids.push(id); });
+                arr(s.displayProps).forEach(v => ids.push(getEqId(v)));
+                arr(s.displayPets).forEach(v => ids.push(getEqId(v)));
+                ids.forEach(id => {
+                    const a = byId.get(String(id));
+                    if (a) { push(_cdnUrl(a.img)); if (a.img2) push(_cdnUrl(a.img2)); }
+                });
+            });
+            let i = 0;
+            const next = () => {
+                if (i >= urls.length) return;
+                const im = new Image();
+                im.onload = im.onerror = next;
+                im.src = urls[i++];
+            };
+            for (let k = 0; k < 6; k++) next();
+        }, 300);
+    }
+
+    function bump() {
+        RGW.rev++;
+        if (typeof RGW.onChange === 'function') { try { RGW.onChange(); } catch (_) {} }
+    }
+    function reindex() {
+        const m = new Map();
+        Object.values(STU).forEach(s => {
+            const nm = String(s.nm || '').trim();
+            if (!nm) return;
+            if (!m.has(nm)) m.set(nm, []);
+            m.get(nm).push(s);
+        });
+        RGW.stuByName = m;
+    }
+
+    /* ══ 통신 절감 ══════════════════════════════════════════════════════
+       예전에는 stu·avt·tit·itm 을 통째로 라이브 구독했다(켤 때 211KB, 학생이 뭔가 살 때마다 103KB).
+       세 가지로 줄였다 — 상점 앱(★이벤트 상점_증분수신)이 쓰는 방식을 그대로 따랐다.
+         B. stu 증분 : updatedAt 커서 이후 '바뀐 학생만' 받는다(1명 ≈ 7KB)
+         C. rev 게이팅: 카탈로그는 cfg/*Rev(십수 바이트)만 구독하고, 값이 바뀔 때만 통째로 받는다
+         D. 로컬 캐시 : 받은 것을 localStorage 에 남겨 다음 접속에는 거의 0바이트로 시작한다
+       ⚠️ 전부 읽기 전용이다. 최악의 실패도 '카드가 잠시 옛 모습' 수준이며,
+          아래 FULL_MAX 주기마다 전체를 다시 받아 삭제·누락을 정리한다. */
+    const LS_CAT = 'wm_rgwCat', LS_STU = 'wm_rgwStu';
+    const FULL_MAX = 12 * 3600 * 1000;      // 이 시간이 지나면 stu 를 통째로 다시 받는다(삭제 학생 정리)
+    const STU_KEEP = ['cd','nm','no','eq','displayProps','displayPets',
+                      'cookie','usedCookie','shopUsed','earnedTit','equippedTit','updatedAt'];
+    const _slim = v => { const o = {}; STU_KEEP.forEach(k => { if (v[k] !== undefined) o[k] = v[k]; }); return o; };
+    const _lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } };
+    const _lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
+
+    let _cat = _lsGet(LS_CAT) || { rev: {}, data: {} };
+    let _stuCache = _lsGet(LS_STU) || { ts: 0, data: {} };
+    let _saveT = null;
+    /* ⚠️ full(마지막 전체 수신 시각)을 반드시 함께 저장할 것.
+          빠뜨리면 증분 저장이 그 표시를 지워 다음 접속마다 stu 를 통째로 다시 받는다. */
+    const _saveStu = () => { clearTimeout(_saveT); _saveT = setTimeout(() => {
+        _lsSet(LS_STU, { ts: _stuCache.ts, data: _stuCache.data, full: _stuCache.full }); }, 1200); };
+
+    /* ── 연결 ── 아바타를 처음 켤 때만 붙는다(안 쓰면 통신 0) */
+    let started = false, _ref = null, _kids = [], _catT = {}, _catSeq = {};
+    RGW.start = function () {
+        if (started) return;
+        if (!window.firebase || !firebase.database) return;   // CDN이 막힌 환경이면 조용히 포기
+        started = true;
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(CFGFB);
+            const ref = _ref = firebase.database().ref('ClassData/EventShop');
+            /* ⚠️ 부모 ref.off() 는 자식 경로에 붙인 리스너까지 떼 준다는 보장이 없다.
+                  붙인 것을 모아 뒀다가 하나씩 뗀다(안 그러면 껐다 켤 때마다 쌓인다). */
+            _kids = [];
+            const sub = (r, ev, cb) => { _kids.push(r); r.on(ev, cb); return r; };
+
+            /* D. 캐시부터 화면에 올린다 — 통신 0바이트로 즉시 카드가 뜬다 */
+            AVT   = arr(_cat.data.avt);
+            PSKIN = arr(_cat.data.petSkins);
+            TIT   = arr(_cat.data.tit);
+            ITM   = arr(_cat.data.itm);
+            CFG   = { baseChar: _cat.data.baseChar || '' };
+            _reindexAvt();
+            STU = {};
+            Object.keys(_stuCache.data || {}).forEach(k => { STU[k] = _stuCache.data[k]; });
+            if (Object.keys(STU).length && CFG.baseChar && AVT.length) { RGW.ready = true; reindex(); bump(); }
+
+            /* C. 카탈로그는 rev(십수 바이트)만 구독하고, 바뀐 것만 통째로 받는다.
+               ⚠️ 교사가 상점에서 아이템을 연달아 고치면 rev 가 편집마다 바뀐다. 그때마다 받으면
+                  67KB × 편집 횟수가 된다 → 60초 기다렸다가 '마지막 한 번'만 받는다(연속 편집 합치기).
+                  대가는 아이템을 고친 뒤 최대 60초 동안 옛 모습으로 보이는 것뿐(학생 정보는 증분이라 즉시). */
+            const catSync = (name, revKey, apply) => {
+                sub(ref.child('cfg/' + revKey), 'value', rs => {
+                    const rv = rs.val() == null ? '' : String(rs.val());
+                    if (rv && _cat.rev[name] === rv && (_cat.data[name] || []).length) return;   // 그대로면 안 받는다
+                    clearTimeout(_catT[name]);
+                    /* ⚠️ 앞선 수신이 늦게 도착해 새 것을 덮어쓰지 않도록 순번을 매긴다
+                          (먼저 보낸 응답이 나중에 오면 옛 목록이 최신인 척 저장된다). */
+                    const myTurn = _catSeq[name] = (_catSeq[name] || 0) + 1;
+                    _catT[name] = setTimeout(() => {
+                        if (!started) return;                       // 그 사이 캐릭터를 껐으면 받지 않는다
+                        ref.child(name).once('value').then(s2 => {
+                            if (!started || _catSeq[name] !== myTurn) return;   // 더 새 요청이 있었다 → 버린다
+                            const list = arr(s2.val());
+                            _cat.rev[name] = rv; _cat.data[name] = list;
+                            _lsSet(LS_CAT, _cat);
+                            apply(list); warmImages(); bump();
+                        }).catch(() => {});
+                    /* ⚠️ 아직 그 카탈로그가 하나도 없으면(첫 실행·캐시 지움) 기다리면 안 된다.
+                          기다리면 그 시간 동안 캐릭터가 아예 안 뜬다. 있을 때만 합치기. */
+                    }, (_cat.data[name] || []).length
+                         ? (window.__RGW_CATWAIT != null ? window.__RGW_CATWAIT : 60000) : 0);
+                });
+            };
+            catSync('avt',      'avtRev',      l => { AVT = l; _reindexAvt(); });
+            catSync('petSkins', 'petSkinsRev', l => { PSKIN = l; _reindexAvt(); });
+            catSync('tit',      'titRev',      l => { TIT = l; });
+            catSync('itm',      'itmRev',      l => { ITM = l.filter(i => i && i.wType); });
+            /* baseChar 는 값 자체가 작아 그대로 구독 */
+            sub(ref.child('cfg/baseChar'), 'value', s2 => {
+                CFG = { baseChar: s2.val() || '' };
+                _cat.data.baseChar = CFG.baseChar; _lsSet(LS_CAT, _cat);
+                warmImages(); bump();
+            });
+
+            /* B. stu — 커서 이후 '바뀐 학생'만 받는다. 커서가 없거나 오래되면 한 번 통째로. */
+            const takeStu = (key, v) => {
+                if (!isFullStu(v) || isSimStu(key, v)) return false;
+                STU[key] = _slim(v); _stuCache.data[key] = STU[key];
+                if (v.updatedAt && v.updatedAt > (_stuCache.ts || 0)) _stuCache.ts = v.updatedAt;
+                return true;
+            };
+            const attachInc = () => {
+                /* ⚠️ 커서는 lastTs '그대로' 쓴다(+1 아님). updatedAt 이 같은 밀리초인 학생이 둘이면
+                      +1 로 올릴 때 나중에 쓰인 쪽을 영영 못 받는다. 경계 1건을 다시 받는 편이 안전하다
+                      — 병합이 키 기준이라 같은 걸 또 받아도 무해하다. */
+                const q = ref.child('stu').orderByChild('updatedAt').startAt(_stuCache.ts || 0);
+                const onChild = snap => { if (takeStu(snap.key, snap.val())) { reindex(); warmImages(); bump(); _saveStu(); } };
+                sub(q, 'child_added', onChild);
+                sub(q, 'child_changed', onChild);
+            };
+            const fullStu = () => ref.child('stu').once('value').then(snap => {
+                const next = {}; let maxTs = 0;
+                snap.forEach(ch => {
+                    const v = ch.val();
+                    if (isFullStu(v) && !isSimStu(ch.key, v)) {
+                        next[ch.key] = _slim(v);
+                        if (v.updatedAt > maxTs) maxTs = v.updatedAt;
+                    }
+                    return false;   // ⚠️ forEach 는 truthy 를 돌려주면 순회가 끊긴다
+                });
+                STU = next;
+                _stuCache = { ts: maxTs, data: next, full: Date.now() };
+                _lsSet(LS_STU, _stuCache);
+                RGW.ready = true; reindex(); warmImages(); bump();
+            });
+            const fresh = _stuCache.full && (Date.now() - _stuCache.full) < FULL_MAX;
+            if (fresh && _stuCache.ts && Object.keys(_stuCache.data || {}).length) {
+                RGW.ready = true; attachInc();          // 캐시가 살아 있다 → 증분만
+            } else {
+                fullStu().then(attachInc).catch(() => { attachInc(); });
+            }
+        } catch (e) { started = false; }
+    };
+
+    /* 캐릭터를 꺼 두면 받을 필요가 없다 → 리스너를 뗀다.
+       모드를 자주 오갈 때 매번 다시 받지 않도록 30초 유예를 둔다. */
+    let _offTimer = null;
+    RGW.pause = function () {
+        if (!started || _offTimer) return;
+        _offTimer = setTimeout(() => {
+            _offTimer = null;
+            if (!started) return;
+            _kids.forEach(r => { try { r.off(); } catch (_) {} });
+            _kids = [];
+            Object.keys(_catT).forEach(k => clearTimeout(_catT[k]));   // 기다리던 카탈로그 수신도 취소
+            started = false; RGW.ready = false;
+        }, 30000);
+    };
+    RGW.resume = function () {
+        if (_offTimer) { clearTimeout(_offTimer); _offTimer = null; return; }   // 아직 안 뗐으면 그대로 쓴다
+        RGW.start();
+    };
+})();
+</script>
+
  <script>
     // 로컬 전용 버전 - Firebase 없음, localStorage + IndexedDB 사용
     const { createApp } = window.Vue;
@@ -6634,6 +7748,33 @@ showNoiseMeter: false,
 isVideoVisible: false,
                 saveTimeout: null,
                 view: 'main', subView: 'basic', activeTool: 'check', allModeMain: false, allModeGroup: false, isMemoVisible: false, showStudentNumber: false,
+                /* ★ 캐릭터 카드 — 이 기기에만 저장하는 화면 설정(클라우드 동기화 대상 아님) */
+                showAvatar: localStorage.getItem('wm_showAvatar') === '1',
+                showAvatarTitle: localStorage.getItem('wm_showAvatarTitle') === '1',   // 기본: 칭호 숨김
+                skipPlainSeat: localStorage.getItem('wm_skipPlain') !== '0',          // 기본: 기본 자리표 건너뛰기
+                cardOptOpen: false,                                                    // 카드 설정 창
+                resetOptOpen: false,                                                   // 초기화 창(점수·체크·메모 골라 지우기)
+                resetPick: { score: false, check: false, memo: false },
+                resetTabSel: 'all',                                                    // 'all' 또는 활동 탭 id
+                avatarOnlyMode: localStorage.getItem('wm_avatarOnly') === '1',   // 캐릭터만 빽빽하게 보기
+                sidebarHidden: localStorage.getItem('wm_sideHidden') === '1',    // 왼쪽 메뉴 접기
+                /* ★ 캐릭터 뽑기 (저학년 상점 연출 이식) — 뽑은 기록은 이 기기에만 남긴다 */
+                drawOptOpen: false,                                  // 인원 고르는 작은 창
+                drawMode: localStorage.getItem('wm_drawMode') || 'solo',  // solo(학생 뽑기) | group(모둠 뽑기) — 뽑기 버튼의 동작
+                drawN: Number(localStorage.getItem('wm_drawN') || 1),
+                drawSkip: localStorage.getItem('wm_drawSkip') !== '0',   // 중복 금지(이미 뽑힌 친구는 건너뛰기)
+                drawWho: localStorage.getItem('wm_drawWho') || 'all',    // all | M | F
+                drawChk: localStorage.getItem('wm_drawChk') || 'any',    // any | on(체크된 학생만) | off(안 된 학생만)
+                onlySort: localStorage.getItem('wm_onlySort') || 'seat', // 캐릭터만 보기 정렬: seat|no|lv|score
+                seatSort: localStorage.getItem('wm_seatSort') || 'no',   // 캐릭터만 보기 정렬: no(번호순)|cookie(쿠키순)
+                drawnNames: JSON.parse(localStorage.getItem('wm_drawn') || '[]'),
+                drawRolling: [],                                     // 지금 튀어오른(또는 당첨된) 자리 번호들
+                drawWinners: [],                                     // 당첨 학생들
+                drawBusy: false,
+                // 왼쪽 메뉴의 '실제' 폭 — 화면마다 320이 아니라 273으로 줄기도 한다(flex 축소).
+                // 접기 손잡이와 대시보드 왼쪽 끝이 이 값을 따라가야 틈이 안 생긴다.
+                sideW: localStorage.getItem('wm_sideHidden') === '1' ? 0 : 320,
+                rgwRev: 0, winH: window.innerHeight, winW: window.innerWidth,
 
 lotteryPools: {
             all: [],   // 전체 모드용 풀
@@ -6670,11 +7811,12 @@ freeParticipants: [],
                 penaltyCount: 1,
                 seats: Array(30).fill(null), waitingRoom: [],
                 showGroupDraw: false,        // 모둠 뽑기 설정 모달
-                groupDrawPerGroup: 1,        // 모둠당 뽑을 인원(전 모둠 공통)
+                groupDrawPerGroup: Number(localStorage.getItem('wm_groupPerGroup') || 1),  // 모둠당 뽑을 인원(전 모둠 공통)
                 groupDrawQueue: [],          // [{name, groupId}] 라운드로빈 추첨 순서
                 groupDrawRevealed: 0,        // 지금까지 공개한 인원 수
                 groupDrawCurStart: 0,        // 이번 클릭에 공개 시작한 위치(동시 공개 배치)
                 groupDrawBatchStarts: [],    // 각 배치(같은 모둠 N명) 시작 위치
+                groupDrawLapEnds: [],        // 한 바퀴(전 모둠 한 배치씩)가 끝나는 배치 수 목록
                 groupDrawBatchIdx: 0,        // 지금까지 공개한 배치 수
                 showGroupDrawSettings: false, // 모둠별 좌석 설정 패널
                 customSeatGroups: JSON.parse(localStorage.getItem('customSeatGroups') || 'null'), // 좌석별 모둠번호(1~) / null=기본
@@ -6973,7 +8115,9 @@ bombMsgH: 100,
         //   증감·표시 코드가 없는 옛 구현의 잔재였다. 실제 경고/탈락 집계는 statsWarningCount·statsPenaltyCount.
 
 isRotated: true,
-isRotatedOrder: false,
+// 캐릭터 모드 회전은 보기 방식이라 이 기기에만 기억한다(모드별로 따로)
+rotCharSeat: localStorage.getItem('wm_rotCharSeat') === null ? true : localStorage.getItem('wm_rotCharSeat') === '1',
+rotCharOnly: localStorage.getItem('wm_rotCharOnly') === null ? true : localStorage.getItem('wm_rotCharOnly') === '1',
 isRotatedGroup: false, isViewSwitching: false, _pendingSeatsRefresh: false, showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
                 
                 showRankModal: false, rankSortKey: 'activityScore', rankSortOrder: 'desc', lotteryMode: 'all',
@@ -7099,6 +8243,158 @@ soundSettings: {
             }
         },
 computed: {
+/* ★ 캐릭터 카드를 지금 그려야 하는가 — 좌석배치도·대기번호에서만.
+   ⚠️ '종합' 탭은 예외다. 종합 카드의 활동 이름표는 눌러서 체크를 푸는 버튼이라,
+      캐릭터로 덮으면 그 기능이 통째로 사라진다 → 종합에서는 원래 카드를 그대로 쓴다. */
+avatarOn() {
+    if (!this.showAvatar) return false;
+    // rgwRev를 읽어야 상점 데이터가 도착한 순간 이 값이 다시 계산된다
+    void this.rgwRev;
+    if (!window.RGW || !window.RGW.hasData()) return false;   // 못 붙었으면 원래 자리표 그대로
+    return this.view === 'order' || this.view === 'main';
+},
+/* 캐릭터만 보기가 실제로 켜져 있는가 — 자리 배치가 필요한 대기 번호에서는 쓰지 않는다 */
+resetSummary() {
+    const p = this.resetPick, what = [];
+    if (p.score) what.push('점수');
+    if (p.check) what.push('체크');
+    if (p.memo)  what.push('메모');
+    if (!what.length) return '지울 것을 골라 주세요';
+    let where = '';
+    if (this.view !== 'group' && (p.score || p.check)) {
+        const t = this.activityTabs.find(x => x.id === this.resetTabSel);
+        where = (this.resetTabSel === 'all' ? '모든 활동' : (t ? t.name : '모든 활동')) + '의 ';
+    }
+    return where + what.join('·') + ' 지우기';
+},
+avatarOnlyOn() { return this.avatarOn && this.avatarOnlyMode && (this.view === 'main' || this.view === 'order'); },
+/* 지금 화면의 회전 상태 — 학생 활동은 모드(카드만/캐릭터 좌석/기본)마다 따로 기억한다.
+   ⚠️ 기본 모드만 isRotated(클라우드 동기화·번호순 자리 계산에 쓰이는 값)를 그대로 쓴다.
+      캐릭터 모드 두 가지는 보기 방식이라 이 기기에만 남긴다(wm_rotChar*). */
+curRot() {
+    // ⚠️ 대기 번호 모드는 따로 회전 상태를 갖지 않는다 — 이전 화면(캐릭터 좌석/기본)의 회전을 그대로 따라간다.
+    if (this.view === 'group') return this.isRotatedGroup;
+    if (this.avatarOnlyOn) return this.rotCharOnly;
+    if (this.avatarOn) return this.rotCharSeat;
+    return this.isRotated;
+},
+/* ⚠️ 캐릭터 카드는 '자리표'다 — 실제 앉은 자리와 순서가 달라지면 안 된다(표시 정렬 없음).
+   순서를 바꾸고 싶으면 앱의 기존 기능(번호순 자리 바꾸기)이나 캐릭터만 보기를 쓴다. */
+seatSorted() { return false; },
+seatOrder() { return this.seats.map((s, i) => i); },
+/* 활동 탭을 위쪽 가로 줄로 올릴 때 — 캐릭터를 켜면 오른쪽 세로 탭이 먹던 가로 폭을 캐릭터에 준다 */
+/* 활동 탭 — 자리표(캐릭터 카드 포함)는 오른쪽 세로 그대로,
+   캐릭터만 보기는 오른쪽이 비어 있으니 위쪽 가로 줄로 올린다 */
+avatarTabsTop() { return this.avatarOnlyOn; },
+/* 학생이 한 명도 없는 줄은 그리지 않는다(맨 뒷줄이 통째로 비는 경우가 많다).
+   ⚠️ 자리를 옮기려면 빈칸이 있어야 하므로, 캐릭터를 켰을 때만 접는다. */
+avatarRows() {
+    const rows = [];
+    for (let r = 1; r <= 5; r++) {
+        let has = false;
+        for (let b = 1; b <= 3 && !has; b++)
+            for (let p = 1; p <= 2 && !has; p++)
+                if (this.seats[this.seatOrder[this.getIndex(b, r, p)]]) has = true;
+        if (has) rows.push(r);
+    }
+    return rows.length ? rows : [1];
+},
+/* 캐릭터만 보기 — 자리 순서 그대로, 빈자리를 뺀 학생들의 '자리 번호' 목록
+   (번호를 들고 있어야 눌렀을 때 기존 handleCardClick을 그대로 쓸 수 있다) */
+avatarOnlyList() {
+    const out = [];
+    this.seats.forEach((s, i) => { if (s && s.name) out.push(i); });
+    void this.rgwRev;
+    // 'no' = 번호순 / 'cookie' = 점수순(모은 쿠키 많은 순)
+    const key = this.seatSort === 'cookie'
+        ? i => -(window.RGW ? window.RGW.cookiesOf(this.seats[i].name, this.seats[i].number) : 0)
+        : i => Number(this.seats[i].number) || 9999;
+    // 같은 값이면 원래 자리 순서를 지킨다(순서가 매번 흔들리지 않게)
+    return out.map((i, n) => ({ i, n, k: key(i) }))
+              .sort((a, b) => (a.k - b.k) || (a.n - b.n))
+              .map(x => x.i);
+},
+/* 캐릭터만 보기 칸 크기 — 화면을 꽉 채우도록 열 수와 칸 크기를 함께 고른다.
+   칸 비율은 자리표와 같은 140:200. 열 수를 바꿔 가며 가장 큰 칸이 나오는 쪽을 쓴다. */
+avatarOnlyCard() {
+    const n = this.avatarOnlyList.length || 1, gap = 10, rowgap = 16;
+    // 바닥 장식(격자·테두리·여백)을 없앴으므로 화면을 거의 다 쓴다 — 왼쪽 대시보드·오른쪽 도구 줄과 위쪽 탭 줄만 뺀다
+    // 여백을 조금 줄여 카드를 크게 쓴다(넘치지 않는 선에서)
+    /* 대기 번호 모드의 대기 명단 자리 — 카드만 보기에서는 '아래 가로'라 높이를 뺀다.
+       ⚠️ 상수로 뺀다(명단 인원 수와 무관) — 인원에 따라 칸 크기가 변하면 안 된다. */
+    const ORD = this.view === 'order' ? 104 : 0;
+    const availW = Math.max(320, this.winW - (this.sidebarHidden ? 160 : 462));
+    const availH = Math.max(240, this.winH - 68 - ORD);
+    let best = { cols: 6, w: 140, h: 200 };
+    for (let cols = 3; cols <= 10; cols++) {
+        const rows = Math.ceil(n / cols);
+        const h = Math.min((availH - (rows - 1) * rowgap) / rows, ((availW - (cols - 1) * gap) / cols) / 0.7);
+        if (h > best.h || cols === 3) { best = { cols, w: Math.floor(h * 0.7), h: Math.floor(h) }; }
+    }
+    // 너무 커지면 그림이 흐려지고, 너무 작으면 이름이 안 보인다
+    const h = Math.max(110, Math.min(340, best.h));
+    // 가로가 한계라 아래쪽이 남을 때가 많다 → 남는 높이를 줄 사이로 고르게 나눠 화면을 채운다
+    const rows = Math.ceil(n / best.cols);
+    const left = availH - rows * h;
+    const rg = rows > 1 ? Math.max(rowgap, Math.min(24, Math.floor(left / (rows - 1)))) : rowgap;
+    return { cols: best.cols, w: Math.floor(h * 0.7), h, gap, rowgap: rg };
+},
+/* 칸이 100px → 200px로 커진 만큼 교실 바닥 전체를 줄여 화면에 담는다.
+   ⚠️ transform은 회전(rotate-180)이 이미 쓰고 있어서 겹친다 → zoom을 쓴다(레이아웃째로 줄어든다). */
+/* 자리표 칸 크기 — 줌으로 통째로 줄이는 대신 칸 자체를 화면에 맞춰 키운다.
+   줌은 글씨까지 작게 만들고 가로 여백을 그대로 남기지만, 이 방식은 가로를 꽉 채운다. */
+avatarSeatCard() {
+    const R = this.avatarRows.length || 1;
+    /* 빼야 할 것: 왼쪽 메뉴(320) + main 좌우 여백(32 + 128) + 오른쪽 세로 활동 탭(약 60).
+       ⚠️ 탭 폭을 빼먹으면 교실 바닥이 오른쪽 도구 줄 위로 밀려 툴바가 잘려 보인다. */
+    // ⚠️ 대기 번호 모드의 대기 명단은 배치도 위에 떠 있는 패널이라 자리 계산에서 뺄 필요가 없다 —
+    //    카드 크기는 대기 번호 없을 때와 항상 같게 유지한다.
+    const availW = Math.max(360, this.winW - (this.sidebarHidden ? 250 : 560));
+    const availH = Math.max(260, this.winH - 66);
+    const CHROME = 72;                       // 바닥 안쪽 여백(24×2) + 테두리(12×2)
+    const DESK = 76;                         // 교탁 + 그 아래 여백(mb-3)
+    const COLGAP = 144;                      // 분단 안 16×3 + 분단 사이 48×2
+    const w = Math.floor((availW - CHROME - COLGAP) / 6);
+    const h = Math.floor((availH - CHROME - DESK - (R - 1) * 16) / R);
+    // 카드는 정사각형 — 캐릭터가 정사각형이라 칸도 정사각형일 때 가장 꽉 차 보인다
+    const side = Math.max(96, Math.min(340, Math.min(w, h)));
+    return { w: side, h: side };
+},
+avatarZoom() { return 1; },
+/* 대기 명단(세로 패널)을 배치도(classroom-floor)와 정확히 같은 세로 범위에 맞춘다 —
+   tabsAlignTop과 같은 floorH 계산을 재사용해 board가 몇 줄이든 항상 딱 맞게 한다. */
+orderPanelPos() {
+    const R = this.avatarRows.length || 1;
+    const floorH = 72 + 76 + R * this.avatarSeatCard.h + (R - 1) * 16;
+    const top = Math.max(0, (this.winH - floorH) / 2);
+    return { top, height: floorH };
+},
+/* 종합에서 점수·체크를 줄 대상 탭 — 첫 번째 활동 탭('기본')에 넣는다 */
+summaryTargetTab() {
+    const tabs = this.activityTabs || [];
+    return tabs.length ? tabs[0].id : null;
+},
+summaryTargetName() {
+    const t = (this.activityTabs || []).find(x => x.id === this.summaryTargetTab);
+    return t ? t.name : '';
+},
+/* 오른쪽 세로 활동 탭을 '회전' 버튼과 같은 높이에서 시작하게 맞춘다.
+   탭은 교실 바닥과 같은 줄(flex)에 있고 바닥은 세로 가운데 정렬이라, 그 차이만큼 위로 당긴다. */
+tabsAlignTop() {
+    const R = this.avatarRows.length || 1;
+    const floorH = 72 + 76 + R * this.avatarSeatCard.h + (R - 1) * 16;
+    const mainH = this.winH;                       // main 은 화면 전체 높이
+    const floorTop = Math.max(0, (mainH - floorH) / 2);
+    return Math.round(32 - floorTop);              // 회전 버튼 top(32px)에 맞춘다
+},
+/* 탭 줄을 카드 격자와 같은 폭으로 맞추기 위한 값 */
+avatarGridWidth() {
+    if (this.avatarOnlyOn) {
+        const c = this.avatarOnlyCard;
+        return c.cols * c.w + (c.cols - 1) * c.gap;
+    }
+    return this.avatarSeatCard.w * 6 + 144 + 72;      // 칸 6개 + 분단 간격 + 바닥 여백·테두리
+},      // 칸 크기를 직접 계산하므로 줌은 쓰지 않는다
 sortedLadderFinalList() {
     const list = Array.isArray(this.ladderFinalList) ? this.ladderFinalList : [];
     if (this.ladderResultSort === 'result') {
@@ -7922,6 +9218,9 @@ mergedRankData() {
             },
             // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독 + 직전 변경사항 flush
             view(newView) {
+                // ⚠️ 세 팝업(카드 설정·뽑기 설정·초기화)은 같은 자리에 뜬다. 화면을 옮기면
+                //    여는 버튼이 없어지는데 창만 남으므로 여기서 함께 닫는다.
+                this.cardOptOpen = false; this.drawOptOpen = false; this.resetOptOpen = false;
                 // 창 전환 시 회전 애니메이션 없이 즉시 전환
                 this.isViewSwitching = true;
                 this.$nextTick(() => requestAnimationFrame(() => { this.isViewSwitching = false; }));
@@ -7969,6 +9268,13 @@ mergedRankData() {
             // ★ 번호순 정렬 중 회전 토글 시 1번이 시각적 좌상단에 유지되도록 자리 재배치
             isRotated(val, oldVal) {
                 if (this.isSortedByNumber && val !== oldVal) {
+                    this.repositionSortedSeats && this.repositionSortedSeats();
+                }
+            },
+            // 캐릭터 좌석 모드도 실제 자리표를 보여 주므로 같은 규칙을 적용한다.
+            // (캐릭터카드만 모드는 자리 배치를 안 쓰는 보기라 자리를 건드리지 않는다)
+            rotCharSeat(val, oldVal) {
+                if (this.isSortedByNumber && val !== oldVal && this.avatarOn && !this.avatarOnlyOn) {
                     this.repositionSortedSeats && this.repositionSortedSeats();
                 }
             },
@@ -9240,7 +10546,6 @@ handleCardClick(idx) {
             this.playSound('ding', false, 0.5); 
         }
     } else {
-        // 종합 탭이 아닐 때만 tabData에 적용
         if (this.currentTabId !== 'summary') {
             if (this.activeTool === 'check') {
                 this.tabToggleCheck(s.name);
@@ -9251,6 +10556,22 @@ handleCardClick(idx) {
             } else if (this.activeTool === 'minus') {
                 this.tabScoreMinus(s.name);
                 this.playSound('warning', false, 0.4);
+            }
+        } else {
+            /* 종합 보기 — 어느 활동에 넣을지 정해야 하므로 '마지막으로 보던 활동 탭'에 기록한다.
+               (종합은 여러 활동을 모아 보는 화면이라 그 자체에는 점수를 담을 곳이 없다) */
+            const tid = this.summaryTargetTab;
+            if (tid) {
+                if (this.activeTool === 'check') {
+                    this.tabToggleCheckIn(tid, s.name);
+                    this.playSound('ding', false, 0.5);
+                } else if (this.activeTool === 'plus') {
+                    this.getTabStudent(tid, s.name).score++;
+                    this.playSound('ding', false, 0.5);
+                } else if (this.activeTool === 'minus') {
+                    this.getTabStudent(tid, s.name).score--;
+                    this.playSound('warning', false, 0.4);
+                }
             }
         }
         // ★ applyTool은 모둠(group)일 때만 사용, 좌석 카드엔 호출 안 함
@@ -14742,6 +16063,9 @@ openRankModal() {
                         return;
                     }
                     if (this.notificationMsg) { this.notificationMsg = ''; return; }
+                    if (this.drawWinners.length) { this.closeDrawWin(); return; }
+                    if (this.showGroupDraw) { this.showGroupDraw = false; return; }
+                    if (this.groupDrawActive && !this.drawBusy) { this.endGroupDraw(); return; }
                     if (this.showMainDashboard) { this.closeMainDashboard(); return; }
                     if (this.showAlarmModal) { this.showAlarmModal = false; return; }
                     if (this.showSettings) { this.showSettings = false; return; }
@@ -14998,6 +16322,24 @@ openAnimalRaceModal() {
                 if (!this.tabData[tabId][name]) this.tabData[tabId][name] = { score: 0, checked: false, checkOrder: null };
                 return this.tabData[tabId][name];
             },
+            /* 지정한 활동 탭에 체크를 켜고 끈다(tabToggleCheck 의 대상 지정 버전) */
+            tabToggleCheckIn(tabId, name) {
+                const d = this.getTabStudent(tabId, name);
+                if (!d.checked) {
+                    const maxOrder = this.activityTabs.reduce((m, tab) => {
+                        const td = (this.tabData[tab.id] || {})[name] || {};
+                        return (td.checkOrder || 0) > m ? (td.checkOrder || 0) : m;
+                    }, 0);
+                    d.checkOrder = maxOrder + 1;
+                    d.checked = true;
+                } else {
+                    d.checked = false;
+                    d.checkOrder = null;
+                }
+                this.syncBoardBadgesForTab && this.syncBoardBadgesForTab(tabId);
+                this.saveToLocal();
+                this.saveToLocal_full && this.saveToLocal_full();
+            },
             tabScorePlus(name) { this.getTabStudent(this.currentTabId, name).score++; this.saveToLocal(); this.saveToLocal_full && this.saveToLocal_full(); },
             tabScoreMinus(name) { this.getTabStudent(this.currentTabId, name).score--; this.saveToLocal(); this.saveToLocal_full && this.saveToLocal_full(); },
             tabToggleCheck(name) {
@@ -15029,7 +16371,18 @@ openAnimalRaceModal() {
             },
             onDragEnd(e) { if(e.target.classList) e.target.classList.remove('dragging'); },
             onDropSeat(e, targetIdx) { if (!this.dragInfo || (this.view !== 'main' && this.view !== 'order')) return; const { idx, type } = this.dragInfo; if (type === 'seat') { const temp = this.seats[targetIdx]; this.seats[targetIdx] = this.seats[idx]; this.seats[idx] = temp; } this.saveToLocal(); this.saveToLocal_full && this.saveToLocal_full(); },
-            onDropToBottom() { }, onDropReorder(targetIdx) { if (this.draggedOrderIdx === null) return; const list = this.sortedOrderedStudents; const item = list[this.draggedOrderIdx]; list.splice(this.draggedOrderIdx, 1); list.splice(targetIdx, 0, item); list.forEach((s, i) => s.order = i + 1); this.draggedOrderIdx = null; this.saveToLocal(); },
+            /* 대기 명단 빈 곳에 떨어뜨리면 맨 뒤로 보낸다(예전엔 빈 함수라 아무 일도 안 했다) */
+            onDropToBottom() {
+                if (this.draggedOrderIdx === null) return;
+                const list = this.sortedOrderedStudents.slice();
+                const item = list[this.draggedOrderIdx];
+                if (!item) { this.draggedOrderIdx = null; return; }
+                list.splice(this.draggedOrderIdx, 1);
+                list.push(item);
+                list.forEach((s, i) => s.order = i + 1);
+                this.draggedOrderIdx = null;
+                this.saveToLocal();
+            }, onDropReorder(targetIdx) { if (this.draggedOrderIdx === null) return; const list = this.sortedOrderedStudents.slice(); const item = list[this.draggedOrderIdx]; list.splice(this.draggedOrderIdx, 1); list.splice(targetIdx, 0, item); list.forEach((s, i) => s.order = i + 1); this.draggedOrderIdx = null; this.saveToLocal(); },
           handleToolClick(tool) { 
     this.activeTool = tool; 
 if(this.allMode) { 
@@ -15056,50 +16409,73 @@ if(this.allMode) {
 },
      
             handleGroupClick(idx) { if(this.editingGroupIdx === idx) return; if(!this.groups[idx].showMembers) { this.applyTool(this.groups[idx], false); this.saveToLocal(); } },
-            resetCurrentScores() {
-                if(confirm("점수를 초기화할까요?")) {
-                    if(this.view === 'group') {
-                        this.groups.forEach(g => g.score = 0);
-                    } else if(this.currentTabId === 'summary') {
-                        const names = this.seats.filter(s => s).map(s => s.name);
-                        this.activityTabs.forEach(tab => {
-                            names.forEach(name => {
-                                if((this.tabData[tab.id]||{})[name]) this.tabData[tab.id][name].score = 0;
+            /* 🗑 초기화 창 — 점수·체크·메모를 골라서, 활동(탭)까지 정해 한 번에 지운다.
+               (예전엔 지우개·체크·휴지통 버튼 세 개가 각각 즉시 지웠다) */
+            openResetPanel() {
+                this.resetOptOpen = !this.resetOptOpen;
+                this.cardOptOpen = false; this.drawOptOpen = false;
+                /* 열 때마다 '지금 보는 활동'을 기본으로 — 습관적으로 눌렀을 때
+                   모든 활동이 한꺼번에 지워지지 않게. '모든 활동'은 그대로 고를 수 있다. */
+                if (this.resetOptOpen) {
+                    this.resetTabSel = this.activityTabs.some(t => t.id === this.currentTabId)
+                        ? this.currentTabId : 'all';
+                }
+            },
+            doReset() {
+                const pick = this.resetPick;
+                if (!pick.score && !pick.check && !pick.memo) return;
+                if (!confirm(this.resetSummary + '?')) return;
+                if (this.view === 'group') {
+                    if (pick.score) this.groups.forEach(g => g.score = 0);
+                    if (pick.check) this.groups.forEach(g => g.checked = false);
+                    if (pick.memo)  this.groups.forEach(g => { g.memo = ''; g.starred = false; });
+                } else {
+                    const names = this.seats.filter(s => s).map(s => s.name);
+                    const tabs = this.resetTabSel === 'all'
+                        ? this.activityTabs.map(t => t.id)
+                        : [this.resetTabSel];
+                    if (pick.score || pick.check) {
+                        tabs.forEach(tid => {
+                            const d = this.tabData[tid] || {};
+                            names.forEach(nm => {
+                                if (!d[nm]) return;
+                                if (pick.score) d[nm].score = 0;
+                                if (pick.check) d[nm].checked = false;
                             });
                         });
-                    } else {
-                        const names = this.seats.filter(s => s).map(s => s.name);
-                        names.forEach(name => {
-                            if((this.tabData[this.currentTabId]||{})[name]) this.tabData[this.currentTabId][name].score = 0;
-                        });
                     }
-                    this.saveToLocal();
+                    // 메모는 학생에게 달린 값이라 활동과 무관하다
+                    if (pick.memo) this.allStudents.forEach(s => { s.memo = ''; s.starred = false; });
                 }
+                this.playSound('click');
+                this.saveToLocal();
+                this.resetOptOpen = false;
             },
 
 
-            resetCurrentSelection() {
-                if(confirm("선택을 초기화하시겠습니까?")) {
-                    if(this.view === 'group') {
-                        this.groups.forEach(g => g.checked = false);
-                    } else if(this.currentTabId === 'summary') {
-                        const names = this.seats.filter(s => s).map(s => s.name);
-                        this.activityTabs.forEach(tab => {
-                            names.forEach(name => {
-                                if((this.tabData[tab.id]||{})[name]) this.tabData[tab.id][name].checked = false;
-                            });
-                        });
-                    } else {
-                        const names = this.seats.filter(s => s).map(s => s.name);
-                        names.forEach(name => {
-                            if((this.tabData[this.currentTabId]||{})[name]) this.tabData[this.currentTabId][name].checked = false;
-                        });
-                    }
-                    this.saveToLocal();
-                }
-            },
-            clearMemos() { if(confirm("모든 메모를 삭제할까요?")) { if(this.view === 'group') this.groups.forEach(g => { g.memo = ""; g.starred = false; }); else this.allStudents.forEach(s => { s.memo = ""; s.starred = false; }); this.saveToLocal(); } },
             resetOrder() { this.allStudents.forEach(s => s.order = null); this.saveToLocal(); },
+            /* 대기순서 초기화 — 되돌릴 수 없으니 예쁜 창으로 한 번 더 확인한다 */
+            async confirmResetOrder() {
+                const ok = await new Promise(resolve => {
+                    const ov = document.createElement('div');
+                    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
+                    ov.innerHTML = `<div style="background:#fff;border-radius:20px;padding:32px 28px 24px;max-width:340px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                        <div style="font-size:40px;margin-bottom:12px;">↺</div>
+                        <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">대기순서를 초기화할까요?</div>
+                        <div style="font-size:14px;color:#555;line-height:1.6;margin-bottom:24px;">지금까지 정한 순서가<br>모두 지워져요.</div>
+                        <div style="display:flex;gap:10px;justify-content:center;">
+                            <button data-result="ok" style="flex:1;padding:12px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">초기화</button>
+                            <button data-result="cancel" style="flex:1;padding:12px 0;border-radius:12px;border:1.5px solid #ddd;background:#f7f7f7;color:#555;font-size:14px;font-weight:600;cursor:pointer;">취소</button>
+                        </div>
+                    </div>`;
+                    document.body.appendChild(ov);
+                    ov.addEventListener('click', e => {
+                        const btn = e.target.closest('[data-result]');
+                        if (btn) { document.body.removeChild(ov); resolve(btn.dataset.result === 'ok'); }
+                    });
+                });
+                if (ok) this.resetOrder();
+            },
            
                     // ★ 메모 우클릭 시 빨간색(강조) 켜기/끄기 함수
             toggleMemoStar(target) {
@@ -17864,10 +19240,294 @@ deleteGrouping(idx) {
             getRandomColor() { const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7']; return colors[Math.floor(Math.random() * colors.length)]; },
             reshuffleGroups() { this.showGroupingResultModal = false; this.groupingList = []; this.saveToLocal(); this.$nextTick(() => { this.showGroupMakerModal = true; }); },
             // 현재 뷰에 맞는 회전 상태를 토글
+            /* 대기 번호 ↔ 학생 배치도 — 왼쪽 메뉴에 있던 이동을 오른쪽 버튼으로 옮긴 것.
+               메뉴가 하던 정리(미니창 닫기·다른 창 변경 반영)를 그대로 한다. */
+            toggleOrderView() {
+                this.view = this.view === 'order' ? 'main' : 'order';
+                this.showMainDashboard = false; this.showPickerMaster = false;
+                this.closeBlackboard(); this.showNoiseMeter = false;
+                this.playSound('click'); this.refreshIfChanged();
+            },
             toggleRotateForView() {
-                if (this.view === 'order') this.isRotatedOrder = !this.isRotatedOrder;
-                else if (this.view === 'group') this.isRotatedGroup = !this.isRotatedGroup;
-                else this.isRotated = !this.isRotated;
+                // ⚠️ 대기 번호 모드는 따로 토글하지 않는다 — 이전 화면(캐릭터 좌석/기본)의 회전을 그대로 함께 바꾼다.
+                if (this.view === 'group') this.isRotatedGroup = !this.isRotatedGroup;
+                // 학생 배치도는 모드마다 따로 기억한다(카드만 / 캐릭터 좌석 / 기본)
+                else if (this.avatarOnlyOn) {
+                    this.rotCharOnly = !this.rotCharOnly;
+                    try { localStorage.setItem('wm_rotCharOnly', this.rotCharOnly ? '1' : '0'); } catch (_) {}
+                } else if (this.avatarOn) {
+                    this.rotCharSeat = !this.rotCharSeat;
+                    try { localStorage.setItem('wm_rotCharSeat', this.rotCharSeat ? '1' : '0'); } catch (_) {}
+                } else this.isRotated = !this.isRotated;
+            },
+
+            /* ===== ★ 캐릭터 카드 (이벤트 상점 아바타) =====
+               좌석배치도·대기번호에서만 쓴다. 읽기 전용이라 상점 데이터는 절대 바뀌지 않는다. */
+            /* 좌클릭 — 기본(좌석배치도) → 캐릭터 좌석배치 → 캐릭터카드만 순으로 돈다.
+               고른 모드는 이 기기에 저장돼 다음에 열면 그대로 이어진다. */
+            toggleAvatar() {
+                if (!this.showAvatar) {                       // 기본 → 캐릭터 좌석배치
+                    this.showAvatar = true; this.avatarOnlyMode = false;
+                } else if (!this.avatarOnlyMode) {            // 캐릭터 좌석배치 → 캐릭터카드만
+                    this.avatarOnlyMode = true;
+                } else if (this.skipPlainSeat) {              // 기본 자리표를 숨겼으면 둘만 오간다
+                    this.avatarOnlyMode = false;
+                } else {                                      // 캐릭터카드만 → 기본
+                    this.showAvatar = false; this.avatarOnlyMode = false;
+                }
+                try {
+                    localStorage.setItem('wm_showAvatar', this.showAvatar ? '1' : '0');
+                    localStorage.setItem('wm_avatarOnly', this.avatarOnlyMode ? '1' : '0');
+                } catch (_) {}
+                if (this.showAvatar) this.startAvatarFeed();
+                else if (window.RGW && window.RGW.pause) window.RGW.pause();
+                this.playSound && this.playSound('click');
+            },
+            /* 우클릭 — 지금 보고 있는 모드에 맞는 기능 */
+            avatarRightClick() {
+                if (this.avatarOnlyOn) {                       // 캐릭터만 보기: 좌석순 ↔ 번호순(보여 주는 순서만)
+                    this.seatSort = this.seatSort === 'no' ? 'cookie' : 'no';
+                    try { localStorage.setItem('wm_seatSort', this.seatSort); } catch (_) {}
+                } else {                                       // 캐릭터 카드·좌석배치도: 앱의 번호순 자리 바꾸기
+                    this.toggleSortByNumber && this.toggleSortByNumber();
+                }
+                this.playSound && this.playSound('click');
+            },
+            // 우클릭 — 캐릭터만 보기(자리 배치 없이 학생 카드만 크게 늘어놓기)
+            toggleAvatarOnly() {
+                if (!this.showAvatar) { this.toggleAvatar(); this.avatarOnlyMode = true; }
+                else this.avatarOnlyMode = !this.avatarOnlyMode;
+                try { localStorage.setItem('wm_avatarOnly', this.avatarOnlyMode ? '1' : '0'); } catch (_) {}
+                this.playSound && this.playSound('click');
+            },
+            /* ===== ★ 캐릭터 뽑기 (저학년 상점 방식) =====
+               카드가 하나씩 튀어오르다 점점 느려지고 당첨자에서 멈춘 뒤, 캐릭터를 크게 보여 준다.
+               '뽑은 기록'은 이 기기에만 저장한다(교사 메모 성격이라 학생 데이터를 건드리지 않는다). */
+            /* 뽑기 대상 — 성별·체크 조건으로 좁힌다(캐릭터를 꺼도 그대로 쓸 수 있다) */
+            avatarDrawPool() {
+                const chk = name => !!((this.tabData[this.currentTabId] || {})[name] || {}).checked;
+                return this.seats
+                    .map((s, i) => ({ s, i }))
+                    .filter(x => x.s && x.s.name)
+                    .filter(x => this.drawWho === 'all' || x.s.gender === this.drawWho)
+                    .filter(x => this.drawChk === 'any'
+                              || (this.drawChk === 'on' ? chk(x.s.name) : !chk(x.s.name)));
+            },
+            drawPoolCount(who) {
+                const chk = name => !!((this.tabData[this.currentTabId] || {})[name] || {}).checked;
+                return this.seats.filter(s => s && s.name)
+                    .filter(s => !who || who === 'all' || s.gender === who)
+                    .filter(s => this.drawChk === 'any'
+                              || (this.drawChk === 'on' ? chk(s.name) : !chk(s.name))).length;
+            },
+            setDrawWho(v) { this.drawWho = v; try { localStorage.setItem('wm_drawWho', v); } catch (_) {} },
+            setDrawChk(v) { this.drawChk = v; try { localStorage.setItem('wm_drawChk', v); } catch (_) {} },
+            setOnlySort(v) { this.onlySort = v; try { localStorage.setItem('wm_onlySort', v); } catch (_) {} },
+            isDrawn(name) { return this.drawnNames.indexOf(name) >= 0; },
+            saveDrawn() { try { localStorage.setItem('wm_drawn', JSON.stringify(this.drawnNames)); } catch (_) {} },
+            clearDrawn() {
+                this.drawnNames = []; this.saveDrawn();
+                this.playSound && this.playSound('click');
+            },
+            setDrawN(n) {
+                this.drawN = n;
+                try { localStorage.setItem('wm_drawN', String(n)); } catch (_) {}
+            },
+            toggleDrawSkip() {
+                this.drawSkip = !this.drawSkip;
+                try { localStorage.setItem('wm_drawSkip', this.drawSkip ? '1' : '0'); } catch (_) {}
+            },
+            /* 롤링 연출 — 학생 뽑기와 모둠 뽑기가 같은 연출을 쓰도록 떼어냈다.
+               spinIdxs: 돌아가며 깜빡일 좌석 번호들 / winIdxs: 차례로 확정할 좌석 번호들 */
+            async _drawRollAnim(spinIdxs, winIdxs, lockedBase) {
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
+                const locked = (lockedBase || []).slice();
+                for (let w = 0; w < winIdxs.length; w++) {
+                    const spin = spinIdxs.filter(i => locked.indexOf(i) < 0);
+                    if (!spin.length) { locked.push(winIdxs[w]); this.drawRolling = locked.slice(); continue; }
+                    this.drawSnd('roll');
+                    const dur = winIdxs.length === 1 ? 1800 : 1200;
+                    const t0 = Date.now();
+                    let wait = 60;
+                    while (Date.now() - t0 < dur) {
+                        const pick = spin[Math.floor(Math.random() * spin.length)];
+                        this.drawRolling = locked.concat([pick]);
+                        this.drawSnd('tick');
+                        await sleep(wait);
+                        wait = Math.min(220, wait * 1.12);
+                    }
+                    locked.push(winIdxs[w]);                 // 이 사람 확정
+                    this.drawRolling = locked.slice();
+                    this.drawSnd('golden');
+                    await sleep(winIdxs.length === 1 ? 500 : 650);   // 누가 뽑혔는지 보여 주고 다음으로
+                }
+                return locked;
+            },
+            setDrawMode(v) {
+                if (v !== 'group' && this.groupDrawActive) this.endGroupDraw();  // 회색 처리·플로팅 바 남지 않게
+                this.drawMode = v;
+                try { localStorage.setItem('wm_drawMode', v); } catch (_) {}
+            },
+            setGroupPerGroup(n) {
+                this.groupDrawPerGroup = n;
+                try { localStorage.setItem('wm_groupPerGroup', String(n)); } catch (_) {}
+                if (this.groupDrawActive) this.endGroupDraw();   // 인원이 바뀌면 진행 중인 차례는 무효
+            },
+            /* 뽑기 버튼(좌클릭) — 설정에서 고른 모드대로.
+               모둠 뽑기는 이미 시작했으면 다음 차례를 넘긴다. */
+            drawClick() {
+                if (this.drawMode !== 'group') { this.startAvatarDraw(); return; }
+                if (this.drawBusy) return;
+                if (this.groupDrawActive) {
+                    // 다 나왔으면 같은 설정으로 새 판을 시작한다(그냥 눌러도 반응이 없으면 고장으로 보인다)
+                    if (this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length) { this.startGroupDraw(); return; }
+                    this.drawNext(); return;
+                }
+                if (this.isSortedByNumber) {
+                    alert("번호순 정렬 중에는 모둠 뽑기를 할 수 없습니다.\n먼저 [원위치] 버튼을 눌러 원래 자리로 돌아가주세요!");
+                    return;
+                }
+                this.drawOptOpen = false;
+                this.startGroupDraw();
+            },
+            async startAvatarDraw(forceN) {
+                if (this.drawBusy) return;
+                const want = Number(forceN || this.drawN || 1);
+                this.setDrawN(want);
+                this.drawOptOpen = false;
+                let pool = this.avatarDrawPool();
+                if (!pool.length) { this.drawRolling = []; this.showToast && this.showToast('🎲 그 조건에 맞는 친구가 없어요'); return; }
+                if (this.drawSkip) {
+                    const left = pool.filter(x => !this.isDrawn(x.s.name));
+                    // 다 돌았으면 한 바퀴 새로 시작한다
+                    if (left.length >= want) pool = left;
+                    else { this.drawnNames = []; this.saveDrawn(); }
+                }
+                const n = Math.min(want, pool.length);
+                // 당첨자를 먼저 정한다(연출은 보여 주기용) — 중복 없이
+                const rest = pool.slice(), win = [];
+                for (let i = 0; i < n; i++) win.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+                this.drawBusy = true;
+                this.playSound && this.playSound('click');
+                try {
+                    /* 연출 — 저학년 상점 startDraw 그대로(_drawRollAnim 공용).
+                       여러 명을 뽑을 때는 한 명씩 차례로 확정한다 —
+                       한 번만 돌리고 여러 명을 한꺼번에 보여 주면 '한 명 뽑았는데 여러 명이 됐다'고 보인다. */
+                    await this._drawRollAnim(pool.map(x => x.i), win.map(x => x.i), []);
+                    win.forEach(x => { if (!this.isDrawn(x.s.name)) this.drawnNames.push(x.s.name); });
+                    this.saveDrawn();
+                    this.drawWinners = win.map(x => ({ name: x.s.name, number: x.s.number }));
+                    this.playSound && this.playSound('success');
+                } finally { this.drawBusy = false; }
+            },
+            closeDrawWin() {
+                this.drawWinners = []; this.drawRolling = [];
+                if (this._lapNoticePending) { this._lapNoticePending = false; this.showLapCompleteOverlay(); }
+            },
+            drawWinAvatar(w) {
+                if (!window.RGW) return '';
+                void this.rgwRev;
+                const px = this.drawWinners.length === 1 ? 380 : this.drawWinners.length === 2 ? 300 : 210;
+                return window.RGW.avatarOnly(w.name, w.number, px);
+            },
+            // 왼쪽 메뉴 접기/펼치기 — 접은 폭만큼 캐릭터 칸이 커진다
+            toggleSidebar() {
+                this.sidebarHidden = !this.sidebarHidden;
+                try { localStorage.setItem('wm_sideHidden', this.sidebarHidden ? '1' : '0'); } catch (_) {}
+                this.playSound && this.playSound('click');
+            },
+            /* 칭호 보이기/숨기기 — 이름표가 빽빽한 반에서 끈다(번호 버튼 우클릭) */
+            toggleAvatarTitle() {
+                this.showAvatarTitle = !this.showAvatarTitle;
+                try { localStorage.setItem('wm_showAvatarTitle', this.showAvatarTitle ? '1' : '0'); } catch (_) {}
+                this.playSound && this.playSound('click');
+            },
+            /* 기본(캐릭터 없는) 자리표를 순환에서 뺄지 — 빼면 캐릭터 좌석배치 ↔ 캐릭터카드만 두 가지만 오간다 */
+            toggleSkipPlainSeat() {
+                this.skipPlainSeat = !this.skipPlainSeat;
+                try { localStorage.setItem('wm_skipPlain', this.skipPlainSeat ? '1' : '0'); } catch (_) {}
+                if (this.skipPlainSeat && !this.showAvatar) { this.showAvatar = true; this.avatarOnlyMode = false;
+                    try { localStorage.setItem('wm_showAvatar','1'); localStorage.setItem('wm_avatarOnly','0'); } catch (_) {}
+                    this.startAvatarFeed(); }
+                this.playSound && this.playSound('click');
+            },
+            /* 종합 보기에서 표시할 게 있는 학생인가(체크 또는 메모) */
+            sumMarked(st) {
+                if (!st) return false;
+                return this.avatarSumTabs(st.name).length > 0 || !!String(st.memo || '').trim();
+            },
+            /* 뽑기 효과음 — 저학년 상점 snd() 그대로(오실레이터라 음원 파일이 필요 없다) */
+            drawSnd(t) {
+                try {
+                    if (!this._ac) this._ac = new (window.AudioContext || window.webkitAudioContext)();
+                    const ac = this._ac; if (ac.state === 'suspended') ac.resume();
+                    const now = ac.currentTime;
+                    const o = ac.createOscillator(), g = ac.createGain();
+                    o.connect(g); g.connect(ac.destination);
+                    if (t === 'roll') {            // 공 구르기(뽑기 시작)
+                        o.type = 'sawtooth';
+                        o.frequency.setValueAtTime(120, now);
+                        o.frequency.linearRampToValueAtTime(180, now + 0.5);
+                        g.gain.setValueAtTime(0.12, now);
+                        g.gain.linearRampToValueAtTime(0, now + 0.6);
+                        o.start(); o.stop(now + 0.6);
+                    } else if (t === 'tick') {     // 멈추기 직전 긴장감
+                        o.type = 'square';
+                        o.frequency.setValueAtTime(880, now);
+                        g.gain.setValueAtTime(0.10, now);
+                        g.gain.linearRampToValueAtTime(0, now + 0.06);
+                        o.start(); o.stop(now + 0.07);
+                    } else {                       // 'golden' — 당첨 팡파레
+                        o.type = 'square';
+                        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => o.frequency.setValueAtTime(f, now + i * 0.12));
+                        g.gain.setValueAtTime(0.4, now);
+                        g.gain.linearRampToValueAtTime(0, now + 1.2);
+                        o.start(); o.stop(now + 1.2);
+                    }
+                } catch (_) {}
+            },
+            /* 점수 배지 색 — 카드 테두리(getScoreBg)와 같은 색 계열로 맞춘다 */
+            scoreBadgeColor(v) {
+                const n = Number(v) || 0;
+                if (n >= 7) return '#e8b21d';                     // 무지개 카드 — 금색
+                const plus = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e', 5:'#3b82f6', 6:'#a855f7' };
+                if (n > 0) return plus[n] || '#ef4444';
+                const minus = { '-1':'#94a3b8', '-2':'#64748b', '-3':'#475569', '-4':'#334155', '-5':'#1e293b' };
+                return minus[String(n)] || '#0f172a';
+            },
+            /* 종합 보기에서 게이지 자리에 넣을 활동 이름들 — 체크된 활동만 */
+            avatarSumTabs(name) {
+                return (this.activityTabs || []).filter(t => ((this.tabData[t.id] || {})[name] || {}).checked);
+            },
+            // 상점 연결은 아바타를 처음 켤 때 딱 한 번 — 안 쓰면 통신이 아예 없다
+            startAvatarFeed() {
+                if (!window.RGW) return;
+                window.RGW.onChange = () => { this.rgwRev = window.RGW.rev; };
+                (window.RGW.resume || window.RGW.start)();
+            },
+            /* 화면의 (분단,줄,자리) 위치에 실제로 보여 줄 학생의 자리 번호 */
+            sIdx(b, r, p) { return this.seatOrder[this.getIndex(b, r, p)]; },
+            /* 종합·메모에서 게이지를 뺐는데 적을 것도 없는 학생 → 빈 칸으로 높이만 맞춰 준다.
+               (안 그러면 그 카드만 캐릭터가 위로 올라와 줄이 어긋난다) */
+            avatarBlankBar(st) {
+                if (!st || !this.avatarOn) return false;
+                if (this.view !== 'main' || this.currentTabId !== 'summary') return false;
+                const memo = this.isMemoVisible || (st.memo && String(st.memo).trim());
+                return !(this.avatarSumTabs(st.name).length || memo);
+            },
+            avatarCardHtml(st) {
+                if (!st || !window.RGW) return '';
+                // rgwRev를 읽어 두어야 상점 값이 바뀔 때 Vue가 이 칸을 다시 그린다
+                void this.rgwRev;
+                return window.RGW.cardHtml(st.name, st.number, {
+                    // 칭호는 칸이 큰 '캐릭터 카드' 모드에서만 — 좌석 모드는 칸이 작아 글씨가 뭉갠다
+                    title: this.showAvatarTitle && this.avatarOnlyOn,
+                    no: this.showStudentNumber,
+                    // 게이지 자리를 메모나 활동 이름표가 차지할 때는 게이지를 빼고 받는다
+                    // 종합 이름표·메모가 게이지 자리를 대신한다(둘 다 켜지면 두 줄로 쌓인다)
+                    bar: !(this.view === 'main' && this.currentTabId === 'summary')
+                         && !((this.isMemoVisible || (st.memo && String(st.memo).trim())) && this.view !== 'order')
+                });
             },
             // 우클릭: 1,2,3모둠 ↔ 4,5,6모둠 위/아래 행 통째 교체 (모둠 카드 자체를 교환)
             swapGroupRows() {
@@ -18155,6 +19815,7 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                 this.showGroupDraw = true;
             },
             startGroupDraw() {
+                if (this.drawBusy) return;   // 롤링 중에는 큐를 갈아엎지 않는다
                 // 현재 좌석을 모둠별로 버킷팅
                 const buckets = {};
                 for (let i = 0; i < 30; i++) {
@@ -18162,7 +19823,7 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     if (!s || !s.name) continue;
                     const g = this.seatGroupId(i);
                     if (g < 0) continue; // 모둠 미지정 좌석은 제외
-                    (buckets[g] = buckets[g] || []).push(s.name);
+                    (buckets[g] = buckets[g] || []).push({ name: s.name, i });
                 }
                 const groupIds = Object.keys(buckets).map(Number);
                 if (groupIds.length === 0) { alert("좌석에 배치된 학생이 없습니다."); return; }
@@ -18178,7 +19839,7 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                 const remaining = {};
                 groupIds.forEach(g => { remaining[g] = shuffle(buckets[g].slice()); });
                 // 한 바퀴마다 모둠 순서를 새로 랜덤화하며 전원 소진까지 배치 구성
-                const queue = [], batchStarts = [];
+                const queue = [], batchStarts = [], lapEnds = [];
                 let safety = 0;
                 while (safety++ < 1000) {
                     const active = groupIds.filter(g => remaining[g].length > 0);
@@ -18187,37 +19848,90 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     active.forEach(g => {
                         const take = remaining[g].splice(0, N); // 같은 모둠에서 N명
                         batchStarts.push(queue.length);
-                        take.forEach(name => queue.push({ name, groupId: g }));
+                        take.forEach(m => queue.push({ name: m.name, i: m.i, groupId: g }));
                     });
+                    lapEnds.push(batchStarts.length); // 이 배치 수까지 소화하면 한 바퀴 완료
                 }
                 const pos = {};
                 queue.forEach((q, i) => { pos[q.name] = i; });
                 this.groupDrawQueue = queue;
                 this._groupDrawPos = pos;
                 this.groupDrawBatchStarts = batchStarts;
+                this.groupDrawLapEnds = lapEnds;
                 this.groupDrawBatchIdx = 0;
                 this.groupDrawRevealed = 0;
                 this.groupDrawCurStart = 0;
                 this.groupDrawActive = true;
                 this.showGroupDraw = false;
                 this.playSound('magic');
+                this.drawNext();                 // 첫 차례를 바로 연출과 함께
             },
-            drawNext() {
+            /* 다음 차례 공개 — 학생 뽑기와 똑같이 좌석이 돌아가다 멈추고 당첨 화면까지 띄운다.
+               (예전엔 연출 없이 하이라이트만 바뀌었다) */
+            async drawNext() {
+                if (this.drawBusy) return;
                 if (this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length) return;
-                // 다음 배치(같은 모둠 N명)를 한 번에 공개
-                this.groupDrawCurStart = this.groupDrawBatchStarts[this.groupDrawBatchIdx];
-                this.groupDrawBatchIdx++;
-                this.groupDrawRevealed = (this.groupDrawBatchIdx < this.groupDrawBatchStarts.length)
-                    ? this.groupDrawBatchStarts[this.groupDrawBatchIdx]
+                const start = this.groupDrawBatchStarts[this.groupDrawBatchIdx];
+                const end = (this.groupDrawBatchIdx + 1 < this.groupDrawBatchStarts.length)
+                    ? this.groupDrawBatchStarts[this.groupDrawBatchIdx + 1]
                     : this.groupDrawQueue.length;
-                this.playSound('beep', false, 0.6);
-                if (this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length) this.playSound('magic');
+                const batch = this.groupDrawQueue.slice(start, end);
+                /* 아직 안 나온 사람들 사이에서 돌린다.
+                   ⚠️ 막바지에는 남은 사람이 한둘뿐이라 당첨자만 깜빡여 연출이 죽는다 —
+                      그때는 학생 뽑기처럼 전체를 돌린다(이미 나온 사람도 스쳐 지나갈 뿐 당첨되진 않는다). */
+                const wins = batch.map(q => q.i).filter(i => i >= 0);
+                const left = this.groupDrawQueue.slice(start).map(q => q.i).filter(i => i >= 0);
+                // 남은 사람이 이번에 뽑을 인원보다 넉넉해야 '돌아가는' 느낌이 난다(모둠당 4명이면 4명 중 4명 = 연출 없음)
+                const spin = left.length >= wins.length + 3
+                    ? left
+                    : this.groupDrawQueue.map(q => q.i).filter(i => i >= 0);
+                this.drawBusy = true;
+                this.drawWinners = [];
+                try {
+                    await this._drawRollAnim(spin, wins, []);
+                    this.groupDrawCurStart = start;
+                    this.groupDrawBatchIdx++;
+                    this.groupDrawRevealed = end;
+                    this.drawWinners = batch.map(q => {
+                        const st = this.seats[q.i];
+                        return { name: q.name, number: st ? st.number : '' };
+                    });
+                    this.playSound && this.playSound('success');
+                    const isDone = this.groupDrawBatchIdx >= this.groupDrawBatchStarts.length;
+                    if (isDone) this.playSound('magic');
+                    // ⚠️ '뽑혔어요' 창이 아직 떠 있으니 여기서 바로 띄우면 두 창이 겹친다 —
+                    //    닫힐 때(closeDrawWin)로 미룬다.
+                    else if (this.groupDrawLapEnds.includes(this.groupDrawBatchIdx)) {
+                        this._lapNoticePending = true;
+                    }
+                } finally {
+                    this.drawBusy = false;
+                    this.drawRolling = [];       // 하이라이트는 seat-draw-current 가 이어받는다
+                }
+            },
+            /* 모둠 뽑기 — 전체 모둠이 한 바퀴(각 모둠 한 배치씩) 다 돌면 예쁜 창으로 알려준다 */
+            showLapCompleteOverlay() {
+                return new Promise(resolve => {
+                    const ov = document.createElement('div');
+                    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;';
+                    ov.innerHTML = `<div style="background:#fff;border-radius:20px;padding:32px 28px 24px;max-width:340px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+                        <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+                        <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">한 바퀴 완료!</div>
+                        <div style="font-size:14px;color:#555;line-height:1.6;margin-bottom:24px;">모든 모둠이 한 번씩 뽑았어요.<br>계속해서 다음 바퀴를 뽑을까요?</div>
+                        <button data-close style="width:100%;padding:12px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">확인</button>
+                    </div>`;
+                    document.body.appendChild(ov);
+                    ov.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target === ov) { document.body.removeChild(ov); resolve(); } });
+                });
             },
             endGroupDraw() {
                 this.groupDrawActive = false;
+                this.drawWinners = [];
+                this.drawRolling = [];
                 this.groupDrawQueue = [];
                 this._groupDrawPos = {};
                 this.groupDrawBatchStarts = [];
+                this.groupDrawLapEnds = [];
                 this.groupDrawBatchIdx = 0;
                 this.groupDrawRevealed = 0;
                 this.groupDrawCurStart = 0;
@@ -18248,7 +19962,9 @@ deleteAllShuffles() { if(confirm("배치 기록과 짝꿍 이력을 모두 삭�
                     8, 9, 18, 19, 28, 29
                 ];
                 // 회전 상태면 시각적 좌상단이 seats 배열 끝 인덱스에 해당하므로 순서를 뒤집음
-                const fillOrder = this.isRotated ? [...horizontalOrder].reverse() : horizontalOrder;
+                // ⚠️ 지금 보고 있는 화면의 회전을 따라야 한다(캐릭터 좌석 모드는 회전을 따로 기억한다).
+                //    isRotated 로 못 박으면 캐릭터 좌석에서 번호순 정렬했을 때 1번이 반대 구석에 놓인다.
+                const fillOrder = this.curRot ? [...horizontalOrder].reverse() : horizontalOrder;
                 let studentIdx = 0;
                 for (let i = 0; i < fillOrder.length; i++) {
                     const idx = fillOrder[i];
@@ -20477,8 +22193,39 @@ startReverseLadderGame(endColIdx) {
             this._soundCache = {};
             // 다중 탭 감지 - 다른 탭에 이미 열려 있으면 경고
             this._setupMultiTabDetection && this._setupMultiTabDetection();
+            /* 캐릭터 카드 기본값 정리 — 이미 쓰던 기기에도 한 번만 적용한다 */
+            try {
+                if (localStorage.getItem('wm_cfgVer') !== '2') {
+                    localStorage.setItem('wm_showAvatarTitle', '0');   // 칭호 숨김
+                    localStorage.setItem('wm_drawN', '1');
+                    localStorage.setItem('wm_drawWho', 'all');
+                    localStorage.setItem('wm_drawChk', 'any');
+                    localStorage.setItem('wm_drawSkip', '1');          // 중복 금지
+                    localStorage.setItem('wm_skipPlain', '1');         // 기본 자리표 숨김
+                    localStorage.setItem('wm_cfgVer', '2');
+                    this.showAvatarTitle = false; this.skipPlainSeat = true;
+                    this.drawN = 1; this.drawWho = 'all'; this.drawChk = 'any'; this.drawSkip = true;
+                }
+            } catch (_) {}
             // localStorage 캐시 선렌더 - 로컬 데이터 즉시 표시
             this.loadFromCacheFirst();
+            // ★ 지난번에 캐릭터 카드를 켠 채로 닫았으면 이어서 켠다
+            if (this.showAvatar) this.startAvatarFeed();
+            // 창 크기가 바뀌면 캐릭터 카드 줌을 다시 계산한다
+            this._onWinResize = () => { this.winH = window.innerHeight; this.winW = window.innerWidth; };
+            window.addEventListener('resize', this._onWinResize);
+            // 왼쪽 메뉴의 실제 폭을 따라간다(화면 전환·접기·창 크기 모두 반영)
+            this.$nextTick(() => {
+                const side = document.querySelector('aside.sidebar');
+                if (!side || !window.ResizeObserver) return;
+                this._sideRO = new ResizeObserver(es => {
+                    const w = Math.round(es[0].contentRect.width +
+                        (parseFloat(getComputedStyle(side).paddingLeft) || 0) +
+                        (parseFloat(getComputedStyle(side).paddingRight) || 0));
+                    if (w !== this.sideW) this.sideW = w;
+                });
+                this._sideRO.observe(side);
+            });
             // IndexedDB 초기화 후 전체 데이터 로드
             this._initIDB().then(() => {
                 this.loadFromFirebase(); // 내부적으로 loadFromLocal_full() 호출

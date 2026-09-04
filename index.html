@@ -4060,11 +4060,7 @@ font-size: clamp(0.9rem, 2vw, 1.4rem) !important;
                             class="w-14 h-14 rounded-2xl shadow-lg border-2 border-white flex items-center justify-center hover:scale-110 transition-all text-2xl"
                             :class="(showAvatar && !avatarOn) ? 'opacity-40' : ''">
                         <i class="fa-solid text-white" :class="avatarOnlyOn ? 'fa-users' : 'fa-child-reaching'"></i>
-                        <!-- 번호순 정렬 중임을 알려 준다(예전엔 삭제된 '번호' 버튼이 이 표시를 맡았다) -->
-                        <span v-if="isSortedByNumber" title="번호순 정렬 중 — 우클릭으로 원래 자리"
-                              class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center border-2 border-white">
-                            <i class="fa-solid fa-arrow-down-1-9"></i>
-                        </span>
+                        <!-- 번호순 정렬 중 배지는 뺐다 — 정렬 상태는 이 버튼의 툴팁이 알려 준다. -->
                     </button>
                     <!-- 대기 번호 — 화면은 그대로 두고 카드의 숫자만 대기 순서로 바꾼다.
                          우클릭: 학생 번호 보이기/숨기기(예전 '번호' 버튼을 여기로 합쳤다) -->
@@ -7489,7 +7485,8 @@ tabindex="0">
        ⚠️ 전부 읽기 전용이다. 최악의 실패도 '카드가 잠시 옛 모습' 수준이며,
           아래 FULL_MAX 주기마다 전체를 다시 받아 삭제·누락을 정리한다. */
     const LS_CAT = 'wm_rgwCat', LS_STU = 'wm_rgwStu';
-    const FULL_MAX = 12 * 3600 * 1000;      // 이 시간이 지나면 stu 를 통째로 다시 받는다(삭제 학생 정리)
+    const FULL_MAX = 50 * 3600 * 1000;      // 이 시간이 지나면 stu 를 통째로 다시 받는다
+                                            // (삭제 학생 정리 + updatedAt 이 없거나 거꾸로 간 학생을 증분이 놓친 경우의 복구)
     const STU_KEEP = ['cd','nm','no','eq','displayProps','displayPets',
                       'cookie','usedCookie','shopUsed','earnedTit','equippedTit','updatedAt'];
     const _slim = v => { const o = {}; STU_KEEP.forEach(k => { if (v[k] !== undefined) o[k] = v[k]; }); return o; };
@@ -8114,8 +8111,11 @@ bombMsgH: 100,
         // (제거) noiseWarningCount / noisePenaltyCount / maxWarnings —
         //   증감·표시 코드가 없는 옛 구현의 잔재였다. 실제 경고/탈락 집계는 statsWarningCount·statsPenaltyCount.
 
-isRotated: true,
-// 캐릭터 모드 회전은 보기 방식이라 이 기기에만 기억한다(모드별로 따로)
+/* 회전은 세 모드(기본 자리표 / 캐릭터 좌석배치 / 캐릭터카드만)가 각각 따로 기억한다.
+   ⚠️ 셋 다 '이 기기에만' 남는다 — 보기 방식이라 다른 기기로 옮기지 않는다.
+      기본 모드는 saveToLocal 이 쓰던 'isRotated' 키를 그대로 읽는다(근거를 둘로 늘리지 않는다). */
+isRotated: localStorage.getItem('isRotated') === null ? true : localStorage.getItem('isRotated') !== 'false',
+// 캐릭터 모드 회전도 같은 규칙(모드별로 따로)
 rotCharSeat: localStorage.getItem('wm_rotCharSeat') === null ? true : localStorage.getItem('wm_rotCharSeat') === '1',
 rotCharOnly: localStorage.getItem('wm_rotCharOnly') === null ? true : localStorage.getItem('wm_rotCharOnly') === '1',
 isRotatedGroup: false, isViewSwitching: false, _pendingSeatsRefresh: false, showSettings: false, tempNameList: '', dragInfo: null, draggedOrderIdx: null,  draggedBoardIdx: null,              isRolling: false, 
@@ -8246,6 +8246,12 @@ computed: {
 /* ★ 캐릭터 카드를 지금 그려야 하는가 — 좌석배치도·대기번호에서만.
    ⚠️ '종합' 탭은 예외다. 종합 카드의 활동 이름표는 눌러서 체크를 푸는 버튼이라,
       캐릭터로 덮으면 그 기능이 통째로 사라진다 → 종합에서는 원래 카드를 그대로 쓴다. */
+/* 리스너를 붙여 두어야 하는 상태인가 — avatarOn 과 달리 RGW 상태를 보지 않는다.
+   ⚠️ avatarOn 을 watch 하면 pause 가 RGW.ready 를 내려 avatarOn 이 false 로 굳고,
+      다시 켜지는 조건이 사라져 캐릭터가 영영 안 뜬다. 반드시 이 순수 조건을 쓸 것. */
+_avatarFeedWanted() {
+    return !!this.showAvatar && (this.view === 'main' || this.view === 'order');
+},
 avatarOn() {
     if (!this.showAvatar) return false;
     // rgwRev를 읽어야 상점 데이터가 도착한 순간 이 값이 다시 계산된다
@@ -8269,8 +8275,9 @@ resetSummary() {
 },
 avatarOnlyOn() { return this.avatarOn && this.avatarOnlyMode && (this.view === 'main' || this.view === 'order'); },
 /* 지금 화면의 회전 상태 — 학생 활동은 모드(카드만/캐릭터 좌석/기본)마다 따로 기억한다.
-   ⚠️ 기본 모드만 isRotated(클라우드 동기화·번호순 자리 계산에 쓰이는 값)를 그대로 쓴다.
-      캐릭터 모드 두 가지는 보기 방식이라 이 기기에만 남긴다(wm_rotChar*). */
+   ⚠️ 셋 다 보기 방식이라 '이 기기에만' 남는다 — 클라우드로 보내지 않는다.
+      기본=localStorage('isRotated'), 캐릭터 두 모드=wm_rotCharSeat / wm_rotCharOnly.
+      isRotated 는 번호순 자리 계산(repositionSortedSeats)에도 쓰이는 값이다. */
 curRot() {
     // ⚠️ 대기 번호 모드는 따로 회전 상태를 갖지 않는다 — 이전 화면(캐릭터 좌석/기본)의 회전을 그대로 따라간다.
     if (this.view === 'group') return this.isRotatedGroup;
@@ -9216,6 +9223,15 @@ mergedRankData() {
             boardCardYellow(v) {
                 try { localStorage.setItem('boardCardYellow', v ? '1' : '0'); } catch(e) {}
             },
+            /* 캐릭터를 그리는 화면(좌석배치도·대기번호)를 벗어나면 상점 리스너를 둔다(떼다).
+               예전에는 한 번 켜면 시간표·활동·판서를 보는 내내 전교생 증분이 계속 들어왔다.
+               떼고 붙이는 비용은 거의 없다 — pause 에 30초 유예가 있어 화면을 오가는 정도로는
+               떨어지지 않고, 다시 붙을 때는 localStorage 캐시로 바로 그리고 커서 이후 증분만 받는다. */
+            _avatarFeedWanted(v) {
+                if (!window.RGW) return;
+                if (v) this.startAvatarFeed && this.startAvatarFeed();
+                else if (window.RGW.pause) window.RGW.pause();
+            },
             // ★ Phase B: view 변경(메뉴 클릭) 시 도구 데이터 즉시 구독 + 직전 변경사항 flush
             view(newView) {
                 // ⚠️ 세 팝업(카드 설정·뽑기 설정·초기화)은 같은 자리에 뜬다. 화면을 옮기면
@@ -9263,6 +9279,17 @@ mergedRankData() {
             lastWinners: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             groupingList: { deep: true, handler() { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); } },
             rouletteInput(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            /* ★ 전파 목록에 넣었으니 그것만으로는 부족하다 — 보내는 계기가 없으면
+               다른 값이 바뀔 때까지 전파가 미뤄진다(그 사이 상대 탭은 옛 값으로 저장). */
+            noiseThreshold(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
+            /* ⚠️ 타이머가 도는 동안은 전파하지 않는다 — syncTimeToInput() 이
+               50ms 간격 인터벌 안에서 inputMin/inputSec 를 계속 다시 쓴다.
+               가드가 없으면 타이머가 도는 내내 50ms마다 전체 blob 을 stringify 해
+               브로드캐스트한다(저사양 태블릿 직격). 그때의 값은 설정이 아니라
+               남은 시간 표시이기도 하다 — 수신부도 같은 조건으로 막혀 있다. */
+            inputMin(v) { if (!this.isSyncing && !this.__bcApplying && !this.timerInterval) this._broadcastNow && this._broadcastNow(); },
+            inputSec(v) { if (!this.isSyncing && !this.__bcApplying && !this.timerInterval) this._broadcastNow && this._broadcastNow(); },
+            isStopwatchMode(v) { if (!this.isSyncing && !this.__bcApplying && !this.timerInterval) this._broadcastNow && this._broadcastNow(); },
             blackboardContent(v) { if (!this.isSyncing && !this.__bcApplying) { this._broadcastNow && this._broadcastNow(); this._queueBoardLocalSave && this._queueBoardLocalSave(); } },
             'paths.length'(v) { if (!this.isSyncing && !this.__bcApplying) this._broadcastNow && this._broadcastNow(); },
             // ★ 번호순 정렬 중 회전 토글 시 1번이 시각적 좌상단에 유지되도록 자리 재배치
@@ -10921,11 +10948,21 @@ _setupMultiTabDetection() {
             const m = e.data;
             if (!m || m.tabId === myId) return;
             if (m.type === 'hb') {
+                /* ★ 처음 보는 탭이면 내 hb 를 즉시 돌려준다.
+                   안 그러면 새로 열린 탭이 다음 주기(최대 2초)까지 날 모르고
+                   자기를 클라우드 리더로 여겨 둘 다 업로드할 수 있다.
+                   상대도 그때는 나를 이미 알기 때문에 답장이 다시 돌아오지 않는다. */
+                const _isNew = !this._otherTabs.has(m.tabId);
                 this._otherTabs.set(m.tabId, m.ts);
+                if (_isNew) { try { channel.postMessage({ type:'hb', tabId: myId, ts: Date.now() }); } catch(_){} }
                 updateBanner();
             } else if (m.type === 'bye') {
                 this._otherTabs.delete(m.tabId);
                 updateBanner();
+            } else if (m.type === 'push_req') {
+                // 다른 탭이 숨겨지거나 닫히면서 맡긴 업로드 — 리더일 때만 올린다.
+                // (보낸 탭의 편집은 바로 앞 도착한 data_update 로 이미 반영돼 있다)
+                if (this._isCloudLeader()) setTimeout(() => { this.pushToCloud && this.pushToCloud(); }, 0);
             } else if (m.type === 'data_update') {
                 // ★ 같은 컴퓨터 다른 창의 모든 변경을 Firebase 없이 즉시 반영
                 // (isSavingNow는 내 창의 Firebase 저장 플래그 — 수신과 무관하므로 체크 안 함)
@@ -10933,6 +10970,9 @@ _setupMultiTabDetection() {
             }
         };
         // 2초마다 heartbeat 발신 + 만료된 탭 정리
+        /* ★ 첫 발신을 즉시 한 번 해 둔다 — 안 그러면 열린 직후 2초간
+           서로를 몰라 둘 다 자신을 클라우드 리더로 여긴다. */
+        try { channel.postMessage({ type:'hb', tabId: myId, ts: Date.now() }); } catch(_){}
         if (this._tabHbTimer) clearInterval(this._tabHbTimer);
         this._tabHbTimer = setInterval(() => {
             try { channel.postMessage({ type:'hb', tabId: myId, ts: Date.now() }); } catch(_){}
@@ -10945,7 +10985,11 @@ _setupMultiTabDetection() {
         // 페이지 닫을 때 다른 탭에 알림 + 채널 정리
         window.addEventListener('beforeunload', () => {
             try { channel.postMessage({ type:'bye', tabId: myId }); } catch(_){}
-            try { channel.close(); } catch(_){}
+            /* ⚠️ 여기서 channel.close() 를 부르면 안 된다.
+               이 핸들러는 _fbFlush(마지막 저장) 보다 먼저 등록돼 먼저 실행된다.
+               채널을 닫으면 뒤이어 동작하는 마지막 전파와 push_req(리더에게 업로드 부탁)가
+               InvalidStateError 로 조용히 사라진다 — 비-리더 탭을 닫을 때마다 마지막 편집이 안 올라간다.
+               페이지가 사라지면 브라우저가 알아서 회수한다. */
         });
     } catch(e) {
         console.warn('다중 탭 감지 비활성:', e);
@@ -11014,6 +11058,14 @@ _applyBroadcastUpdate(m) {
         if (d.isOneMinAlarmOn !== undefined) this.isOneMinAlarmOn = d.isOneMinAlarmOn;
         if (d.noiseRecordSeconds !== undefined) this.noiseRecordSeconds = Number(d.noiseRecordSeconds);
         if (d.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = d.isNoiseTimeHidden;
+        if (d.noiseThreshold !== undefined) this.noiseThreshold = Number(d.noiseThreshold);
+        /* 타이머 기본설정 — 단, 이 탭에서 타이머가 돌고 있으면 건드리지 않는다
+           (동작 중인 카운트의 기준값이라 바꾸면 화면이 튄다). */
+        if (!this.timerInterval) {
+            if (d.inputMin !== undefined) this.inputMin = d.inputMin;
+            if (d.inputSec !== undefined) this.inputSec = d.inputSec;
+            if (d.isStopwatchMode !== undefined) this.isStopwatchMode = !!d.isStopwatchMode;
+        }
         // ★ 송신부에 새로 추가한 필드들의 수신 처리
         if (d.presentGoal !== undefined) this.presentGoal = d.presentGoal;
         if (d.dashboardSettings !== undefined) this.dashboardSettings = d.dashboardSettings;
@@ -11089,11 +11141,17 @@ _applyBroadcastUpdate(m) {
 },
 
 // ★ 클릭/변경 시 즉시 다른 창에 broadcast (50ms debounce — 연타 방지)
-_broadcastNow() {
+_broadcastNow(immediate) {
     if (this.__bcApplying || !this._tabChannel || this.isSyncing) return;
     if (this.lastDbSnapshot == null) return; // 초기 로드 완료 전 차단
-    if (this.__bcTimer) clearTimeout(this.__bcTimer);
-    this.__bcTimer = setTimeout(() => {
+    if (this.__bcTimer) { clearTimeout(this.__bcTimer); this.__bcTimer = null; }
+    /* ★ immediate — 창을 닫는 순간에는 setTimeout 이 돌지 않아 마지막 편집이 날아간다.
+       비-리더 탭이 리더에게 업로드를 맡기기 전에 반드시 이 경로로 비우고 보낸다. */
+    if (immediate === true) { this._broadcastSend(); return; }
+    this.__bcTimer = setTimeout(() => { this.__bcTimer = null; this._broadcastSend(); }, 50);
+},
+_broadcastSend() {
+    {
         if (!this._tabChannel) return;
         // Vue 3 Proxy → plain object 변환. 섹션별 독립 처리: 한 섹션 실패해도 나머지 broadcast 유지
         const rawSafe = v => { try { return JSON.parse(JSON.stringify(v)); } catch(_) { return null; } };
@@ -11107,7 +11165,11 @@ _broadcastNow() {
             timeBankHistory: this.timeBankHistory, presentThreshold: this.presentThreshold, presentGoal: this.presentGoal,
             pdExcludePicked: this.pdExcludePicked, pdBigFace: this.pdBigFace, semesterEndMode: this.semesterEndMode,
             dashboardSettings: this.dashboardSettings, customSeatGroups: this.customSeatGroups,
-            showGenderHint: this.showGenderHint, defaultCheckMode: this.defaultCheckMode });
+            showGenderHint: this.showGenderHint, defaultCheckMode: this.defaultCheckMode,
+            /* ★ saveToLocal_full 은 저장하는데 전파가 빠져 있던 값들(2026-09-04 목록 대조).
+               빠져 있으면 탭 A 에서 바꿄 값을 탭 B 가 모른 채 저장해 옛 값으로 되돌린다. */
+            noiseThreshold: this.noiseThreshold,
+            inputMin: this.inputMin, inputSec: this.inputSec, isStopwatchMode: this.isStopwatchMode });
         const toolsData  = rawSafe({ tournamentData: { tree: this.visibleBracketTree, winner: this.finalWinner, mode: this.selectedBracketMode, left: this.leftSideBracket, right: this.rightSideBracket }, animalRunners: this.animalRunners, animalRaceResults: this.animalRaceResults, animalRaceFinished: this.animalRaceFinished, participantList: this.participantList, deductWinnerCount: this.deductWinnerCount, rememberParticipants: this.rememberParticipants, rouletteInput: this.rouletteInput, savedRoulettes: this.savedRoulettes, savedGroupings: this.savedGroupings, groupingList: this.groupingList, savedBoards: this.savedBoards, capsules: this.capsules, lotteryPools: this.lotteryPools, lastWinners: this.lastWinners, lotteryMode: this.lotteryMode, displayWinner: this.displayWinner, groupNames: this.groupNames, groupLabelOrder: this.groupLabelOrder, raceCompleted: this.raceCompleted });
         const snackData  = rawSafe({ snackBank: this.snackBank, snackTypes: this.snackTypes, snackDrawList: this.snackDrawList, snackDrawIdx: this.snackDrawIdx, snackBankHistory: this.snackBankHistory, snackContribLog: this.snackContribLog });
         // board는 칠판이 실제로 열려 있을 때만 포함 (paths가 크므로 불필요한 전송 방지)
@@ -11124,7 +11186,7 @@ _broadcastNow() {
         if (boardData)  msg.board = boardData;
         // console.log('[BC] 전송:', this._tabId, Object.keys(msg));
         try { this._tabChannel.postMessage(msg); } catch(_) {}
-    }, 50);
+    }
 },
 _scheduleLocalBroadcast() { this._broadcastNow && this._broadcastNow(); },
 
@@ -14916,6 +14978,17 @@ _queueBoardLocalSave() {
                     //  - paths: 손그림 획(용량 큼). 칠판 텍스트(blackboardContent)만 동기화, 손그림은 로컬 전용.
                     delete data.savedBoards;
                     delete data.paths;
+                    /* ★ 화면 상태는 탭·기기마다 달라도 되는 값이다 — 동기화에서 뺀다(2026-09-04).
+                       이것들은 전파(BroadcastChannel)할 수도 없다 — 값이 곳 화면 상태 그 자체라
+                       전파하면 다른 창의 미니창이 제먼대로 움직이고 보던 탭이 바뀌고 화면이 돌아간다.
+                       그래서 '전파 목록을 맞추는' 대신 서버로 안 보낸다 → stale 탭이 덮어쓸 것 자체가 없어진다.
+                       로컬(classroomData_v1)에는 그대로 남아 같은 기기에서는 유지되고,
+                       _applyLocalSnapshot 이 없는 필드를 건드리지 않아 pull 해도 창 위치가 초기화되지 않는다. */
+                    delete data.uiState;          // 미니창 위치·크기·최대화
+                    delete data.isRotated;        // 화면 회전
+                    delete data.currentTabId;     // 보고 있는 활동 탭
+                    delete data.isSortedByNumber; // 번호순 정렬은 원래 메모리 전용 설계(저장 목록에 남은 잔재)
+                    delete data.preSortLayout;
                     return JSON.stringify(data);
                 } catch (e) { return raw; }
             },
@@ -15023,6 +15096,32 @@ _queueBoardLocalSave() {
                 const [msg, kind] = map[res] || ['저장했어요', 'ok'];
                 this._showCloudToast(msg, kind);
             },
+            /* ★ 클라우드 리더 탭 — 같은 기기에 이 앱이 여러 탭 열려 있을 때
+               서버에 쓰는 탭을 '가장 먼저 열린 한 개'로 고정한다.
+               예전엔 탭이 둘 이상이면 아무도 안 올려 기기 간 동기화가 통째로 멈췄다.
+               항상 한 탭만 쓰므로 덮어쓰기 위험은 예전과 똑같이 0 이다.
+               ⚠️ BroadcastChannel 이 없는 환경은 다른 탭을 볼 수 없다 → 단독으로 간주(예전 동작).
+               ⚠️ 채널 이름이 같은 '이 앱의 탭'만 세어진다. 다른 앱은 애초에 이 blob 을 건드리지 않는다. */
+            _isCloudLeader() {
+                if (!this._tabId) return true;
+                if (!this._otherTabs || this._otherTabs.size === 0) return true;
+                const mine = parseInt(String(this._tabId).split('_')[0], 10) || 0;
+                for (const tid of this._otherTabs.keys()) {
+                    const t = parseInt(String(tid).split('_')[0], 10) || 0;
+                    // 같은 밀리초에 열렸으면 문자열 비교로 반드시 한 쪽만 리더가 되게 한다
+                    if (t < mine || (t === mine && String(tid) < String(this._tabId))) return false;
+                }
+                return true;
+            },
+            /* 비-리더 탭이 숨겨지거나 닫힐 때 — 자기 blob 을 올리는 대신 리더에게 부탁한다.
+               (편집 내용 자체는 이미 data_update 브로드캐스트로 리더 탭에 들어가 있다) */
+            _askLeaderPush() {
+                // ⚠️ 순서 중요 — 마지막 편집을 먼저 보낸 뒤에 '올려 달라'를 보낸다.
+                //    디바운스(50ms)를 그대로 두면 창이 닫힐 때 그 타이머가 안 돌아
+                //    방금 한 편집이 리더에 안 간 상태로 업로드된다.
+                try { this._broadcastNow && this._broadcastNow(true); } catch (_) {}
+                try { this._tabChannel && this._tabChannel.postMessage({ type: 'push_req', tabId: this._tabId }); } catch (_) {}
+            },
             // 공유 baseline(같은 origin의 다른 탭이 갱신했을 수 있음) 중 가장 최신값 사용
             _freshBaselineTs() {
                 let ls = 0;
@@ -15082,8 +15181,9 @@ _queueBoardLocalSave() {
                     // ★ dirty 판정 근거인 localModifiedAt_v1은 localStorage = 탭 간 공유값이다.
                     //   다른 탭이 만든 dirty를 보고 이 탭이 push하면, 이 탭의 낡은 blob이
                     //   다른 탭의 최신 변경을 덮어쓴다(baseTs도 공유라 충돌 검사를 통과함).
-                    //   → 다중 탭이면 push도 pull도 하지 않고 물러난다. 탭이 하나만 남으면 정상 동기화된다.
-                    if (this._otherTabs && this._otherTabs.size > 0) return;
+                    //   → 서버와 말하는 탭을 리더 하나로 고정해 둔다. 비-리더는 그냥 물러난다
+                    //   (리더가 자기 주기·이벤트에 동기화하므로 기기 간 동기화는 계속 살아 있다).
+                    if (!this._isCloudLeader()) return;
                     // 먼저 올려보고(충돌이면 선택창), 확실히 정리된 뒤에만 내려받는다.
                     const r = await this.pushToCloud({ prompt: true });
                     if (r !== 'saved' && r !== 'skipped') return;
@@ -15263,7 +15363,9 @@ _queueBoardLocalSave() {
                 if (data.preSortLayout) this.preSortLayout = data.preSortLayout;
                 if (data.showHallOfFame !== undefined) this.showHallOfFame = data.showHallOfFame;
                 if (data.showMissionWidget !== undefined) this.showMissionWidget = data.showMissionWidget;
-                if (data.isRotated !== undefined) this.isRotated = data.isRotated;
+                // ⚠️ isRotated 는 여기서 복원하지 않는다 — 회전은 기기별 보기 설정이고
+                //    근거는 localStorage('isRotated') 하나다. blob 으로 되돌리면 다른 탭·기기의
+                //    회전이 이 기기에 끌려온다(캐릭터 두 모드와 규칙을 맞춘 것).
                 if (data.boardPreview !== undefined) this.boardPreview = data.boardPreview;
                 // ★ 타이머 기본 설정 복원(남은 시간은 저장하지 않으므로 복원도 하지 않는다)
                 //   inputMin/inputSec은 문자열이어야 한다("0","00"). 템플릿이 .padStart(), 입력 정리가
@@ -15464,7 +15566,7 @@ _queueBoardLocalSave() {
 
                             // [1. 일반 데이터 및 상태 복구]
 this.view = 'main'; // ★ 무조건 좌석 배치도(main)가 가장 먼저 뜨도록 고정!        
-                    // isRotated는 새로고침마다 기본값(true) 유지 — Firebase/캐시 값 무시
+                    // isRotated 는 여기서 건드리지 않는다 — 회전은 data() 가 localStorage('isRotated') 로 이미 복원했다
                             if (parsed.showStudentNumber !== undefined) this.showStudentNumber = parsed.showStudentNumber;
                             // 시계 메시지가 옛날 찌꺼기(..., -)면 싹 비웁니다.
                             this.clockMessage = (parsed.clockMessage && parsed.clockMessage !== "..." && parsed.clockMessage !== "-") ? parsed.clockMessage : "";
@@ -16728,13 +16830,18 @@ if(this.allMode) {
         closeBlackboard() {
             if (!this.showBlackboard) return;
             if (this.saveBoardToFirebase) this.saveBoardToFirebase();
+            // ⚠️ 칠판 내용은 showBlackboard 가 true 일 때만 전파된다(paths 가 커서 그렇게 뒀다).
+            //    닫기 전에 마지막으로 한 번 비워 보낸다 — 순서를 바꾸면 마지막 판서가 다른 탭에 안 간다.
+            this._broadcastNow && this._broadcastNow(true);
             this.showBlackboard = false;
             // ★ 판서창 닫을 때: 변경이 있으면 즉시 1회 클라우드 저장(연속 판서의 크래시 대비 체크포인트).
             //   whole-blob이라 이 시점의 다른 정보도 함께 올라감(누락 방지). 변경 없으면 자동 SKIP.
-            //   단 다른 탭이 살아 있으면 자동 업로드 금지 — whole-blob이라 이 탭의 낡은 필드가
-            //   다른 탭의 최신 변경을 덮어쓴다(hidden push·pull 가드와 동일 규칙).
-            if (!(this._otherTabs && this._otherTabs.size > 0)) {
+            //   단 리더 탭이 아니면 직접 올리지 않고 리더에게 맡긴다 — whole-blob이라
+            //   낡은 탭이 올리면 다른 탭의 최신 변경을 덮어쓴다(hidden push·pull 가드와 동일 규칙).
+            if (this._isCloudLeader()) {
                 this.pushToCloud && this.pushToCloud();
+            } else {
+                this._askLeaderPush();
             }
         },
         openMainDashboard() {
@@ -17754,7 +17861,12 @@ if (data.isNoiseTimeHidden !== undefined) this.isNoiseTimeHidden = data.isNoiseT
                         if (data.isSortedByNumber !== undefined) this.isSortedByNumber = data.isSortedByNumber;
                         if (data.showHallOfFame !== undefined) this.showHallOfFame = data.showHallOfFame;
                         if (data.showMissionWidget !== undefined) this.showMissionWidget = data.showMissionWidget;
-                        if (data.isRotated !== undefined) this.isRotated = data.isRotated;
+                        // 백업 복원은 사용자가 명시적으로 고른 동작이라 회전도 되살린다.
+                        // 다만 근거는 localStorage 하나이므로 여기서 함께 남긴다(안 그러면 새로고침에 되돌아감).
+                        if (data.isRotated !== undefined) {
+                            this.isRotated = data.isRotated;
+                            try { localStorage.setItem('isRotated', data.isRotated ? 'true' : 'false'); } catch (_) {}
+                        }
                         if (data.alarmVolume !== undefined) this.alarmVolume = data.alarmVolume;
                         if (data.bgmVolume !== undefined) this.bgmVolume = data.bgmVolume;
                         if (data.sfxVolume !== undefined) this.sfxVolume = data.sfxVolume;
@@ -19258,7 +19370,12 @@ deleteGrouping(idx) {
                 } else if (this.avatarOn) {
                     this.rotCharSeat = !this.rotCharSeat;
                     try { localStorage.setItem('wm_rotCharSeat', this.rotCharSeat ? '1' : '0'); } catch (_) {}
-                } else this.isRotated = !this.isRotated;
+                } else {
+                    this.isRotated = !this.isRotated;
+                    // ⚠️ 이 함수는 saveToLocal 을 부르지 않는다 — 여기서 직접 남기지 않으면
+                    //    새로고침할 때 회전이 기본값으로 돌아간다(캐릭터 두 모드와 같은 규칙).
+                    try { localStorage.setItem('isRotated', this.isRotated ? 'true' : 'false'); } catch (_) {}
+                }
             },
 
             /* ===== ★ 캐릭터 카드 (이벤트 상점 아바타) =====
@@ -22381,12 +22498,13 @@ startReverseLadderGame(endColIdx) {
                     this.saveToLocal_full && this.saveToLocal_full();
                     if (this.saveBoardToFirebase) this.saveBoardToFirebase();
                     // ★ 클라우드(다른 기기)로 1회 업로드 — 페이지가 살아있는 visibilitychange 시점
-                    //   단, 같은 기기에 다른 탭이 살아 있으면 자동 업로드 금지.
-                    //   탭 간 브로드캐스트가 일부 필드(uiState·preSortLayout 등)를 전파하지 않아
-                    //   stale 탭이 다른 탭의 변경을 baseTs 검사 통과한 채 덮어쓸 수 있다.
+                    //   단, 리더 탭이 아니면 직접 올리지 않고 리더에게 맡긴다(_askLeaderPush).
+                    //   whole-blob 이라 낡은 탭이 올리면 다른 탭의 변경을
+                    //   baseTs 검사를 통과한 채 덮어쓴다(baseTs 는 탭 간 공유값).
+                    //   화면 상태(uiState·preSortLayout 등)는 아예 클라우드에서 제외해 이 문제를 없앴다.
                     //   (🏫 수동 저장과 앱 열 때 syncOnOpen은 그대로 동작 — 사용자가 의도한 시점이므로)
-                    const _multiTab = this._otherTabs && this._otherTabs.size > 0;
-                    if (!_multiTab) this.pushToCloud && this.pushToCloud();
+                    if (this._isCloudLeader()) this.pushToCloud && this.pushToCloud();
+                    else this._askLeaderPush();
                 };
                 // 주기 업로드 없음: 탭전환/최소화/닫기(visibilitychange hidden)에서 1회 저장하고,
                 // 크래시로 못 올린 편집은 다음에 이 기기를 열 때 syncOnOpen의 push-if-dirty가 복구한다.
@@ -22401,7 +22519,7 @@ startReverseLadderGame(endColIdx) {
                 //   (전엔 push 실패 시 '다음에 앱을 열 때'까지 기다렸다 — 학교 와이파이가 끊겼다 붙는 상황 대비)
                 //   가드는 자동 push와 동일: 다른 탭이 있으면 stale 덮어쓰기 위험이 있어 건너뛴다.
                 window.addEventListener('online', () => {
-                    if (this._otherTabs && this._otherTabs.size > 0) return;
+                    if (!this._isCloudLeader()) return;
                     if (this._isLocalDirty && this._isLocalDirty()) {
                         this.pushToCloud && this.pushToCloud();
                     }
